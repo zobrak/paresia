@@ -111,7 +111,7 @@ drwxr-xr-x 2 10001 10001 4096 nov.  9 00:12 journal
 
 ## 5. Écrire `compose.yml`
 
-Machine : `backend-relais`, dans `/srv/strfry`. Indiquez d'abord l'adresse IP de la machine.
+Machine : `backend-relais`, dans `/srv/strfry`. Remplacez `192.0.2.20` par l'adresse IP de cette machine, jamais `0.0.0.0`.
 
 ```
 ADRESSE_RELAIS=192.0.2.20
