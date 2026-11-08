@@ -12,29 +12,14 @@ Alpha : à essayer sur une machine jetable. Les noms et adresses (`backend-relai
 
 Il vous faut :
 
-- `backend-relais` sous Debian 13, avec un accès `root` pour l'étape 1 ;
+- `backend-relais` sous Debian 13 ;
+- un compte ordinaire, membre du groupe `sudo`, avec `curl` installé ;
 - l'adresse IP de cette machine (`192.0.2.20` dans les exemples) ;
 - l'adresse publique du relais (`relay.example.org` dans les exemples).
 
-Toutes les commandes se lancent sur `backend-relais`.
+Toutes les commandes se lancent sur `backend-relais`, avec ce compte.
 
-## 1. Préparer le compte
-
-Donne `sudo` à votre compte ordinaire. Machine : `backend-relais`, en root.
-
-```
-apt install sudo curl
-```
-
-```
-usermod -aG sudo VOTRE_COMPTE
-```
-
-Remplacez `VOTRE_COMPTE` par votre compte. Fermez la session, puis ouvrez-en une nouvelle avec ce compte : toutes les étapes suivantes se lancent avec lui.
-
-Résultat attendu : `sudo true` s'exécute sans erreur.
-
-## 2. Récupérer le dépôt
+## 1. Récupérer le dépôt
 
 Les fichiers à copier plus loin viennent du dépôt. Machine : `backend-relais`.
 
@@ -54,7 +39,7 @@ cat ~/paresia/VERSION
 
 Résultat attendu : `0.1.19`.
 
-## 3. Installer Docker
+## 2. Installer Docker
 
 Machine : `backend-relais`.
 
@@ -76,7 +61,7 @@ sudo docker compose version
 
 affiche `Docker Compose version v5.7.0` ou plus récent.
 
-## 4. Télécharger l'image
+## 3. Télécharger l'image
 
 Machine : `backend-relais`.
 
@@ -88,7 +73,7 @@ Gardez l'étiquette `4cd3cf6` : l'installateur la compare.
 
 Résultat attendu : `Status: Downloaded newer image` ou `Image is up to date`.
 
-## 5. Préparer les dossiers
+## 4. Préparer les dossiers
 
 Machine : `backend-relais`. Les droits se règlent **avant** le premier démarrage.
 
@@ -115,7 +100,7 @@ ls -ld data journal
 
 montre le propriétaire `10001` pour les deux dossiers.
 
-## 6. Écrire `compose.yml`
+## 5. Écrire `compose.yml`
 
 Machine : `backend-relais`, dans `/srv/strfry`. Indiquez d'abord l'adresse IP de la machine.
 
@@ -164,7 +149,7 @@ grep 7777 compose.yml
 
 montre votre adresse devant `:7777:7777`.
 
-## 7. Installer `nak`
+## 6. Installer `nak`
 
 Machine : `backend-relais`. Version v0.22.3, licence The Unlicense.
 
@@ -188,7 +173,7 @@ sudo install -m 0755 -o root -g root nak-v0.22.3-linux-amd64 /usr/local/bin/nak
 
 Résultat attendu : `nak --help` affiche l'aide.
 
-## 8. Créer la clé du relais
+## 7. Créer la clé du relais
 
 Machine : `backend-relais`, dans `bash`. Rien n'est enregistré : la clé est seulement affichée.
 
@@ -203,7 +188,7 @@ SECRET=$(nak key generate); printf 'CLE PRIVEE (a conserver en lieu sur) : %s\n'
 
 Résultat attendu : deux lignes libellées, `CLE PRIVEE` puis `CLE PUBLIQUE`.
 
-## 9. Régler `strfry.conf`
+## 8. Régler `strfry.conf`
 
 Machine : `backend-relais`. Indiquez l'adresse publique du relais.
 
@@ -225,11 +210,11 @@ grep serviceUrl strfry.conf
 
 affiche `wss://` suivi de votre adresse.
 
-Écrivez ensuite la seule ligne « CLE PUBLIQUE » de l'étape 8 dans `relay.info.pubkey` (ligne `pubkey = ""`). N'y mettez jamais la clé privée. Laissez `relay.info.self` vide.
+Écrivez ensuite la seule ligne « CLE PUBLIQUE » de l'étape 7 dans `relay.info.pubkey` (ligne `pubkey = ""`). N'y mettez jamais la clé privée. Laissez `relay.info.self` vide.
 
 La clé privée sera importée dans le bunker lors de son installation sur `backend-admin`, qui la chiffrera.
 
-## 10. Démarrer
+## 9. Démarrer
 
 Machine : `backend-relais`, dans `/srv/strfry`.
 
@@ -245,7 +230,7 @@ sudo docker ps --filter name=^strfry$
 
 montre le conteneur `strfry`. Il passe à `healthy` après une minute.
 
-## 11. Contrôler
+## 10. Contrôler
 
 Machine : `backend-relais`.
 
@@ -265,7 +250,7 @@ Résultat attendu : une écoute sur votre adresse, jamais sur `0.0.0.0:7777`.
 curl -s -H 'Accept: application/nostr+json' http://ADRESSE_RELAIS:7777/
 ```
 
-Remplacez `ADRESSE_RELAIS` par l'adresse de l'étape 6. Résultat attendu : un objet JSON dont `name` vaut `Paresia`.
+Remplacez `ADRESSE_RELAIS` par l'adresse de l'étape 5. Résultat attendu : un objet JSON dont `name` vaut `Paresia`.
 
 En cas d'échec : `sudo journalctl -t strfry`.
 
@@ -283,6 +268,6 @@ En cas d'échec : `sudo journalctl -t strfry`.
 - **`strfry.conf` : à ne pas changer sans raison.** `db`, `relay.port = 7777`, `relay.bind = "0.0.0.0"` (adresse dans le conteneur), `relay.realIpHeader`, `relay.writePolicy.plugin` (doit coïncider avec le montage), `restrictedReadKinds = "4"` et `filterValidation.enabled = false` (compatibilité bitchat). Ne créez jamais d'arbre negentropy (`strfry negentropy add`, `build`).
 - **Annonce NIP-11.** Les champs `relay.info.*` (`name`, `description`, `pubkey`, `self`, `contact`, `icon`, `banner`, `privacy`, `terms`) sont à votre convenance ; les champs vides sont des valeurs d'installation.
 - **Clé.** La clé privée du relais est une identité du bunker (`[bunkerd] relay_identity`) ; bunkerd n'en garde que la forme chiffrée. Ne collez jamais une clé privée dans un fichier, un terminal partagé ou une conversation ; seule la clé publique se publie. Sur cette machine, rien n'est enregistré : la clé privée n'existe que le temps de la commande et de son affichage.
-- **`nak`.** Il n'est pas fourni par Debian ; il vient de l'amont `fiatjaf/nak` (https://github.com/fiatjaf/nak), v0.22.3, The Unlicense (empreinte et licence vérifiées à l'API GitHub le 2026-11-08). Les commandes de l'étape 7 ne font que télécharger, vérifier et installer ; aucune n'a été essayée.
-- **Création de la clé (étape 8).** La commande n'a pas été essayée. `nak key generate` et `nak key public <clé>` sont attestés par le README de `nak`. L'historique du shell ne contient que la commande, non la clé. La clé passe brièvement en argument de `nak key public` : elle est alors visible dans la liste des processus ; lancez la commande sur une machine sans autre utilisateur.
+- **`nak`.** Il n'est pas fourni par Debian ; il vient de l'amont `fiatjaf/nak` (https://github.com/fiatjaf/nak), v0.22.3, The Unlicense (empreinte et licence vérifiées à l'API GitHub le 2026-11-08). Les commandes de l'étape 6 ne font que télécharger, vérifier et installer ; aucune n'a été essayée.
+- **Création de la clé (étape 7).** La commande n'a pas été essayée. `nak key generate` et `nak key public <clé>` sont attestés par le README de `nak`. L'historique du shell ne contient que la commande, non la clé. La clé passe brièvement en argument de `nak key public` : elle est alors visible dans la liste des processus ; lancez la commande sur une machine sans autre utilisateur.
 - **Non établi, à compléter :** présence de `python3` dans l'image publiée (le plugin du journal légal l'exige) ; limites de ressources de la production ; valeur de `ulimits.nofile` si strfry se plaint de `nofiles = 524288` ; forme du fichier `blocklist.txt` du plugin ; essai de ce `compose.yml` tel quel sur une machine.

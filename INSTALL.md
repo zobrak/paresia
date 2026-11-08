@@ -14,7 +14,7 @@ Il vous faut :
 
 - deux machines Debian 13 avec `systemd`. Exemples : `backend-admin` en `192.0.2.10`, `backend-relais` en `192.0.2.20` (RFC 5737) ;
 - `backend-admin` qui joint `backend-relais` en TCP sur le port 22 ;
-- un accès `root` sur `backend-admin`, et sur `backend-relais` un compte ordinaire avec `sudo` (créé à l'étape 4) ;
+- sur chaque machine, un compte ordinaire membre du groupe `sudo`, avec `curl` installé ;
 - `nak` sur les deux machines : sur `backend-relais`, il est installé par la page strfry (ci-dessous), qui crée la clé du relais ; sur `backend-admin` (signataires du bunker), voir `docs/wiki/Installer-nak.md` (non nécessaire aux étapes ci-dessous) ;
 - pour chaque machine, un second terminal SSH (ou la console) ouvert et testé : le script recharge `sshd` ;
 - le conteneur `strfry` déjà en marche sur `backend-relais` (page « Installer le relais strfry » du wiki, `docs/wiki/Installer-strfry.md`), ou, pour un essai du noyau seul, voir l'annexe.
@@ -58,23 +58,7 @@ apt install ca-certificates python3 python3-cryptography curl openssh-client ope
 
 Résultat attendu : aucune erreur.
 
-## 4. Préparer le compte de backend-relais
-
-Machine : `backend-relais`, en root.
-
-```
-apt install sudo
-```
-
-```
-usermod -aG sudo VOTRE_COMPTE
-```
-
-Remplacez `VOTRE_COMPTE` par votre compte ordinaire. Fermez la session, puis ouvrez-en une avec ce compte : le script du relais refuse de tourner en root.
-
-Résultat attendu : `sudo true` s'exécute sans erreur.
-
-## 5. Récupérer le dépôt sur backend-relais
+## 4. Récupérer le dépôt sur backend-relais
 
 Machine : `backend-relais`, avec votre compte.
 
@@ -93,7 +77,7 @@ cat VERSION
 
 Résultat attendu : `0.1.19`, comme sur `backend-admin`.
 
-## 6. Installer les paquets de backend-relais
+## 5. Installer les paquets de backend-relais
 
 Machine : `backend-relais`, avec votre compte.
 
@@ -103,7 +87,7 @@ sudo apt install ca-certificates python3 nftables openssh-client openssh-server 
 
 Résultat attendu : aucune erreur.
 
-## 7. Contrôler que strfry tourne
+## 6. Contrôler que strfry tourne
 
 Machine : `backend-relais`.
 
@@ -113,7 +97,7 @@ sudo docker ps --filter name=^strfry$
 
 Résultat attendu : une ligne pour le conteneur `strfry`. Sinon, revenez à la page strfry du wiki avant de continuer.
 
-## 8. Vérifier backend-admin
+## 7. Vérifier backend-admin
 
 Machine : `backend-admin`, en root, dans `~/paresia`. La commande ne modifie rien.
 
@@ -124,7 +108,7 @@ bash deploy/backend-admin/installer-backend-admin.sh --verifier
 
 Résultat attendu : aucun message d'erreur. Un prérequis manquant arrête le script (code 69) et le nomme.
 
-## 9. Passe 1 : installer backend-admin
+## 8. Passe 1 : installer backend-admin
 
 Machine : `backend-admin`, en root, dans `~/paresia`. Le script fait une pause après chaque étape et exige un terminal.
 
@@ -132,7 +116,7 @@ Machine : `backend-admin`, en root, dans `~/paresia`. Le script fait une pause a
 bash deploy/backend-admin/installer-backend-admin.sh --alpha-test --session-secours oui
 ```
 
-Résultat attendu : à la fin, deux lignes à copier telles quelles pour l'étape 11.
+Résultat attendu : à la fin, deux lignes à copier telles quelles pour l'étape 10.
 
 ```
 CLE_PUBLIQUE_TUNNEL=ssh-ed25519 AAAA…
@@ -141,7 +125,7 @@ EMPREINTE_CLE_TUNNEL=SHA256:…
 
 Notez aussi le nom du jeu de sauvegarde affiché (`/var/backups/paresia/admin/AAAAMMJJ-HHMMSS`) : il sert au retour arrière.
 
-## 10. Vérifier backend-relais
+## 9. Vérifier backend-relais
 
 Machine : `backend-relais`, avec votre compte, dans `~/paresia`. La commande ne modifie rien.
 
@@ -152,9 +136,9 @@ bash deploy/backend-relais/installer-backend-relais.sh --verifier
 
 Résultat attendu : aucun message d'erreur.
 
-## 11. Passe 2 : installer backend-relais
+## 10. Passe 2 : installer backend-relais
 
-Machine : `backend-relais`, avec votre compte (sans `sudo` devant), dans `~/paresia`. Remplacez les trois valeurs par celles de l'étape 9 : ce qui suit le signe `=`, copié sans retranscrire.
+Machine : `backend-relais`, avec votre compte (sans `sudo` devant), dans `~/paresia`. Remplacez les trois valeurs par celles de l'étape 8 : ce qui suit le signe `=`, copié sans retranscrire.
 
 ```
 bash deploy/backend-relais/installer-backend-relais.sh --alpha-test --session-secours oui \
@@ -163,7 +147,7 @@ bash deploy/backend-relais/installer-backend-relais.sh --alpha-test --session-se
   --empreinte-cle-tunnel 'EMPREINTE_CLE_TUNNEL'
 ```
 
-Résultat attendu : à la fin, une ligne à noter pour l'étape 12.
+Résultat attendu : à la fin, une ligne à noter pour l'étape 11.
 
 ```
 EMPREINTE_HOTE_RELAIS=SHA256:…
@@ -171,7 +155,7 @@ EMPREINTE_HOTE_RELAIS=SHA256:…
 
 Transmettez-la à `backend-admin` par un autre canal que le tunnel, par exemple en la lisant sur la console de la machine.
 
-## 12. Passe 3 : le tunnel sur backend-admin
+## 11. Passe 3 : le tunnel sur backend-admin
 
 Machine : `backend-admin`, en root, dans `~/paresia`. Les adresses sont des adresses IP, non des noms.
 
@@ -183,7 +167,7 @@ bash deploy/backend-admin/installer-backend-admin.sh --alpha-test --session-seco
 
 Résultat attendu : le script compare l'empreinte à celle que lit `ssh-keyscan` sur le relais, puis pose le tunnel et le démarre. Une différence l'arrête.
 
-## 13. Vérifier backend-admin
+## 12. Vérifier backend-admin
 
 Machine : `backend-admin`, en root.
 
@@ -199,7 +183,7 @@ ss -xl | grep paresia-tunnel
 
 Résultat attendu : deux sockets, `/run/paresia-tunnel/romulus/remus.sock` et `/run/paresia-tunnel/pollux/castor.sock`.
 
-## 14. Vérifier backend-relais
+## 13. Vérifier backend-relais
 
 Machine : `backend-relais`, avec votre compte.
 
@@ -209,9 +193,9 @@ sudo /usr/bin/systemctl status castor.service remus.service
 
 Résultat attendu : les deux unités sont `active`.
 
-## 15. Activer au démarrage
+## 14. Activer au démarrage
 
-Quand tout est conforme, relancez chaque script avec `--activer` et les mêmes paramètres qu'aux étapes 11 et 12. Machine : `backend-relais` d'abord, dans `~/paresia`.
+Quand tout est conforme, relancez chaque script avec `--activer` et les mêmes paramètres qu'aux étapes 10 et 11. Machine : `backend-relais` d'abord, dans `~/paresia`.
 
 ```
 bash deploy/backend-relais/installer-backend-relais.sh --alpha-test --session-secours oui --activer \
@@ -230,7 +214,7 @@ bash deploy/backend-admin/installer-backend-admin.sh --alpha-test --session-seco
 
 Résultat attendu : « déjà en place » pour tout ce qui est conforme.
 
-## 16. Autoriser la clé d'un administrateur
+## 15. Autoriser la clé d'un administrateur
 
 Machine : `backend-admin`, en root. Le fichier `/var/lib/paresia-app/.ssh/authorized_keys` est créé vide. Ajoutez-y une ligne par administrateur.
 
@@ -289,7 +273,7 @@ bash deploy/backend-<machine>/installer-backend-<machine>.sh --retour-arriere --
 
 - **Root et sudo.** Sur `backend-admin`, le script exige l'UID 0 ; lancé par `sudo`, il convient aussi (déduit du code, non essayé). Sur `backend-relais`, il refuse root et appelle lui-même `sudo` (1.9.10 au moins ; Debian 13 fournit la 1.9.16).
 - **Rejouable.** Une étape déjà conforme ne fait rien ; un état qui diffère est refusé (code 78), jamais écrasé. Les unités sont démarrées par `start`, jamais `restart`.
-- **Essai du noyau seul, sans strfry.** Ajoutez `--sauter produit` aux commandes du relais ; sautez l'étape 7.
+- **Essai du noyau seul, sans strfry.** Ajoutez `--sauter produit` aux commandes du relais ; sautez l'étape 6.
 - **Image strfry.** Le conteneur doit s'appeler `strfry` et venir de `z0brak/paresia-yin-strfry:4cd3cf6` ; sinon le script s'arrête avant toute modification (code 78).
 - **Serveur web et proxy.** Paresia n'installe ni lighttpd ni HAProxy. Les exigences sont dans `docs/serveur-web.md`. Les pages à servir sont sous `/usr/local/share/paresia/web/`. Sans serveur web, un poste distant ne joint pas l'API.
 - **Non livré.** Installation des deux machines en une seule commande ; unités de bunkerd et de Nisaba ; page d'administration du relais dans le client. Le mode `--alpha-test` est temporaire.

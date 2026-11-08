@@ -11,7 +11,7 @@ Alpha : pas en production, à essayer sur des machines jetables. Cette page donn
 Il vous faut :
 
 - deux machines Debian 13 : `backend-admin` (yang) et `backend-relais` (yin) ;
-- `root` sur `backend-admin` ; sur `backend-relais`, un compte ordinaire avec `sudo` ;
+- sur chaque machine, un compte ordinaire membre du groupe `sudo`, avec `curl` installé ;
 - un second terminal ouvert sur chaque machine (session de secours) ;
 - le conteneur `strfry` en marche sur `backend-relais` (page « Installer le relais strfry »).
 

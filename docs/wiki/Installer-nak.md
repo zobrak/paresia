@@ -2,7 +2,7 @@
 
 Version du document : 0.1.19 · 2026-11-08.
 
-**À faire sur `backend-admin`.** `nak` y sert aux signataires du bunker (NIP-46). `backend-relais` a sa propre installation de `nak`, dans le guide strfry (`Installer-strfry.md`, étapes 7 et 8), avec la création de la clé du relais.
+**À faire sur `backend-admin`.** `nak` y sert aux signataires du bunker (NIP-46). `backend-relais` a sa propre installation de `nak`, dans le guide strfry (`Installer-strfry.md`, étapes 6 et 7), avec la création de la clé du relais.
 
 Alpha : à essayer sur une machine jetable. Toutes les commandes se lancent en root.
 
