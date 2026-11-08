@@ -38,20 +38,21 @@ Résultat attendu : `sudo true` s'exécute sans erreur.
 
 Les fichiers à copier plus loin viennent du dépôt. Machine : `backend-relais`.
 
+Le clone, dans le dossier de votre compte, ne sert qu'à copier les fichiers livrés. Le relais tourne dans `/srv/strfry` et ne dépend plus du clone une fois les fichiers copiés.
+
 ```
 sudo apt install git
 ```
 
 ```
-git clone https://github.com/zobrak/paresia.git paresia
+git clone https://github.com/zobrak/paresia.git ~/paresia
 ```
 
 ```
-cd paresia
-cat VERSION
+cat ~/paresia/VERSION
 ```
 
-Résultat attendu : un numéro de version. Le dépôt est dans `~/paresia`.
+Résultat attendu : un numéro de version.
 
 ## 3. Installer Docker
 
