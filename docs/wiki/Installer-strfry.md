@@ -52,7 +52,7 @@ git clone https://github.com/zobrak/paresia.git ~/paresia
 cat ~/paresia/VERSION
 ```
 
-Résultat attendu : un numéro de version.
+Résultat attendu : `0.1.19`.
 
 ## 3. Installer Docker
 
@@ -74,7 +74,7 @@ Résultat attendu :
 sudo docker compose version
 ```
 
-affiche un numéro de version.
+affiche `Docker Compose version v5.7.0` ou plus récent.
 
 ## 4. Télécharger l'image
 

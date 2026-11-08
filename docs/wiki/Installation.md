@@ -30,7 +30,7 @@ git clone https://github.com/zobrak/paresia.git paresia
 cd paresia
 ```
 
-Résultat attendu : `cat VERSION` affiche le même numéro sur les deux machines.
+Résultat attendu : `cat VERSION` affiche `0.1.19` sur les deux machines.
 
 ## 2. Vérifier
 

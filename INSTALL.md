@@ -19,7 +19,7 @@ Il vous faut :
 - pour chaque machine, un second terminal SSH (ou la console) ouvert et testé : le script recharge `sshd` ;
 - le conteneur `strfry` déjà en marche sur `backend-relais` (page « Installer le relais strfry » du wiki, `docs/wiki/Installer-strfry.md`), ou, pour un essai du noyau seul, voir l'annexe.
 
-Les valeurs en majuscules (`https://github.com/zobrak/paresia.git`, `CLE_PUBLIQUE_TUNNEL`…) sont à remplacer par les vôtres ou par ce que vos scripts affichent.
+Les valeurs en majuscules (`CLE_PUBLIQUE_TUNNEL`…) sont à remplacer par les vôtres ou par ce que vos scripts affichent.
 
 L'installation se fait en trois passes, car chaque machine a besoin d'une valeur produite par l'autre : `backend-admin`, puis `backend-relais`, puis `backend-admin` de nouveau.
 
@@ -31,7 +31,7 @@ Machine : `backend-admin`, en root.
 apt install git
 ```
 
-Résultat attendu : `git --version` affiche une version.
+Résultat attendu : `git --version` affiche `git version 2.47.3`.
 
 ## 2. Récupérer le dépôt sur backend-admin
 
@@ -46,7 +46,7 @@ cd paresia
 cat VERSION
 ```
 
-Résultat attendu : un numéro de version. Le dépôt est dans `~/paresia`.
+Résultat attendu : `0.1.19`. Le dépôt est dans `~/paresia`.
 
 ## 3. Installer les paquets de backend-admin
 
@@ -91,7 +91,7 @@ cd paresia
 cat VERSION
 ```
 
-Résultat attendu : le même numéro de version que sur `backend-admin`.
+Résultat attendu : `0.1.19`, comme sur `backend-admin`.
 
 ## 6. Installer les paquets de backend-relais
 
