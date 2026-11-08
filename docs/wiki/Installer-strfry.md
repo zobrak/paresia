@@ -14,10 +14,18 @@ Il vous faut :
 
 - `backend-relais` sous Debian 13 ;
 - un compte ordinaire, membre du groupe `sudo`, avec `curl` installé ;
-- l'adresse IP de cette machine (`192.0.2.20` dans les exemples) ;
-- l'adresse publique du relais (`relay.example.org` dans les exemples).
+- l'adresse IP de cette machine ;
+- l'adresse publique du relais.
 
 Toutes les commandes se lancent sur `backend-relais`, avec ce compte.
+
+### À personnaliser obligatoirement
+
+| Valeur | Où | Exemple du guide | Ce qu'il faut mettre |
+| --- | --- | --- | --- |
+| adresse IP de la machine | `compose.yml` (étape 5) et contrôle `curl` (étape 10) | `192.0.2.20` | l'adresse IP de `backend-relais` joignable par le proxy ; jamais `0.0.0.0` |
+| `relay.auth.serviceUrl` | `strfry.conf`, étape 8 | `wss://relay.example.org` | l'adresse publique exacte du relais, en `wss://` ; sinon l'authentification échoue pour tous |
+| `relay.info.self` | `strfry.conf`, étape 8 | `""` (vide) | la clé publique du relais, créée à l'étape 7 |
 
 ## 1. Récupérer le dépôt
 
@@ -111,14 +119,13 @@ drwxr-xr-x 2 10001 10001 4096 nov.  9 00:12 journal
 
 ## 5. Écrire `compose.yml`
 
-Machine : `backend-relais`, dans `/srv/strfry`. Remplacez `192.0.2.20` par l'adresse IP de cette machine, jamais `0.0.0.0`.
+Machine : `backend-relais`, dans `/srv/strfry`.
 
-```
-ADRESSE_RELAIS=192.0.2.20
-```
+Créez `/srv/strfry/compose.yml` avec votre éditeur, avec ce contenu :
 
-```
-cat > compose.yml <<EOF
+**À personnaliser : remplacez `192.0.2.20` par l'adresse IP de cette machine (jamais `0.0.0.0`).**
+
+```yaml
 services:
   strfry:
     container_name: strfry
@@ -126,7 +133,7 @@ services:
     user: "10001:10001"
     restart: unless-stopped
     ports:
-      - "${ADRESSE_RELAIS}:7777:7777"
+      - "192.0.2.20:7777:7777"
     volumes:
       - ./strfry.conf:/etc/strfry.conf:ro
       - ./data:/app/strfry-db
@@ -147,8 +154,9 @@ services:
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:7777/"]
       interval: 60s
-EOF
 ```
+
+Contrôlez le fichier :
 
 ```
 grep ':7777:7777' compose.yml
@@ -205,7 +213,7 @@ Machine : `backend-relais`, dans `bash`. Rien n'est enregistré : la clé est se
 SECRET=$(nak key generate); printf 'CLE PRIVEE (a conserver en lieu sur) : %s\n' "$SECRET"; printf 'CLE PUBLIQUE (pour strfry.conf)      : %s\n' "$(nak key public "$SECRET")"; unset SECRET
 ```
 
-Résultat attendu : deux lignes libellées, chacune suivie de sa valeur (représentée ici par `…`).
+Résultat attendu : deux lignes libellées, chacune suivie de sa valeur.
 
 ```
 CLE PRIVEE (a conserver en lieu sur) : …
@@ -214,35 +222,37 @@ CLE PUBLIQUE (pour strfry.conf)      : …
 
 ## 8. Régler `strfry.conf`
 
-Machine : `backend-relais`. Indiquez l'adresse publique du relais.
+Machine : `backend-relais`. Dans `/srv/strfry/strfry.conf`, modifiez ces deux lignes avec votre éditeur :
 
-```
-cd /srv/strfry
-```
-
-```
-sed -i 's|wss://relay.example.org|wss://VOTRE_DOMAINE|' strfry.conf
-```
-
-Remplacez `VOTRE_DOMAINE` par l'adresse publique.
-
-```
-grep serviceUrl strfry.conf
-```
-
-Résultat attendu (votre adresse à la place de `VOTRE_DOMAINE`) :
+**À personnaliser : remplacez `VOTRE_DOMAINE` par l'adresse publique du relais, et `CLE_PUBLIQUE` par la valeur de la ligne « CLE PUBLIQUE » de l'étape 7. N'y mettez jamais la clé privée.**
 
 ```
         serviceUrl = "wss://VOTRE_DOMAINE"
+        self = "CLE_PUBLIQUE"
 ```
 
-Écrivez ensuite la seule ligne « CLE PUBLIQUE » de l'étape 7 dans `relay.info.pubkey` (ligne `pubkey = ""`). N'y mettez jamais la clé privée. Laissez `relay.info.self` vide.
+Contrôlez le fichier :
+
+```
+grep -E 'serviceUrl|self =' /srv/strfry/strfry.conf
+```
+
+Résultat attendu (vos valeurs à la place de `VOTRE_DOMAINE` et `CLE_PUBLIQUE`) :
+
+```
+        serviceUrl = "wss://VOTRE_DOMAINE"
+        self = "CLE_PUBLIQUE"
+```
 
 La clé privée sera importée dans le bunker lors de son installation sur `backend-admin`, qui la chiffrera.
 
 ## 9. Démarrer
 
 Machine : `backend-relais`, dans `/srv/strfry`.
+
+```
+cd /srv/strfry
+```
 
 ```
 sudo docker compose up -d
@@ -270,11 +280,13 @@ sudo ss -ltn 'sport = :7777'
 
 Résultat attendu : une ligne d'écoute (`LISTEN`) sur votre adresse et le port 7777, jamais sur `0.0.0.0:7777`.
 
+**À personnaliser : remplacez `192.0.2.20` par l'adresse de l'étape 5.**
+
 ```
-curl -s -H 'Accept: application/nostr+json' http://ADRESSE_RELAIS:7777/
+curl -s -H 'Accept: application/nostr+json' http://192.0.2.20:7777/
 ```
 
-Remplacez `ADRESSE_RELAIS` par l'adresse de l'étape 5. Résultat attendu : un objet JSON dont le champ `name` vaut `Paresia`.
+Résultat attendu : un objet JSON dont le champ `name` vaut `Paresia`.
 
 En cas d'échec : `sudo journalctl -t strfry`.
 
@@ -290,7 +302,7 @@ En cas d'échec : `sudo journalctl -t strfry`.
 - **Port.** strfry n'est joignable que par le proxy inverse, qui doit écraser l'en-tête d'adresse du client. Jamais `0.0.0.0`.
 - **Chemins dans l'image.** Programme `/app/strfry`, base `/app/strfry-db`, configuration cherchée dans l'ordre : `--config`, `STRFRY_CONFIG`, `/etc/strfry.conf`, `./strfry.conf`.
 - **`strfry.conf` : à ne pas changer sans raison.** `db`, `relay.port = 7777`, `relay.bind = "0.0.0.0"` (adresse dans le conteneur), `relay.realIpHeader`, `relay.writePolicy.plugin` (doit coïncider avec le montage), `restrictedReadKinds = "4"` et `filterValidation.enabled = false` (compatibilité bitchat). Ne créez jamais d'arbre negentropy (`strfry negentropy add`, `build`).
-- **Annonce NIP-11.** Les champs `relay.info.*` (`name`, `description`, `pubkey`, `self`, `contact`, `icon`, `banner`, `privacy`, `terms`) sont à votre convenance ; les champs vides sont des valeurs d'installation.
+- **Annonce NIP-11.** Les champs `relay.info.*` (`name`, `description`, `pubkey`, `self`, `contact`, `icon`, `banner`, `privacy`, `terms`) sont à votre convenance, sauf `self` (étape 8) ; les champs vides sont des valeurs d'installation. `pubkey` est la clé publique de l'administrateur (facultative), distincte de la clé du relais (`self`).
 - **Clé.** La clé privée du relais est une identité du bunker (`[bunkerd] relay_identity`) ; bunkerd n'en garde que la forme chiffrée. Ne collez jamais une clé privée dans un fichier, un terminal partagé ou une conversation ; seule la clé publique se publie. Sur cette machine, rien n'est enregistré : la clé privée n'existe que le temps de la commande et de son affichage.
 - **`nak`.** Il n'est pas fourni par Debian ; il vient de l'amont `fiatjaf/nak` (https://github.com/fiatjaf/nak), v0.22.3, The Unlicense (empreinte et licence vérifiées à l'API GitHub le 2026-11-08). Les commandes de l'étape 6 ne font que télécharger, vérifier et installer ; aucune n'a été essayée.
 - **Création de la clé (étape 7).** La commande n'a pas été essayée. `nak key generate` et `nak key public <clé>` sont attestés par le README de `nak`. L'historique du shell ne contient que la commande, non la clé. La clé passe brièvement en argument de `nak key public` : elle est alors visible dans la liste des processus ; lancez la commande sur une machine sans autre utilisateur.

@@ -19,7 +19,16 @@ Il vous faut :
 - pour chaque machine, un second terminal SSH (ou la console) ouvert et testé : le script recharge `sshd` ;
 - le conteneur `strfry` déjà en marche sur `backend-relais` (page « Installer le relais strfry » du wiki, `docs/wiki/Installer-strfry.md`), ou, pour un essai du noyau seul, voir l'annexe.
 
-Les valeurs en majuscules (`CLE_PUBLIQUE_TUNNEL`…) sont à remplacer par les vôtres ou par ce que vos scripts affichent.
+### À personnaliser obligatoirement
+
+| Valeur | Où | Exemple du guide | Ce qu'il faut mettre |
+| --- | --- | --- | --- |
+| adresse de `backend-admin` | étapes 10 et 14, `--adresse-admin` | `192.0.2.10` | l'adresse IP de `backend-admin` |
+| adresse de `backend-relais` | étapes 11 et 14, `--adresse-relais` | `192.0.2.20` | l'adresse IP de `backend-relais` (une adresse, non un nom) |
+| `CLE_PUBLIQUE_TUNNEL` | étapes 10 et 14 | affichée à l'étape 8 | ce qui suit `CLE_PUBLIQUE_TUNNEL=` |
+| `EMPREINTE_CLE_TUNNEL` | étapes 10 et 14 | affichée à l'étape 8 | ce qui suit `EMPREINTE_CLE_TUNNEL=` |
+| `EMPREINTE_HOTE_RELAIS` | étapes 11 et 14 | affichée à l'étape 10 | ce qui suit `EMPREINTE_HOTE_RELAIS=` |
+| `CLE_PUBLIQUE_ADMIN` et `COMMENTAIRE` | étape 15 | | la clé publique de l'administrateur et un nom court |
 
 L'installation se fait en trois passes, car chaque machine a besoin d'une valeur produite par l'autre : `backend-admin`, puis `backend-relais`, puis `backend-admin` de nouveau.
 
@@ -152,7 +161,9 @@ Résultat attendu : aucun message d'erreur.
 
 ## 10. Passe 2 : installer backend-relais
 
-Machine : `backend-relais`, avec votre compte (sans `sudo` devant), dans `~/paresia`. Remplacez les trois valeurs par celles de l'étape 8 : ce qui suit le signe `=`, copié sans retranscrire.
+Machine : `backend-relais`, avec votre compte (sans `sudo` devant), dans `~/paresia`.
+
+**À personnaliser : remplacez `192.0.2.10` par l'adresse de `backend-admin`, et les deux valeurs `CLE_PUBLIQUE_TUNNEL` et `EMPREINTE_CLE_TUNNEL` par celles de l'étape 8 (ce qui suit le signe `=`, copié sans retranscrire).**
 
 ```
 bash deploy/backend-relais/installer-backend-relais.sh --alpha-test --session-secours oui \
@@ -171,7 +182,9 @@ Transmettez-la à `backend-admin` par un autre canal que le tunnel, par exemple 
 
 ## 11. Passe 3 : le tunnel sur backend-admin
 
-Machine : `backend-admin`, en root, dans `~/paresia`. Les adresses sont des adresses IP, non des noms.
+Machine : `backend-admin`, en root, dans `~/paresia`.
+
+**À personnaliser : remplacez `192.0.2.20` par l'adresse IP de `backend-relais` (une adresse, non un nom), et `EMPREINTE_HOTE_RELAIS` par la valeur de l'étape 10.**
 
 ```
 bash deploy/backend-admin/installer-backend-admin.sh --alpha-test --session-secours oui \
@@ -211,6 +224,8 @@ Résultat attendu : les deux unités sont `active`.
 
 Quand tout est conforme, relancez chaque script avec `--activer` et les mêmes paramètres qu'aux étapes 10 et 11. Machine : `backend-relais` d'abord, dans `~/paresia`.
 
+**À personnaliser : les mêmes valeurs qu'à l'étape 10 (`192.0.2.10`, `CLE_PUBLIQUE_TUNNEL`, `EMPREINTE_CLE_TUNNEL`).**
+
 ```
 bash deploy/backend-relais/installer-backend-relais.sh --alpha-test --session-secours oui --activer \
   --adresse-admin 192.0.2.10 \
@@ -218,7 +233,9 @@ bash deploy/backend-relais/installer-backend-relais.sh --alpha-test --session-se
   --empreinte-cle-tunnel 'EMPREINTE_CLE_TUNNEL'
 ```
 
-Puis sur `backend-admin`, en root, dans `~/paresia` :
+Puis sur `backend-admin`, en root, dans `~/paresia`.
+
+**À personnaliser : les mêmes valeurs qu'à l'étape 11 (`192.0.2.20`, `EMPREINTE_HOTE_RELAIS`).**
 
 ```
 bash deploy/backend-admin/installer-backend-admin.sh --alpha-test --session-secours oui --activer \
@@ -232,11 +249,13 @@ Résultat attendu : « déjà en place » pour tout ce qui est conforme.
 
 Machine : `backend-admin`, en root. Le fichier `/var/lib/paresia-app/.ssh/authorized_keys` est créé vide. Ajoutez-y une ligne par administrateur.
 
+**À personnaliser : remplacez `CLE_PUBLIQUE_ADMIN` par la clé publique de l'administrateur et `COMMENTAIRE` par un nom court (1 à 64 caractères : lettres, chiffres, `.`, `_`, `@`, `-`).**
+
 ```
 echo 'restrict,command="/usr/local/bin/pollux-session" ssh-ed25519 CLE_PUBLIQUE_ADMIN COMMENTAIRE' >> /var/lib/paresia-app/.ssh/authorized_keys
 ```
 
-`CLE_PUBLIQUE_ADMIN` est la clé **publique** de l'administrateur ; `COMMENTAIRE` un nom court (1 à 64 caractères : lettres, chiffres, `.`, `_`, `@`, `-`). L'application Paresia-admin affiche cette ligne (menu « Ligne de clé à remettre »).
+La clé est la clé **publique** ; la clé privée reste dans l'agent SSH de l'administrateur. L'application Paresia-admin affiche cette ligne (menu « Ligne de clé à remettre »).
 
 ```
 ls -l /var/lib/paresia-app/.ssh/authorized_keys

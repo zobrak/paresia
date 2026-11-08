@@ -15,7 +15,15 @@ Il vous faut :
 - un second terminal ouvert sur chaque machine (session de secours) ;
 - le conteneur `strfry` en marche sur `backend-relais` (page « Installer le relais strfry »).
 
-Les valeurs en majuscules sont à remplacer par les vôtres. Adresses d'exemple : `192.0.2.10` (`backend-admin`), `192.0.2.20` (`backend-relais`).
+### À personnaliser obligatoirement
+
+| Valeur | Où | Exemple du guide | Ce qu'il faut mettre |
+| --- | --- | --- | --- |
+| adresse de `backend-admin` | passe 2, `--adresse-admin` | `192.0.2.10` | l'adresse IP de `backend-admin` |
+| adresse de `backend-relais` | passe 3, `--adresse-relais` | `192.0.2.20` | l'adresse IP de `backend-relais` (une adresse, non un nom) |
+| `CLE_PUBLIQUE_TUNNEL` | passe 2 | affichée par la passe 1 | ce qui suit `CLE_PUBLIQUE_TUNNEL=` |
+| `EMPREINTE_CLE_TUNNEL` | passe 2 | affichée par la passe 1 | ce qui suit `EMPREINTE_CLE_TUNNEL=` |
+| `EMPREINTE_HOTE_RELAIS` | passe 3 | affichée par la passe 2 | ce qui suit `EMPREINTE_HOTE_RELAIS=` |
 
 ## 1. Récupérer le dépôt
 
@@ -72,6 +80,8 @@ EMPREINTE_CLE_TUNNEL=SHA256:…
 
 Machine : `backend-relais`, avec votre compte.
 
+**À personnaliser : remplacez `192.0.2.10` par l'adresse de `backend-admin`, et `CLE_PUBLIQUE_TUNNEL` et `EMPREINTE_CLE_TUNNEL` par les valeurs de la passe 1.**
+
 ```
 bash deploy/backend-relais/installer-backend-relais.sh --alpha-test --session-secours oui \
   --adresse-admin 192.0.2.10 \
@@ -88,6 +98,8 @@ EMPREINTE_HOTE_RELAIS=SHA256:…
 ## 5. Passe 3 : backend-admin, le tunnel
 
 Machine : `backend-admin`, en root.
+
+**À personnaliser : remplacez `192.0.2.20` par l'adresse IP de `backend-relais`, et `EMPREINTE_HOTE_RELAIS` par la valeur de la passe 2.**
 
 ```
 bash deploy/backend-admin/installer-backend-admin.sh --alpha-test --session-secours oui \
