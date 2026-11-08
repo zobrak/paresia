@@ -24,7 +24,7 @@ La licence d'un paquet Debian est celle que déclare le fichier `/usr/share/doc/
 | `python3-pyqt6` | 6.9.0-2 | `admin/app/` (client) | GPL-3 (Riverbank Computing) ; l'auteur propose aussi une licence commerciale, non utilisée | oui : GPL-3.0 et AGPL-3.0 se combinent (§ 13) ; l'ensemble du client reste sous AGPL-3.0-or-later |
 | `python3-pyqt6.qtwebengine` | 6.9.0-1 | `admin/app/fenetre.py` | GPL-3 | oui, même raison |
 | Qt 6 et Qt WebEngine (bibliothèques chargées par PyQt6) | 6.8.2 (paquets Debian 13) | indirect | non vérifié (copyright de Qt non lu) | non vérifié |
-| `python3-qrcode` | non vérifié | `server/bunkerd/web.py` (import facultatif) | non vérifié (paquet absent du poste de lecture) | non vérifié |
+| `python3-qrcode` | paquet Debian (version non relevée) | `server/bunkerd/web.py` (import facultatif) | BSD-3-clause (fichier copyright du paquet Debian, lu) | oui (BSD-3-clause est compatible avec la GPL version 3) ; dépendance facultative importée |
 | `pytest` | non vérifié | tests, `.github/workflows/ci.yml` | non vérifié (outil de test, non distribué) | sans objet : outil de développement |
 
 ## Programmes appelés (processus séparés, non liés au code de Paresia)
@@ -38,13 +38,13 @@ La licence d'un paquet Debian est celle que déclare le fichier `/usr/share/doc/
 | `rsync` | 3.5.0+ds1-0+deb13u1 | GPL-3+ | oui |
 | `curl` | 8.14.1-2+deb13u7 | licence curl (type MIT) | oui |
 | `git` | 1:2.47.3-0+deb13u1 | GPL-2 | sans objet : outil de développement |
-| `nak` (signataire NIP-46, non fourni par Debian) | non vérifié | non vérifié | non vérifié |
+| `nak` (signataire NIP-46, non fourni par Debian ; amont https://github.com/fiatjaf/nak) | v0.22.3 ; binaire `nak-v0.22.3-linux-amd64` téléchargé par l'administrateur, SHA-256 `2eb9a16f86c865275983459b2c705d22d5dfbcf527026a279449cbf204d164fe` | The Unlicense (identifiant SPDX `Unlicense`, lu par l'API GitHub `repos/fiatjaf/nak/license` le 2026-11-08) | oui comme programme appelé en processus séparé (signataires NIP-46 de bunkerd) ; non distribué par Paresia |
 | `rbw` (client de coffre, non fourni par Debian) | non vérifié | non vérifié | non vérifié |
 | lighttpd, HAProxy, Docker | non vérifié | non vérifié | non vérifié |
 
 Les prérequis par machine (paquets, versions, images) sont dans `docs/prerequis.md`.
 
-**Aucune dépendance propriétaire ni incompatible n'est constatée.** Les cas non vérifiés ci-dessus (`python3-qrcode`, Qt, `nak`, `rbw`, lighttpd, HAProxy, Docker, `pytest`) doivent l'être avant la publication.
+**Aucune dépendance propriétaire ni incompatible n'est constatée.** Les cas non vérifiés ci-dessus (Qt, `rbw`, lighttpd, HAProxy, Docker, `pytest`) doivent l'être avant la publication.
 
 ## strfry (relais Nostr)
 
@@ -72,3 +72,8 @@ Un agent SSH, indépendant du client, est requis sur le poste de l'administrateu
 ## Code issu d'une version antérieure
 
 Le code repris d'une version antérieure de Paresia (bunkerd, scripts du journal légal) a une licence à établir avant tout nouvel import.
+
+## Crédits
+
+- `nak` : outil en ligne de commande pour Nostr, par fiatjaf (https://github.com/fiatjaf/nak), licence The Unlicense. Paresia l'appelle en processus séparé pour les signataires NIP-46 de bunkerd et ne le distribue pas.
+- strfry : amont `hoytech/strfry` (https://github.com/hoytech/strfry), GPL-3.0 (voir plus haut).

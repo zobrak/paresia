@@ -24,6 +24,7 @@ Public : **A** = administrateur, **D** = développeur ou contributeur.
 | --- | --- | --- |
 | [Prérequis](prerequis.md) | paquets, versions et modules par machine | A |
 | [Installer le relais strfry](wiki/Installer-strfry.md) | préparer le conteneur Docker `strfry` de `backend-relais`, avant l'installation | A |
+| [Installer `nak`](wiki/Installer-nak.md) | installer `nak` sur `backend-admin` (signataires du bunker) | A |
 | [Exploitation](exploitation.md) | démarrer, lire les journaux, feu de Castor, tunnel, retours arrière | A |
 | [Configuration](configuration.md) | configuration en couches, codes d'erreur, emplacements | A, D |
 | [Pages de manuel](man/README.md) | pages de manuel (liste dans ce fichier) | A |

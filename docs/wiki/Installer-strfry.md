@@ -166,10 +166,10 @@ montre votre adresse devant `:7777:7777`.
 
 ## 7. Installer `nak`
 
-Machine : `backend-admin`, en root. Version v0.22.3, licence The Unlicense.
+Machine : `backend-relais`. Version v0.22.3, licence The Unlicense.
 
 ```
-apt install curl
+cd ~
 ```
 
 ```
@@ -183,14 +183,14 @@ echo "2eb9a16f86c865275983459b2c705d22d5dfbcf527026a279449cbf204d164fe  nak-v0.2
 Résultat attendu : `Réussi` ou `OK`, selon la langue. Sinon, arrêtez-vous.
 
 ```
-install -m 0755 -o root -g root nak-v0.22.3-linux-amd64 /usr/local/bin/nak
+sudo install -m 0755 -o root -g root nak-v0.22.3-linux-amd64 /usr/local/bin/nak
 ```
 
 Résultat attendu : `nak --help` affiche l'aide.
 
-## 8. Créer la clé
+## 8. Créer la clé du relais
 
-Machine : `backend-admin`, en root, dans `bash`. La phrase de passe est saisie sans écho.
+Machine : `backend-relais`, dans `bash`. La phrase de passe est saisie sans écho.
 
 ```
 read -r -s -p "Phrase de passe : " PHRASE; echo
@@ -204,13 +204,13 @@ SECRET=$(nak key generate)
 nak key public "$SECRET"
 ```
 
-Résultat attendu : la clé publique du relais. Notez-la.
+Résultat attendu : la clé publique hexadécimale du relais. Notez-la.
 
 ```
 nak key encrypt "$SECRET" "$PHRASE"
 ```
 
-Résultat attendu : le `ncryptsec`. Conservez-le sur `backend-admin`.
+Résultat attendu : le `ncryptsec`. Conservez-le.
 
 ```
 unset SECRET PHRASE
@@ -218,7 +218,11 @@ unset SECRET PHRASE
 
 ## 9. Régler `strfry.conf`
 
-Machine : `backend-relais`, dans `/srv/strfry`. Indiquez l'adresse publique du relais.
+Machine : `backend-relais`. Indiquez l'adresse publique du relais.
+
+```
+cd /srv/strfry
+```
 
 ```
 sed -i 's|wss://relay.example.org|wss://VOTRE_DOMAINE|' strfry.conf
@@ -234,7 +238,9 @@ grep serviceUrl strfry.conf
 
 affiche `wss://` suivi de votre adresse.
 
-Facultatif : écrire la clé publique de l'étape 8 dans `relay.info.self` (laissez vide sinon).
+Écrivez ensuite la clé publique hexadécimale de l'étape 8 dans `relay.info.pubkey` (ligne `pubkey = ""`). Laissez `relay.info.self` vide.
+
+Le `ncryptsec` de l'étape 8 est conservé pour être importé ensuite dans le bunker, sur `backend-admin`.
 
 ## 10. Démarrer
 
@@ -289,5 +295,7 @@ En cas d'échec : `sudo journalctl -t strfry`.
 - **Chemins dans l'image.** Programme `/app/strfry`, base `/app/strfry-db`, configuration cherchée dans l'ordre : `--config`, `STRFRY_CONFIG`, `/etc/strfry.conf`, `./strfry.conf`.
 - **`strfry.conf` : à ne pas changer sans raison.** `db`, `relay.port = 7777`, `relay.bind = "0.0.0.0"` (adresse dans le conteneur), `relay.realIpHeader`, `relay.writePolicy.plugin` (doit coïncider avec le montage), `restrictedReadKinds = "4"` et `filterValidation.enabled = false` (compatibilité bitchat). Ne créez jamais d'arbre negentropy (`strfry negentropy add`, `build`).
 - **Annonce NIP-11.** Les champs `relay.info.*` (`name`, `description`, `pubkey`, `self`, `contact`, `icon`, `banner`, `privacy`, `terms`) sont à votre convenance ; les champs vides sont des valeurs d'installation.
-- **Clé.** La clé privée du relais est une identité du bunker (`[bunkerd] relay_identity`) ; bunkerd n'en garde que la forme chiffrée. Ne collez jamais une clé privée dans un fichier, un terminal partagé ou une conversation ; seule la clé publique se publie. `nak` n'est pas fourni par Debian ; il vient de l'amont `fiatjaf/nak` (v0.22.3, The Unlicense, empreinte vérifiée à l'API GitHub). Les commandes des étapes 7 et 8 n'ont pas été essayées ; l'étape 7 ne fait que télécharger, vérifier et installer. La forme par arguments de l'étape 8 est attestée par le README de `nak`. Mise en garde : le secret passe brièvement en argument (`nak key public`, `nak key encrypt <secret> <mot-de-passe>`) ; il est alors visible dans la liste des processus et, selon le shell, dans l'historique. Ne lancez ces commandes que sur une machine sans autre utilisateur.
+- **Clé.** La clé privée du relais est une identité du bunker (`[bunkerd] relay_identity`) ; bunkerd n'en garde que la forme chiffrée. Ne collez jamais une clé privée dans un fichier, un terminal partagé ou une conversation ; seule la clé publique se publie. Sur cette machine, la clé secrète n'est que transitoire en mémoire ; seul le `ncryptsec` est conservé.
+- **`nak`.** Il n'est pas fourni par Debian ; il vient de l'amont `fiatjaf/nak` (https://github.com/fiatjaf/nak), v0.22.3, The Unlicense (empreinte et licence vérifiées à l'API GitHub le 2026-11-08). Les commandes de l'étape 7 ne font que télécharger, vérifier et installer ; celles de l'étape 8 sont attestées par le README de `nak` ; aucune n'a été essayée.
+- **Mise en garde.** Le secret passe brièvement en argument (`nak key public`, `nak key encrypt <secret> <mot-de-passe>`) : il est visible dans la liste des processus et, selon le shell, dans l'historique. Ne lancez ces commandes que sur une machine sans autre utilisateur.
 - **Non établi, à compléter :** présence de `python3` dans l'image publiée (le plugin du journal légal l'exige) ; limites de ressources de la production ; valeur de `ulimits.nofile` si strfry se plaint de `nofiles = 524288` ; forme du fichier `blocklist.txt` du plugin ; essai de ce `compose.yml` tel quel sur une machine.
