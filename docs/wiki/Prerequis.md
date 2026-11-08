@@ -35,7 +35,7 @@ Le cloisonnement exige **deux machines distinctes** (physiques, virtuelles ou co
 ## backend-relais
 
 - OpenSSH (`sshd`), nftables, `sudo` **1.9.10 au moins** (expressions régulières d'arguments dans le fichier sudoers généré ; Debian 13 fournit 1.9.16), `visudo` ;
-- Docker, pour le conteneur strfry ; conseil, non une obligation : sur Debian 13, `apt install extrepo`, `extrepo enable docker-ce`, `apt update`, puis `apt install docker-ce docker-ce-cli containerd.io` ;
+- Docker, pour le conteneur strfry ; conseil, non une obligation : sur Debian 13, `apt install extrepo`, `extrepo enable docker-ce`, `apt update`, puis `apt install docker-ce docker-ce-cli containerd.io docker-compose-plugin` ;
 - l'image strfry **n'est pas l'image d'origine** : elle contient `python3`, requis par le plugin d'écriture du journal légal. L'image publique du projet est `z0brak/paresia-yin-strfry:4cd3cf6`. Ses modifications exactes sont **non établies** dans le dépôt (voir `docs/prerequis.md`, § 5) ; ne pas supposer que l'image d'origine suffit ;
 - `rrsync` côté relais pour la copie en lecture seule du journal légal.
 

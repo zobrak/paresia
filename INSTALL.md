@@ -24,7 +24,7 @@ Dans les commandes ci-dessous, les `…` et les valeurs entre apostrophes (clés
 - **Sur `backend-relais` : un compte ordinaire doté de `sudo` (1.9.10 au moins ; Debian 13 fournit la 1.9.16).** Le script refuse de s'exécuter en root. Vous le lancez sans préfixe `sudo` : il appelle lui-même `sudo` commande par commande.
 - Pour chaque machine, une **session de secours** : un second terminal SSH (ou la console de la machine) ouvert et testé avant de commencer. Le script recharge `sshd` et vous en avez besoin si une règle vous coupe.
 - Sur `backend-relais`, le conteneur Docker DOIT s'appeler `strfry` et être lancé depuis l'image exacte `z0brak/paresia-yin-strfry:4cd3cf6` (`docker pull z0brak/paresia-yin-strfry:4cd3cf6`). Le script vérifie qu'il existe et que son image correspond à la version déclarée par le greffon strfry (étiquette `4cd3cf6`) ; il s'arrête sinon, avant toute modification (code 78). Il ne crée, ne démarre ni ne modifie ce conteneur. Sans relais strfry à administrer (essai du noyau seul), ajoutez `--sauter produit` aux commandes du relais (§ 5).
-- Conseil, non une obligation : pour installer Docker Engine sur Debian 13, le dépôt `docker-ce` est activable par `extrepo` (`apt install extrepo`, `extrepo enable docker-ce`, `apt update`, `apt install docker-ce docker-ce-cli containerd.io`).
+- Conseil, non une obligation : pour installer Docker Engine sur Debian 13, le dépôt `docker-ce` est activable par `extrepo` (`apt install extrepo`, `extrepo enable docker-ce`, `apt update`, `apt install docker-ce docker-ce-cli containerd.io docker-compose-plugin`).
 
 ## 2. Installer les paquets
 

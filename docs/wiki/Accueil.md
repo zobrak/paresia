@@ -15,6 +15,7 @@ Les mots techniques sont expliqués dans le [glossaire](Glossaire.md).
 | [Qu'est-ce que Paresia ?](Qu-est-ce-que-Paresia.md) | À quoi sert Paresia, de quoi est-il fait, qu'est-ce qu'un greffon ? |
 | [Architecture et sécurité](Architecture-et-securite.md) | Comment les morceaux se parlent, et pourquoi une panne ou une intrusion reste cloisonnée |
 | [Prérequis](Prerequis.md) | Quelles machines, quels logiciels, quels comptes |
+| [Installer le relais strfry](Installer-strfry.md) | Préparer le conteneur Docker `strfry` de `backend-relais`, avant l'installation |
 | [Installation](Installation.md) | Comment installer le côté « yin » (relais) et le côté « yang » (administration) |
 | [Premier usage](Premier-usage.md) | Que vérifier juste après l'installation, ce qui est utilisable aujourd'hui |
 | [Administrer le relais strfry](Administration-du-relais-strfry.md) | Ce que Paresia fera (et ne fera pas) sur un relais strfry |
