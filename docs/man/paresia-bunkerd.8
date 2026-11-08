@@ -1,0 +1,321 @@
+.\" SPDX-License-Identifier: AGPL-3.0-or-later
+.\" Page de manuel de bunkerd (superviseur de signataires NIP-46, backend-admin).
+.\" Décrit l'état du code (server/bunkerd/, server/bin/bunkerd, server/conf/paresia.conf).
+.\" Aucune unité systemd n'est livrée pour bunkerd (voir FILES) et aucun client bunkerctl
+.\" n'est dans le dépôt. Le démon est sur le socle commun (Type=notify, options, codes sysexits,
+.\" sections journal et métriques, attente d'arrêt par tranches de 0,1 s).
+.Dd November 8, 2026
+.Dt PARESIA-BUNKERD 8
+.Os Paresia
+.Sh NAME
+.Nm paresia-bunkerd
+.Nd superviseur de signataires NIP-46 (backend-admin)
+.Sh SYNOPSIS
+.Nm python3 -P -s -B -m server.bunkerd
+.Op Fl \-config Ar fichier
+.Op Fl \-check
+.Op Fl \-debug
+.Pp
+.Nm python3 -P -s -B -m server.bunkerd
+.Fl \-help | Fl \-version
+.Pp
+.Nm server/bin/bunkerd
+.Sh DESCRIPTION
+bunkerd supervise des signataires Nostr à distance (NIP-46). Pour chaque
+identité, il lance le binaire
+.Li nak
+avec le profil de l'identité, une fois la passphrase fournie ; le secret
+chiffré (ncryptsec) reste dans le profil et n'est déchiffré qu'au
+déverrouillage. Une identité déverrouillée se reverrouille après son délai
+d'inactivité (champ
+.Li timeout ) ,
+à l'arrêt du processus
+.Li nak ,
+ou sur demande.
+.Pp
+Trois sockets Unix, chacune pour un appelant précis :
+.Bl -tag -width Ds
+.It Li [bunkerd.controle] socket
+Socket de contrôle, réservée à root (ancien
+.Li ctl.sock
+de la version 1.9.0, mêmes requêtes et mêmes réponses). Aucun client en ligne
+de commande n'est livré par ce dépôt pour cette socket.
+.It Li [bunkerd.admin] socket
+Socket d'administration
+.Li jumeaux/1 ,
+réservée au compte de Romulus (voir
+.Xr paresia-romulus 8 ) .
+Actions :
+.Li bunker/identity/list , clients , add , secret , relays , authorize , revoke , timeout , remove
+et
+.Li bunker/relay-key/sign-mute-list .
+.It Li [bunkerd.web] socket
+Page web de déverrouillage et interface de l'applet, derrière le serveur web.
+Le compte
+.Li [bunkerd.web] user
+y est autorisé par ACL. La valeur
+.Li (none)
+désactive la page ;
+.Li user
+reste obligatoire même dans ce cas.
+.El
+.Pp
+Au démarrage, bunkerd migre l'état (profil nak et
+.Li bunker.json )
+sous verrou avant toute écoute. Si le compte de Romulus n'existe pas, si son
+uid vaut 0 ou si l'ACL échoue, la socket d'administration est retirée,
+l'erreur est journalisée (
+.Li admin_disabled )
+et bunkerd continue de servir les autres sockets.
+.Pp
+La page web bloque le déverrouillage de l'identité pendant 15 minutes après
+5 échecs de passphrase (fenêtre de 15 minutes).
+.Sh OPTIONS
+.Bl -tag -width Ds
+.It Fl \-config Ar fichier
+Fichier de configuration explicite (voir
+.Xr paresia.conf 5 ) .
+.It Fl \-check
+Valide la configuration et l'état, puis sort sans ouvrir de socket.
+.It Fl \-debug
+Journal au niveau
+.Li debug
+(les valeurs des options ne sont jamais journalisées).
+.It Fl \-help
+Affiche l'aide sur la sortie standard et sort avec le code 0, sans lire la
+configuration.
+.It Fl \-version
+Affiche la version (fichier
+.Pa VERSION ,
+source unique) et sort avec le code 0.
+.El
+.Pp
+Une option inconnue donne le code 64.
+.Pp
+Cycle de vie (systemd
+.Li Type=notify ) :
+bunkerd envoie
+.Li READY=1
+après la liaison de toutes les sockets et la pose des ACL, et
+.Li STOPPING=1
+dès la demande d'arrêt. L'attente d'arrêt du fil principal se fait par tranches
+de 0,1 s, afin que
+.Dv SIGTERM
+soit traité sans retard sous charge. Les sections
+.Li [bunkerd.journal]
+et
+.Li [bunkerd.metriques]
+sont reconnues (voir
+.Xr paresia.conf 5 ) .
+.Pp
+Le lanceur
+.Pa server/bin/bunkerd
+passe lui-même
+.Fl \-config /etc/paresia/paresia.conf
+(chemin à adapter dans le script) et le dossier du code installé dans
+.Ev PYTHONPATH .
+.Sh ENVIRONMENT
+.Bl -tag -width Ds
+.It Ev PARESIA_BUNKERD_CONFIG
+Fichier de configuration explicite (
+.Fl \-config
+l'emporte).
+.It Ev PARESIA_BUNKERD_<DOMAINE>_<CLE>
+Remplace l'option correspondante. Exemple :
+.Ev PARESIA_BUNKERD_ADMIN_SOCKET .
+.It Ev JOURNAL_STREAM
+Posée par systemd : préfixe de priorité des lignes de journal.
+.El
+.Pp
+Plus aucune variable
+.Ev NOSTR_BUNKER_*
+n'est lue (version 1.9.0 abandonnée).
+.Sh FILES
+.Bl -tag -width Ds
+.It Unité systemd
+Aucune unité de bunkerd n'est livrée dans
+.Pa deploy/ :
+l'unité, son compte, ses groupes et son durcissement ne sont pas établis par
+le dépôt (à venir).
+.It Pa /etc/paresia/paresia.conf
+Clés, types et défauts de chaque option : la « Référence des options des démons »
+et les sections bunkerd de
+.Pa docs/configuration.md .
+Sections
+.Li [bunkerd] ,
+.Li [bunkerd.etat] ,
+.Li [bunkerd.outils] ,
+.Li [bunkerd.controle] ,
+.Li [bunkerd.web] ,
+.Li [bunkerd.admin] ,
+.Li [bunkerd.signature] .
+Toutes les options sont obligatoires sauf
+.Li admin.delai_s
+(défaut 90),
+.Li admin.max_line
+(65536),
+.Li admin.max_connexions
+(16) et
+.Li signature.log_n
+(20, plafond maximal).
+.It Pa /var/lib/nostr-bunker/
+Dossier d'état (illustration de
+.Li [bunkerd.etat] home ) :
+profils nak sous
+.Pa .config/nak/bunker/<identité> ,
+et
+.Pa bunker.json .
+.It Pa /usr/local/bin/nak , /usr/bin/setfacl
+Binaires (illustrations de
+.Li [bunkerd.outils] ) .
+.It Pa /run/nostr-bunker/ctl.sock , admin.sock , web.sock
+Sockets (illustrations).
+.El
+.Sh EXIT STATUS
+Codes de
+.Xr sysexits 3 :
+.Bl -tag -width Ds -compact
+.It 0
+Arrêt demandé par
+.Dv SIGTERM
+ou
+.Dv SIGINT :
+toutes les identités sont verrouillées, les sockets fermées et supprimées.
+Aussi
+.Fl \-help ,
+.Fl \-version
+et
+.Fl \-check
+réussis.
+.It 64
+Usage : option inconnue (EX_USAGE).
+.It 65
+État illisible (EX_DATAERR) : événement
+.Li state_unreadable ,
+message sur la sortie d'erreur, puis événement
+.Li startup_failed
+avec
+.Li cause=data_unreadable .
+.It 70
+Erreur interne (EX_SOFTWARE), par exemple fichier
+.Pa VERSION
+absent.
+.It 71
+Erreur du système (EX_OSERR), par exemple dossier d'état ou socket de
+contrôle impossibles à créer : événement
+.Li startup_failed
+(ou
+.Li service_failed
+après
+.Li READY=1 )
+avec
+.Li cause=os_error
+et
+.Li errno .
+.It 78
+Configuration invalide (EX_CONFIG) : événement
+.Li startup_failed
+avec
+.Li cause
+(par exemple
+.Li config_invalid ) ,
+.Li section
+et
+.Li option .
+.El
+.Pp
+Changement depuis la version 0.1.9 : le code 1 n'existe plus, l'événement
+.Li configuration_failed
+est remplacé par
+.Li startup_failed ,
+et les raisons fines
+.Li state_directory
+et
+.Li control_socket
+sont remplacées par
+.Li cause=os_error
+et
+.Li errno .
+.Sh DIAGNOSTICS
+Journal : une ligne JSON par événement sur la sortie standard (composant
+.Li bunkerd ) ,
+sans secret ni
+.Li params .
+Événements :
+.Bl -tag -width Ds -compact
+.It Li bunkerd_ready , bunkerd_stopped
+Démarrage prêt (version, nombre d'identités) ; arrêt.
+.It Li startup_failed , service_failed , state_unreadable
+Échecs de démarrage (champ
+.Li cause ) ;
+échec après
+.Li READY=1 ;
+état illisible.
+.It Li identity_unlocked , identity_locked
+Déverrouillage ; verrouillage (champ
+.Li reason :
+.Li admin_request , web_request , applet_request , idle , nak_exited , unlock_failed , shutdown ) .
+.It Li identity_added , identity_removed , identity_relays_changed , identity_secret_replaced , identity_timeout_changed
+Changements d'une identité.
+.It Li client_authorized , client_revoked
+Clients NIP-46.
+.It Li admin_started , admin_disabled
+Socket d'administration (champ
+.Li reason :
+.Li unknown_account , invalid_account , acl_failed , socket_failed ) .
+.It Li admin_operation
+Opération d'administration (session, action, identité, résultat, code).
+.It Li peer_refused , ctl_peer_refused
+uid refusé sur la socket d'administration ou de contrôle.
+.It Li web_started , web_disabled , web_unlock , web_unlock_refused , web_unlock_blocked , web_timeout_set , uri_shown
+Page web.
+.It Li relay_identity_unknown , idle_check_failed
+Identité de relais inexistante ; échec du contrôle d'inactivité.
+.El
+.Pp
+Codes d'erreur de l'administration :
+.Pa docs/protocole.md ,
+§ 5 et § 9.
+.Sh SECURITY
+.Bl -bullet -compact
+.It
+Aucune passphrase, aucun secret, aucun
+.Li ncryptsec
+dans le journal ni dans un fichier de configuration. Masque de création 0077.
+.It
+La socket de contrôle refuse tout uid autre que 0 (
+.Dv SO_PEERCRED ,
+événement
+.Li ctl_peer_refused ) .
+La socket d'administration n'admet que l'uid du compte de Romulus
+.Li [bunkerd.admin] romulus_user ,
+puis une ACL posée par bunkerd (
+.Li x
+sur le dossier,
+.Li rw
+sur la socket) ; un uid 0 est refusé.
+.It
+Identité de relais : l'identité
+.Li [bunkerd] relay_identity
+ne peut pas être supprimée par l'administration (
+.Li relay_identity_protected ) ;
+seule la socket de contrôle de root le peut.
+.It
+Signature de la liste de sourdine : plafond
+.Li [bunkerd.signature] log_n
+(défaut et maximum 20) ; déchiffrements sérialisés, un seul à la fois, avec
+une pause de 2 s après une passphrase refusée.
+.It
+Page web : CSP restrictive (
+.Li default-src 'none' ,
+.Li frame-ancestors 'none' ) ,
+blocage après 5 échecs.
+.It
+Durcissement de l'unité : non établi (aucune unité livrée).
+.El
+.Sh SEE ALSO
+.Xr paresia-romulus 8 ,
+.Xr paresia.conf 5
+.Pp
+Guide :
+.Pa docs/exploitation.md .

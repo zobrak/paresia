@@ -1,0 +1,60 @@
+#!/usr/bin/python3
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Suivi des versions
+#   0.1.7  2026-11-07  Fonction d'exemple de Remus : renvoie ses paramètres, aucun effet (D154).
+"""Fonction d'exemple (contrat de sortie).
+
+Entrée standard : un objet JSON, les paramètres validés par Remus. Sortie standard :
+{"ok": true, "data": {...}} ou {"ok": false, "error": {"code": "..."}}. Code de sortie :
+0 succès, 1 refus attendu, 2 prérequis indisponible, autre = erreur. La sortie d'erreur est
+ignorée de Remus. Le paramètre `essai` produit, pour les tests, les cas du contrat.
+Aucun effet de bord : ni fichier, ni réseau, ni sudo.
+"""
+import json
+import os
+import sys
+import time
+
+
+def ecrire(texte, code=0):
+    sys.stdout.write(texte)
+    sys.stdout.flush()
+    sys.exit(code)
+
+
+def main():
+    params = json.loads(sys.stdin.readline())
+    essai = params.get('essai', 'normal')
+    if essai == 'normal':
+        ecrire(json.dumps({'ok': True, 'data': {'echo': params, 'argv': sys.argv,
+                                                 'env': dict(os.environ)}}))
+    if essai == 'refus':
+        ecrire(json.dumps({'ok': False, 'error': {'code': 'not_available'}}), 1)
+    if essai == 'refus_inconnu':
+        ecrire(json.dumps({'ok': False, 'error': {'code': 'bad_request'}}), 1)
+    if essai == 'indisponible':
+        ecrire(json.dumps({'ok': False, 'error': {'code': 'not_available'}}), 2)
+    if essai == 'code3':
+        ecrire(json.dumps({'ok': False, 'error': {'code': 'not_available'}}), 3)
+    if essai == 'sortie_vide':
+        ecrire('')
+    if essai == 'sortie_invalide':
+        ecrire('pas du json')
+    if essai == 'double_cle':
+        ecrire('{"ok": true, "data": {}, "ok": true}')
+    if essai == 'nan':
+        ecrire('{"ok": true, "data": {"x": NaN}}')
+    if essai == 'controle':
+        ecrire(json.dumps({'ok': True, 'data': {'x': 'a\x1bb'}}))
+    if essai == 'trop_long':
+        ecrire(json.dumps({'ok': True, 'data': {'x': 'x' * 100000}}))
+    if essai == 'bavard':
+        sys.stderr.write('MARQUEUR-ERREUR-BAVARDE ' * 2000)
+        sys.stderr.flush()
+        ecrire(json.dumps({'ok': True, 'data': {'echo': params}}))
+    if essai == 'attente':
+        time.sleep(60)
+    ecrire('', 70)
+
+
+main()

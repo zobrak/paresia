@@ -1,0 +1,201 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Suivi des versions
+#   0.1.8  2026-11-07  Déclaration du service d'administration des identités de signature (D148, D150, D154).
+#
+# Greffon livré avec Paresia : Romulus aiguille le domaine « bunker » vers le démon de
+# signature NIP-46. Paramètres, bornes et erreurs de chaque action : docs/protocole.md, § 5.1.
+# Les bornes sont publiées par bunker/catalog/describe ; Romulus ne contrôle que les noms, la
+# présence et le type JSON des paramètres, le service contrôle les valeurs.
+format = 1
+forme = "ponctuel"
+greffon = "paresia-yang-bunkerd"
+domaine = "bunker"
+section = "bunker"
+obligatoire = true
+destination = "bunkerd"
+catalogue = "declaration"
+codes = [
+  "bad_request",
+  "internal_error",
+  "invalid_identity",
+  "unknown_identity",
+  "identity_exists",
+  "identity_unlocked",
+  "invalid_relays",
+  "invalid_ncryptsec",
+  "invalid_client",
+  "client_not_authorized",
+  "invalid_timeout",
+  "confirmation_mismatch",
+  "relay_identity_protected",
+  "not_relay_key",
+  "bad_passphrase",
+  "invalid_pubkeys",
+  "invalid_passphrase",
+  "pubkey_mismatch",
+  "log_n_too_high",
+]
+
+# Section [romulus.bunker] : socket d'administration du service et uid de son compte (vérifié
+# avant tout envoi), échéance d'un appel, longueur maximale d'une ligne.
+[[options]]
+nom = "bunkerd_socket"
+type = "chemin"
+role = "socket"
+
+[[options]]
+nom = "bunkerd_uid"
+type = "uid"
+role = "uid"
+
+[[options]]
+nom = "delai_s"
+type = "duree"
+defaut = 120
+role = "delai"
+
+[[options]]
+nom = "max_line"
+type = "limite"
+defaut = 65536
+role = "max_line"
+
+[[actions]]
+nom = "identity/list"
+
+[[actions]]
+nom = "identity/clients"
+erreurs = ["invalid_identity", "unknown_identity"]
+
+[[actions.parametres]]
+nom = "identity"
+type = "texte"
+bornes = { motif = '[a-z0-9_-]{1,32}', longueur_max = 32 }
+
+[[actions]]
+nom = "identity/add"
+erreurs = ["invalid_identity", "identity_unlocked", "identity_exists", "invalid_ncryptsec", "invalid_relays", "invalid_timeout"]
+
+[[actions.parametres]]
+nom = "identity"
+type = "texte"
+bornes = { motif = '[a-z0-9_-]{1,32}', longueur_max = 32 }
+
+[[actions.parametres]]
+nom = "ncryptsec"
+type = "texte"
+bornes = { motif = '(?s).+', longueur_max = 65536 }
+
+[[actions.parametres]]
+nom = "relays"
+type = "liste_texte"
+bornes = { motif = '(?s).+', longueur_max = 255, nombre_min = 1, nombre_max = 10 }
+
+[[actions.parametres]]
+nom = "timeout_min"
+type = "entier"
+bornes = { minimum = 1, maximum = 1440 }
+obligatoire = false
+
+[[actions]]
+nom = "identity/secret"
+erreurs = ["invalid_identity", "identity_unlocked", "unknown_identity", "invalid_ncryptsec"]
+
+[[actions.parametres]]
+nom = "identity"
+type = "texte"
+bornes = { motif = '[a-z0-9_-]{1,32}', longueur_max = 32 }
+
+[[actions.parametres]]
+nom = "ncryptsec"
+type = "texte"
+bornes = { motif = '(?s).+', longueur_max = 65536 }
+
+[[actions]]
+nom = "identity/relays"
+erreurs = ["invalid_identity", "identity_unlocked", "unknown_identity", "invalid_relays"]
+
+[[actions.parametres]]
+nom = "identity"
+type = "texte"
+bornes = { motif = '[a-z0-9_-]{1,32}', longueur_max = 32 }
+
+[[actions.parametres]]
+nom = "relays"
+type = "liste_texte"
+bornes = { motif = '(?s).+', longueur_max = 255, nombre_min = 1, nombre_max = 10 }
+
+[[actions]]
+nom = "identity/authorize"
+erreurs = ["invalid_identity", "identity_unlocked", "unknown_identity", "invalid_client"]
+
+[[actions.parametres]]
+nom = "identity"
+type = "texte"
+bornes = { motif = '[a-z0-9_-]{1,32}', longueur_max = 32 }
+
+[[actions.parametres]]
+nom = "client"
+type = "texte"
+bornes = { motif = '[0-9a-fA-F]{64}|npub.+', longueur_max = 65536 }
+
+[[actions]]
+nom = "identity/revoke"
+erreurs = ["invalid_identity", "identity_unlocked", "unknown_identity", "invalid_client", "client_not_authorized"]
+
+[[actions.parametres]]
+nom = "identity"
+type = "texte"
+bornes = { motif = '[a-z0-9_-]{1,32}', longueur_max = 32 }
+
+[[actions.parametres]]
+nom = "client"
+type = "texte"
+bornes = { motif = '[0-9a-fA-F]{64}|npub.+', longueur_max = 65536 }
+
+[[actions]]
+nom = "identity/timeout"
+erreurs = ["invalid_identity", "unknown_identity", "invalid_timeout"]
+
+[[actions.parametres]]
+nom = "identity"
+type = "texte"
+bornes = { motif = '[a-z0-9_-]{1,32}', longueur_max = 32 }
+
+[[actions.parametres]]
+nom = "minutes"
+type = "entier"
+bornes = { minimum = 1, maximum = 1440 }
+
+[[actions]]
+nom = "identity/remove"
+erreurs = ["invalid_identity", "identity_unlocked", "unknown_identity", "relay_identity_protected", "confirmation_mismatch"]
+
+[[actions.parametres]]
+nom = "identity"
+type = "texte"
+bornes = { motif = '[a-z0-9_-]{1,32}', longueur_max = 32 }
+
+[[actions.parametres]]
+nom = "confirmation"
+type = "texte"
+bornes = { motif = '(?s).+', longueur_max = 65536 }
+
+[[actions]]
+nom = "relay-key/sign-mute-list"
+erreurs = ["invalid_identity", "invalid_passphrase", "invalid_pubkeys", "not_relay_key", "unknown_identity", "pubkey_mismatch", "not_available", "log_n_too_high", "bad_passphrase"]
+
+[[actions.parametres]]
+nom = "identity"
+type = "texte"
+bornes = { motif = '[a-z0-9_-]{1,32}', longueur_max = 32 }
+
+[[actions.parametres]]
+nom = "passphrase"
+type = "texte"
+bornes = { motif = '(?s).+', longueur_max = 65536 }
+
+[[actions.parametres]]
+nom = "pubkeys"
+type = "liste_texte"
+bornes = { motif = '[0-9a-f]{64}', longueur_max = 64, nombre_min = 0, nombre_max = 500 }

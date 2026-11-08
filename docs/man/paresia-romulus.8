@@ -1,0 +1,749 @@
+.\" SPDX-License-Identifier: AGPL-3.0-or-later
+.\" Page de manuel de Romulus (point de contact de l'administration, backend-admin)..\" Décrit l'état du code
+.\" (server/romulus/, deploy/backend-admin/etc/systemd/system/romulus.service).
+.\" 0.1.6 : démon sur le socle commun (Type=notify, options, codes sysexits, sections journal et métriques).
+.\" 0.1.16 : aiguillage par déclarations de services greffés.
+.Dd November 8, 2026
+.Dt PARESIA-ROMULUS 8
+.Os Paresia
+.Sh NAME
+.Nm paresia-romulus
+.Nd point de contact de l'administration (backend-admin)
+.Sh SYNOPSIS
+.Nm python3 -P -s -B -m server.romulus
+.Op Fl \-check
+.Op Fl \-debug
+.Op Fl \-config Ar fichier
+.Nm python3 -P -s -B -m server.romulus
+.Fl \-help | \-version
+.Sh DESCRIPTION
+Romulus est le seul point d'entrée des requêtes d'administration. Il reçoit
+la présence de Pollux (socket Unix, NDJSON
+.Li jumeaux/1 )
+et sert une API HTTP locale, sur une socket Unix, au serveur web de confiance
+qui le précède. Il ne parle jamais au réseau.
+.Pp
+Requête HTTP :
+.Li POST /api/admin/<action> ,
+corps JSON (objet
+.Li params ,
+vide équivaut à
+.Li {} ) .
+Seules les actions des services déclarés (voir
+.Sx SERVICES GREFFÉS )
+sont admises : avec les déclarations livrées,
+.Li bunker/* ,
+.Li legal/* ,
+.Li nisaba/*
+et
+.Li relay/* .
+Tout autre chemin reçoit 404
+.Li unknown_action .
+Le jeton de session vient du cookie
+.Li admin_token
+ou de l'en-tête
+.Li X-Admin-Token ;
+Romulus n'émet aucun cookie. Le contrôle
+.Li Origin
+exige un seul
+.Li Host
+et un seul
+.Li Origin
+dont la partie après
+.Li ://
+égale
+.Li Host ;
+sinon 403
+.Li origin_refused .
+.Pp
+Aiguillage, avec les déclarations livrées :
+.Bl -tag -width Ds -compact
+.It Li bunker/*
+vers
+.Xr paresia-bunkerd 8
+(socket d'administration, uid vérifié) ;
+.It Li relay/*
+vers
+.Xr paresia-remus 8
+par le tunnel, après un ping de la session auprès de Pollux ;
+.It Li nisaba/state/status , nisaba/state/verify
+vers le processus annexe du journal légal (service facultatif : sans la section
+.Li [romulus.nisaba] ,
+501
+.Li not_available ) ;
+.It Li legal/*
+répond 501
+.Li not_available
+dans l'état actuel du code (domaine routé, sans destination). La consultation
+du journal légal est confiée à Nisaba : Romulus ne fait que router et ne lit
+pas le journal.
+.El
+.Pp
+Chaque domaine publiant un catalogue sert
+.Li <domaine>/catalog/list
+et
+.Li <domaine>/catalog/describe
+(lecture seule) : Romulus les sert lui-même pour
+.Li bunker
+et
+.Li nisaba ,
+et les transmet à Remus pour
+.Li relay .
+Romulus ne connaît le nom d'aucun greffon : tout vient des déclarations.
+.Pp
+Statuts HTTP et codes d'erreur : 400
+.Li bad_request , token_conflict ;
+403
+.Li token_missing , token_unknown , origin_refused , session_closed ;
+404
+.Li unknown_action , unknown_identity , client_not_authorized ;
+405 (autre méthode) ; 409
+.Li identity_exists , identity_unlocked , relay_identity_protected ;
+413
+.Li body_too_large ;
+422
+.Li export_too_large
+et valeurs refusées par bunkerd ; 500
+.Li internal_error ;
+501
+.Li not_available ;
+502
+.Li command_failed ;
+503
+.Li peer_unavailable , relay_light_red , command_busy , export_busy ;
+504
+.Li command_timeout .
+Détail :
+.Pa docs/protocole.md
+et
+.Pa docs/exigences-client.md .
+.Pp
+Redémarrer ou arrêter Romulus ferme toutes les sessions de présence :
+Pollux les ferme dès qu'il perd Romulus.
+.Pp
+Cycle de vie (systemd
+.Li Type=notify ) :
+l'événement
+.Li started
+est écrit puis le démon envoie
+.Li READY=1 ,
+une fois toutes ses sockets liées ;
+.Li STOPPING=1
+part à
+.Dv SIGTERM
+ou
+.Dv SIGINT ,
+puis l'événement
+.Li stopped
+est écrit après l'arrêt ordonné. Le fil principal attend l'arrêt par
+tranches de 0,1 s, car un signal reçu par un autre fil ne le réveille pas
+forcément.
+.Sh OPTIONS
+Options du socle commun
+.Pa server/commun/demon.py :
+.Bl -tag -width Ds
+.It Fl \-config Ar fichier
+Fichier de configuration explicite, qui remplace les couches fichier (voir
+.Xr paresia.conf 5 ) .
+Donnée une seule fois, avec un argument non vide qui ne commence pas par
+.Li \-\- .
+.It Fl \-check
+Lit et valide la configuration, puis sort avec le code 0, sans ouvrir de
+socket ni de fichier.
+.It Fl \-debug
+Niveau de journal
+.Li debug
+(l'emporte sur la configuration).
+.It Fl \-version
+Affiche le nom du démon et le numéro de version lu dans le fichier
+.Pa VERSION
+installé à côté de
+.Pa server/ ,
+puis sort avec 0.
+.It Fl \-help
+Affiche un rappel des options, puis sort avec 0.
+.El
+.Pp
+Tout autre argument, ou un
+.Fl \-config
+répété, affiche l'usage sur la sortie d'erreur et sort avec le code 64. Les
+messages sont tirés des catalogues
+.Pa i18n/ .
+.Sh ENVIRONMENT
+.Bl -tag -width Ds
+.It Ev PARESIA_ROMULUS_CONFIG
+Fichier de configuration explicite.
+.It Ev PARESIA_ROMULUS_<DOMAINE>_<CLE>
+Remplace l'option correspondante. Exemples :
+.Ev PARESIA_ROMULUS_HTTP_EXPORT_MAX_OCTETS ,
+.Ev PARESIA_ROMULUS_RELAY_FLUX_MAX_SIMULTANES ,
+.Ev PARESIA_ROMULUS_PLUGINS_LIVREES ,
+.Ev PARESIA_ROMULUS_PLUGINS_LOCALES .
+.It Ev JOURNAL_STREAM
+Posée par systemd : préfixe de priorité des lignes de journal.
+.It Ev PYTHONPATH
+Fixée par l'unité.
+.It Ev NOTIFY_SOCKET
+Posée par systemd (
+.Li Type=notify ) :
+le démon y envoie
+.Li READY=1 ,
+.Li STATUS=
+et
+.Li STOPPING=1
+(
+.Xr sd_notify 3 ) .
+Absente hors de systemd : les avis sont simplement omis.
+.It Ev STATE_DIRECTORY
+Posée par systemd si l'unité a
+.Li StateDirectory= .
+Base du dossier des métriques (voir
+.Sx FILES ) .
+.It Ev LC_ALL , LC_MESSAGES , LANG
+La première non vide choisit le catalogue des messages affichés (
+.Fl \-help ,
+.Fl \-version ,
+usage) : anglais si elle commence par
+.Li en ,
+français sinon.
+.El
+.Sh FILES
+.Bl -tag -width Ds
+.It Pa /etc/systemd/system/romulus.service
+Unité livrée par
+.Pa deploy/backend-admin/etc/systemd/system/romulus.service :
+.Li Type=notify ,
+.Li NotifyAccess=main ,
+.Li User=paresia-romulus ,
+.Li SupplementaryGroups=paresia-liaison paresia-http ,
+.Li Restart=on-failure ,
+.Li RestartSec=5 ,
+.Li RestartPreventExitStatus=64 65 78
+(erreurs permanentes : usage, données, configuration ; pas de relance),
+.Li TimeoutStartSec=30 ,
+.Li MemorySwapMax=0
+(les jetons de session ne doivent jamais aller sur disque). Pas de
+.Li WatchdogSec= .
+.It Pa /etc/paresia/paresia.conf , /etc/paresia/conf.d/NN-*.conf
+Clés, types et défauts de chaque option : la « Référence des options des démons »
+de
+.Pa docs/configuration.md .
+Sections
+.Li [romulus.presence] ,
+.Li [romulus.http] ,
+.Li [romulus.plugins]
+(options
+.Li livrees ,
+.Li locales ) ,
+les sections des services déclarés (avec les déclarations livrées
+.Li [romulus.bunker] ,
+.Li [romulus.relay] ,
+.Li [romulus.nisaba]
+facultative), voir
+.Sx SERVICES GREFFÉS ,
+.Li [romulus.journal]
+(clé
+.Li niveau ,
+défaut
+.Li info ) ,
+.Li [romulus.metriques]
+(clés
+.Li actif ,
+.Li dossier ,
+.Li periode_s ) ,
+.Li [romulus.activite]
+(clés
+.Li detail ,
+.Li taille_max ,
+.Li dossier ,
+.Li regroupement_max ,
+.Li regroupements_simultanes ;
+voir
+.Sx JOURNAL D'ACTIVITÉ )
+et
+.Li [romulus.noyau]
+(clé facultative
+.Li dossier_etat ,
+défaut
+.Pa /var/lib ,
+racine des dossiers d'état des démons lus par
+.Li kernel/state/metrics ) .
+.It Pa /usr/local/lib/paresia/romulus/services/paresia-yang-<nom>.toml
+Déclarations de services livrées (root:root, 0644 ; dossiers 0755) : cinq,
+.Li paresia-yang-bunkerd , paresia-yang-journal-legal , paresia-yang-nisaba , paresia-yang-strfry
+et
+.Li paresia-yang-webui
+(l'interface web, déclarée sans destination ni action : elle n'ouvre aucune route).
+Posées par
+.Xr installer-backend-admin 8
+ou par l'étape 7 bis de la procédure
+.Pa installation-pollux-romulus.md .
+Sans elles, les sections de service de la configuration sont inconnues et Romulus
+sort en code 78.
+.It Pa /etc/paresia/romulus/services.d/
+Déclarations locales (même format, mêmes droits) ; absent par défaut.
+.It Pa <dossier d'état>/metriques/romulus.prom
+Métriques au format texte de Prometheus 0.0.4, écrites de façon atomique
+toutes les
+.Li periode_s
+secondes (15). Désactivées par défaut (
+.Li actif = false ) .
+Le dossier est
+.Li [romulus.metriques] dossier
+ou, à défaut,
+.Pa metriques/
+sous
+.Ev STATE_DIRECTORY .
+Sans
+.Li dossier
+ni
+.Ev STATE_DIRECTORY ,
+l'activation fait refuser la configuration (code 78,
+.Li config_missing ) .
+.It Pa /var/lib/paresia-romulus/
+Dossier d'état de l'unité (
+.Li StateDirectory=paresia-romulus ,
+.Li StateDirectoryMode=0711 :
+traversable, non listable). Créé par systemd au démarrage, propriété de
+.Li paresia-romulus:paresia-romulus ,
+conservé à l'arrêt, inscriptible sous
+.Li ProtectSystem=strict
+sans
+.Li ReadWritePaths= .
+Contrôle à l'installation : propriétaire, groupe et mode (711) vérifiés par le
+script d'installation, avec
+.Li systemctl show \-p StateDirectory .
+Au retour arrière, retiré s'il est vide. Voir
+.Xr installer-backend-admin 8 .
+.It Pa /run/paresia-romulus/
+Dossier d'exécution (mode 0711, recréé à chaque démarrage).
+.It Pa /run/paresia-romulus/romulus.sock
+Socket de présence, mode 0660, groupe
+.Li [romulus.presence] gid
+(illustration).
+.It Pa /run/paresia-romulus/romulus-http.sock
+Socket HTTP, groupe
+.Li [romulus.http] gid
+(illustration : le compte du serveur web).
+.It Pa /run/nostr-bunker/admin.sock
+Socket d'administration de bunkerd (illustration).
+.It Pa /run/paresia-tunnel/romulus/remus.sock
+Socket du tunnel vers Remus (illustration).
+.It Pa /run/paresia-pollux/pollux-relay.sock
+Socket de Pollux pour le ping de session (illustration).
+.El
+.Pp
+Les sockets préexistantes ne sont jamais supprimées au démarrage par le
+démon ; le dossier d'exécution est recréé par systemd à chaque démarrage.
+.Sh DOMAINE KERNEL
+Romulus sert lui-même le domaine
+.Li kernel ,
+en lecture seule : aucun pair n'est appelé. Requête
+.Li POST /api/admin/kernel/<objet>/<opération> ,
+avec jeton et contrôle
+.Li Origin
+comme les autres actions.
+.Bl -tag -width Ds -compact
+.It Li kernel/state/status
+Version, durée de fonctionnement, sessions de présence ouvertes, niveau de détail du journal
+d'activité, et pour chaque démon du noyau (
+.Li pollux ,
+.Li pollux-session ,
+.Li romulus )
+son unité et l'état de ses métriques (
+.Li enabled ,
+.Li disabled ,
+.Li unreadable ) .
+.It Li kernel/state/services
+Les services déclarés : domaine, greffon, cible, mode de catalogue, disponibilité. Aucun
+chemin, aucune socket, aucun compte n'est publié.
+.It Li kernel/state/metrics
+Les métriques (format texte de Prometheus) du démon demandé, lues dans son dossier d'état sous
+le dossier de
+.Li [romulus.noyau] dossier_etat .
+Au plus 500 échantillons ; une ligne hors forme est ignorée. Métriques désactivées : réponse vide.
+.It Li kernel/state/config
+La configuration du démon demandé. Par défaut, une valeur est masquée (
+.Li "value": null ,
+.Li "masked": true ) ;
+seuls les types durée, limite, niveau, booléen et uid, et quelques clés publiques, sont publiés,
+et toute clé dont le nom évoque un secret est toujours masquée.
+.It Li kernel/activity/list
+Le journal d'activité (voir ci-dessous), filtré par
+.Li limit ,
+.Li level
+et
+.Li domain .
+.El
+.Pp
+Les paramètres sont validés exactement (champ inconnu ou de mauvais type :
+.Li bad_request ) .
+La réponse est bornée à 1 Mio. Le tableau des paramètres et des réponses est dans
+.Pa docs/protocole.md .
+.Sh JOURNAL D'ACTIVITÉ
+Romulus tient un journal d'activité : qui a demandé quoi, et avec quel résultat. C'est un
+journal d'exploitation, circulaire et borné, distinct du journal de
+.Xr journalctl 1 ;
+il n'est
+.Em pas
+sauvegardé par les procédures de Paresia. Une entrée est une ligne JSON de 2048 octets au plus.
+Elle ne contient jamais de paramètre, de réponse, de jeton, de défi, de signature, de cookie,
+d'en-tête ni de chemin reçu : un paramètre n'y figure que si le fournisseur du service l'a
+marqué non secret (clé
+.Li journaliser
+de sa déclaration), et seulement au niveau 3.
+.Pp
+Trois niveaux, réglés par
+.Li [romulus.activite] detail :
+.Bl -tag -width Ds -compact
+.It 1 (défaut)
+Chaque requête d'administration, refus compris, et l'ouverture et la fermeture de session :
+date, administrateur, numéro de session, domaine et action (nuls si l'action est inconnue),
+résultat (
+.Li ok
+ou un code d'erreur).
+.It 2
+Ajoute la durée et le jumeau ou service qui a traité l'action.
+.It 3
+Ajoute des entrées de dépannage du protocole : identifiant de requête, étape (
+.Li sent ,
+.Li received ) ,
+succès, code, taille, statut HTTP, uid vérifié du pair.
+.El
+.Pp
+Les refus sans session (jeton absent ou inconnu,
+.Li Origin
+refusé, requête mal formée, action inconnue) de même nature et de même origine sont regroupés
+par minute en une entrée portant
+.Li count ,
+pour qu'un appelant non authentifié ne chasse pas du journal les entrées légitimes.
+.Pp
+Options de
+.Li [romulus.activite] :
+.Bl -tag -width Ds
+.It Li detail
+1, 2 ou 3 (défaut 1). Hors de ces valeurs, Romulus sort en code 78.
+.It Li taille_max
+Volume total des deux fichiers, de 65536 à 16777216 octets (défaut 1048576).
+.It Li dossier
+Chemin absolu ; défaut : sous-dossier
+.Pa activite
+du dossier d'état de Romulus. Créé par Romulus en mode 0700 ; les fichiers sont en 0600.
+.It Li regroupement_max
+Nombre maximal de requêtes dans un regroupement, de 1 à 1000000 (défaut 100000).
+.It Li regroupements_simultanes
+Nombre maximal de regroupements ouverts, de 1 à 1024 (défaut 64).
+.El
+.Pp
+Chaque option se surcharge par
+.Ev PARESIA_ROMULUS_ACTIVITE_<CLE> .
+Le fichier est
+.Pa activite.jsonl ;
+quand il atteint la moitié de
+.Li taille_max ,
+il est renommé en
+.Pa activite.jsonl.1
+(qui remplace l'ancien) et un nouveau fichier est ouvert : les plus anciennes entrées
+disparaissent d'abord, et le total ne dépasse jamais
+.Li taille_max .
+À la lecture, une ligne tronquée, non JSON ou hors forme est ignorée ; un fichier qui n'est
+pas ordinaire, appartient à un autre compte ou est ouvert au groupe ou aux autres est refusé
+(événement
+.Li activity_unusable ,
+et
+.Li kernel/activity/list
+répond
+.Li not_available ) .
+Un échec d'écriture (disque plein, dossier absent) ne refuse ni ne ralentit l'action
+d'administration : l'événement
+.Li activity_write_failed
+est écrit dans le journal habituel, au plus une fois par minute.
+.Sh EXIT STATUS
+Codes de
+.Xr sysexits 3 :
+.Bl -tag -width Ds -compact
+.It 0
+Arrêt demandé par
+.Dv SIGTERM
+ou
+.Dv SIGINT ,
+ou
+.Fl \-check ,
+.Fl \-help ,
+.Fl \-version
+réussis.
+.It 64
+Usage : argument inconnu (EX_USAGE).
+.It 65
+Données illisibles (EX_DATAERR).
+.It 70
+Erreur interne (EX_SOFTWARE), par exemple fichier
+.Pa VERSION
+absent à côté de
+.Pa server/ .
+.It 71
+Erreur du système, par exemple socket déjà utilisée (EX_OSERR).
+.It 78
+Configuration invalide (EX_CONFIG), y compris une déclaration de service livrée
+défectueuse, une section sans déclaration chargée ou un socket de service sans
+uid.
+.El
+.Pp
+L'unité ne relance pas le démon après 64, 65 ou 78. Le message d'un échec
+n'est écrit sur le terminal que si la sortie d'erreur en est un.
+.Sh DIAGNOSTICS
+Journal : une ligne JSON par événement sur la sortie standard. Niveau :
+.Li [romulus.journal] niveau
+(défaut
+.Li info ) ,
+ou
+.Li debug
+avec
+.Fl \-debug .
+Événements :
+.Bl -tag -width Ds -compact
+.It Li started , stopped
+Démarrage (avant
+.Li READY=1 )
+et arrêt ordonné.
+.It Li startup_failed , service_failed
+Échec avant la mise en service (
+.Li startup_failed )
+ou pendant (
+.Li service_failed ) .
+Champs
+.Li cause :
+.Li os_error
+(avec
+.Li errno
+numérique, au lieu du nom de classe et du nom symbolique d'avant),
+.Li data_unreadable ,
+.Li internal_error
+ou le code de configuration, et pour une erreur de configuration
+.Li section
+et
+.Li option .
+Jamais de valeur ni de message d'exception.
+.It Li internal_error_detail
+Niveau
+.Li debug
+seulement, après un échec : champs
+.Li classe
+(nom de la classe d'exception, 64 caractères au plus) et
+.Li pile
+(au plus les 16 derniers cadres du paquet
+.Pa server ,
+chemin relatif, ligne, fonction ; aucune valeur).
+.It Li config_read , notify_open , notify_closed , stop_requested
+Niveau
+.Li debug
+seulement : lecture d'une option (section et option, jamais la valeur),
+échanges avec systemd, demande d'arrêt.
+.It Li activity_unusable , activity_write_failed
+Le journal d'activité est refusé (fichier non conforme) ou son écriture échoue ; champ
+.Li code
+seulement.
+.It Li metrics_write_failed
+Écriture du fichier de métriques impossible (champ
+.Li errno ) ;
+le démon continue.
+.It Li pollux_disconnected
+La connexion de Pollux s'est fermée.
+.It Li presence_request
+Requête de présence reçue.
+.It Li http_connection_limit , http_peer_refused , http_read_deadline , http_connection_failed
+Limites et refus du serveur HTTP (connexions simultanées, uid refusé, délai de
+lecture, échec de connexion).
+.It Li service_declaration_rejected
+Déclaration locale (ou dossier local) ignorée ; champs
+.Li code ,
+.Li scope
+et
+.Li file
+(nom de base filtré, jamais de chemin).
+.It Li export_failed
+Échec d'une préparation d'export binaire.
+.It Li follow_started
+Ouverture d'un flux continu.
+.It Li relay_ping_failed
+Le ping de la session auprès de Pollux a échoué.
+.It Li peer_refused , peercred_unavailable , connection_limit , connection_start_failed , connection_cleanup_failed , request_completed , stream_failed , stream_aborted
+Événements du serveur de sockets commun.
+.El
+.Sh SERVICES GREFFÉS
+Romulus aiguille les actions selon des déclarations, une par service :
+fichiers TOML
+.Pa paresia-yang-<nom>.toml
+(des données, jamais du code), lus à chaque démarrage dans deux dossiers : les
+déclarations livrées,
+.Pa /usr/local/lib/paresia/romulus/services/ ,
+et les déclarations locales,
+.Pa /etc/paresia/romulus/services.d/
+(FHS 3.0). Les deux dossiers (et leurs ancêtres) et les fichiers appartiennent à
+root, sans écriture pour le groupe ni les autres, sans lien symbolique ; un
+fichier fait 64 Kio au plus, un dossier 64 fichiers au plus. Un nom de fichier
+qui ne suit pas
+.Li paresia-yang-<nom>.toml
+(minuscules, chiffres et
+.Li \-
+après une lettre, 32 caractères au plus) est refusé. Les dossiers se changent
+par
+.Li [romulus.plugins]
+(options
+.Li livrees
+et
+.Li locales ) .
+.Pp
+Clés d'une déclaration :
+.Bl -tag -width Ds -compact
+.It Li format , forme
+.Li format = 1 ;
+.Li forme = "ponctuel"
+(seule forme admise).
+.It Li greffon
+égal au nom du fichier sans
+.Li .toml .
+.It Li domaine
+domaine des actions (minuscules, chiffres,
+.Li _ ;
+ni
+.Li presence
+ni
+.Li castor ) .
+.It Li section
+nom de la section de configuration du service,
+.Li [romulus.<section>]
+(jamais
+.Li general , presence , http , plugins , journal , metriques ) .
+.It Li obligatoire
+vrai par défaut ; faux : service facultatif, absent si sa section ou son socket
+manque (501
+.Li not_available ) .
+.It Li sans_destination
+vrai : domaine routé sans service (toute action répond 501) ; incompatible avec
+une section, des options, le ping ou le suivi.
+.It Li destination
+nom du service dans le journal (défaut : le domaine).
+.It Li catalogue
+.Li aucun
+(défaut),
+.Li declaration
+(Romulus sert le catalogue de ses descripteurs) ou
+.Li pair
+(les actions de catalogue sont transmises au service).
+.It Li codes
+codes d'erreur admis en retour du service ; tout autre devient
+.Li internal_error .
+.Li not_available
+est toujours admis.
+.It Li ping , ping_oubli
+vrai : avant chaque transmission, ping de la session auprès d'un second pair, au
+plus une fois par battement ; liste de codes du service qui font oublier ce ping.
+.It Li [[options]]
+une table par option de la section : nom, type
+.Li ( chemin , uid , duree , limite ) ,
+défaut, borne
+.Li maximum
+(limite),
+.Li inferieure_a
+(durée strictement inférieure à une autre option) et
+.Li role .
+Romulus lit une option par son rôle (
+.Li socket , uid , delai , max_line , flux_max , battement , ping_delai , ping_socket , ping_uid ) ,
+jamais par son nom.
+.It Li [[actions]]
+une table par action : nom (sans le domaine),
+.Li erreurs ,
+.Li suivi
+(flux d'événements, au plus une action),
+.Li export
+(réponse binaire),
+.Li params_transmis
+(paramètres validés par le service, mode
+.Li pair )
+et
+.Li [[actions.parametres]]
+(nom, type, bornes, obligatoire).
+.El
+.Pp
+Romulus ne contrôle que les noms, la présence et le type JSON des paramètres ;
+le service contrôle les valeurs. Au plus un service déclare le ping ou le suivi.
+Un domaine, un greffon ou une section ne peuvent être déclarés qu'une fois : une
+déclaration locale ne remplace jamais une déclaration livrée. Format complet :
+.Pa docs/developpement.md ,
+§ 6.2.
+.Pp
+Défaut d'une déclaration livrée : Romulus ne démarre pas (code 78). Défaut d'une
+déclaration locale : elle est ignorée (le dossier local entier, si le dossier
+lui-même est en cause) et l'événement
+.Li service_declaration_rejected
+est écrit.
+.Pp
+Configuration : le démon lit d'abord
+.Li [romulus.plugins]
+en lecture partielle (les sections et options qu'il ne connaît pas encore sont
+ignorées), charge les déclarations, puis relit toute la configuration en lecture
+stricte avec le schéma qu'elles composent. Une section
+.Li [romulus.<service>]
+sans déclaration chargée est donc refusée (78,
+.Li config_unknown_section ) .
+Règle de l'uid du pair : avec un socket de service, l'uid de son compte est exigé
+(et l'inverse), de même pour le socket et l'uid du ping ; sinon 78,
+.Li config_invalid .
+Un service facultatif sans socket ni uid n'est pas aiguillé.
+.Sh SECURITY
+.Bl -bullet -compact
+.It
+Compte dédié
+.Li paresia-romulus ,
+sans shell ni capacité. Groupes supplémentaires :
+.Li paresia-liaison
+(socket de Pollux) et
+.Li paresia-http
+(socket HTTP).
+.It
+Chaque socket vérifie l'uid du pair (
+.Dv SO_PEERCRED ) :
+Pollux sur la socket de présence, le compte du serveur web sur la socket HTTP.
+L'uid du serveur de chaque service déclaré (bunkerd, Remus, Nisaba) et celui de
+Pollux (ping) sont vérifiés avant chaque envoi ; aucune connexion n'est
+construite sans uid du pair, et une configuration qui donne un socket sans uid
+est refusée au démarrage (78).
+.It
+Les déclarations de services sont des données contrôlées comme des programmes
+(propriétaire root, droits, aucun lien symbolique, taille bornée) ; une
+déclaration locale ne remplace jamais une livrée.
+.It
+Jetons de session jamais journalisés ; ils ne vont jamais sur disque
+(
+.Li MemorySwapMax=0 ,
+.Li LimitCORE=0 ) .
+.It
+Limites par défaut : corps 64 Kio, 100 en-têtes, 16 Kio d'en-têtes, 64
+connexions HTTP, échéance de lecture 30 s, export 8 Mio et deux exports
+simultanés, huit flux continus.
+.It
+.Li NotifyAccess=main :
+seul le processus principal peut envoyer des avis à systemd ; les avis sont
+validés et envoyés par une socket de domaine Unix, sans élargir
+.Li RestrictAddressFamilies= .
+.It
+Unité :
+.Li NoNewPrivileges=yes ,
+.Li CapabilityBoundingSet=
+vide,
+.Li ProtectSystem=strict ,
+.Li ProtectHome=yes ,
+.Li RestrictAddressFamilies=AF_UNIX ,
+.Li SystemCallFilter=@system-service ,
+.Li UMask=0077 .
+.El
+.Sh SEE ALSO
+.Xr paresia-pollux 8 ,
+.Xr paresia-remus 8 ,
+.Xr paresia-bunkerd 8 ,
+.Xr paresia-tunnel 8 ,
+.Xr paresia.conf 5
+.Pp
+Guide :
+.Pa docs/exploitation.md .

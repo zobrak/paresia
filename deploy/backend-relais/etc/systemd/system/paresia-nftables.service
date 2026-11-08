@@ -1,0 +1,36 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Suivi des versions : 3.0.0-alpha — 2026-11-06, création (D65) ; arrêt propre.
+# systemd.special(7), network-pre.target :
+# "This passive target unit may be pulled in by services that want to run before any network is set up,
+# for example for the purpose of setting up a firewall."
+# D'où Wants= et Before= ; cible passive tirée par cette unité.
+# capabilities(7), CAP_NET_ADMIN : "administration of IP firewall, masquerading, and accounting;"
+# systemd.exec(5), CapabilityBoundingSet= :
+# "Capabilities listed will be included in the bounding set, all others are removed."
+# systemd.service(5) : "Type=oneshot is the implied default if neither Type= nor ExecStart= are specified."
+# RemainAfterExit : "the service shall be considered active even when all its processes exited."
+# systemd.special(7), shutdown.target : "Services that shall be terminated on system shutdown
+# shall add Conflicts= and Before= dependencies to this unit for their service unit, which is
+# implicitly done when DefaultDependencies=yes is set (the default)."
+# systemd.unit(5), DefaultDependencies= : "Generally, only services involved with early boot or
+# late shutdown should set this option to no." Ici no : l'unité s'installe avant le réseau
+# (network-pre.target) sans dépendre de basic.target ; l'arrêt est donc déclaré explicitement.
+# systemd.service(5), ExecStart= : le préfixe "-" fait tolérer l'échec de la commande ; ExecStop
+# le porte pour qu'une table déjà absente ne rende pas l'unité en échec.
+# ExecStart/ExecStop : chargement puis suppression de notre seule table, aucun fichier journal.
+[Unit]
+Description=Paresia : restriction réseau du compte tunnel
+DefaultDependencies=no
+Conflicts=shutdown.target
+Wants=network-pre.target
+Before=network-pre.target shutdown.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/nft -f /etc/nftables/paresia-relais.nft
+ExecStop=-/usr/sbin/nft delete table inet paresia_relais
+CapabilityBoundingSet=CAP_NET_ADMIN
+
+[Install]
+WantedBy=multi-user.target

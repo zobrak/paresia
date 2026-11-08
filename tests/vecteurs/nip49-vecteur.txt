@@ -1,0 +1,14 @@
+# Vecteur de test publié de NIP-49 (déchiffrement), recopié exactement.
+# Source : https://raw.githubusercontent.com/nostr-protocol/nips/ae9f80eb288996d126179733403bcaf9e86eb8ab/49.md
+# Dépôt : https://github.com/nostr-protocol/nips, fichier 49.md, section « Decryption » ;
+# commit ae9f80eb288996d126179733403bcaf9e86eb8ab (dernier commit modifiant 49.md au 2026-11-06).
+# Format : clé=valeur, une par ligne ; les lignes à valeur sensible portent le marqueur exigé
+# par tools/hooks/scan_secrets.py.
+ncryptsec=ncryptsec1qgg9947rlpvqu76pj5ecreduf9jxhselq2nae2kghhvd5g7dgjtcxfqtd67p9m0w57lspw8gsq6yphnm8623nsl8xn9j4jdzz84zm3frztj3z7s35vpzmqf6ksu8r89qk5z2zxfmu5gv8th8wclt0h4p # scan-secrets: vecteur-public
+password=nostr # scan-secrets: vecteur-public
+log_n=16
+cle_privee_hex=3501454135014541350145413501453fefb02227e449e57cf4d3a3ce05378683 # scan-secrets: vecteur-public
+# Normalisation NFKC du mot de passe (même section 49.md, « Password Unicode Normalization ») :
+# entrée U+212B U+2126 U+1E9B U+0323 (UTF-8 E284AB E284A6 E1BA9B CCA3) devient U+00C5 U+03A9 U+1E69 (UTF-8 C385 CEA9 E1B9A9).
+nfkc_entree_utf8_hex=e284abe284a6e1ba9bcca3 # scan-secrets: vecteur-public
+nfkc_sortie_utf8_hex=c385cea9e1b9a9 # scan-secrets: vecteur-public

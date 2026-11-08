@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Suivi des versions : 3.0.0-alpha — 2026-11-06.
+# Remus : liste fermée des commandes privilégiées.
+# fichier généré, ne pas modifier à la main
+# Génération : python3 -m server.remus.sudoers
+chef ALL=(root) NOPASSWD: /usr/bin/docker restart strfry
+chef ALL=(root) NOPASSWD: /usr/bin/docker exec strfry /app/strfry info
+chef ALL=(root) NOPASSWD: /usr/bin/docker exec strfry /app/strfry negentropy list

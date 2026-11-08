@@ -1,0 +1,13 @@
+#!/bin/sh
+# Lanceur de bunkerd 2.0.0 ; dépendances : sh, /usr/bin/python3 (3.11 ou plus) et paquet server.
+# Suivi des versions
+#   3.0.0-alpha  2026-11-05  Première version (T005) : lance python3 -m server.bunkerd.
+#   3.0.0-alpha  2026-11-05  Configuration : /etc/paresia/paresia.conf (sections [bunkerd…], bunkerd.ini supprimé).
+# à adapter à l'installation : chemin du fichier de configuration (propriétaire root, sans écriture groupe/autres).
+CONFIG=/etc/paresia/paresia.conf
+# à adapter à l'installation : répertoire contenant le paquet server ; il doit appartenir
+# à root et ne pas être modifiable par le compte de bunkerd (D21).
+PYTHONPATH_DE_INSTALL=/usr/local/lib/paresia
+# L'environnement est celui de l'unité systemd (variables PARESIA_BUNKERD_* éventuelles).
+# -P (3.11+, échoue sinon) : le répertoire courant n'entre pas dans sys.path ; -s : pas de site utilisateur.
+PYTHONPATH="$PYTHONPATH_DE_INSTALL" exec /usr/bin/python3 -P -s -B -m server.bunkerd --config "$CONFIG"

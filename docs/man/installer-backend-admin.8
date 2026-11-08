@@ -1,0 +1,441 @@
+.\" SPDX-License-Identifier: AGPL-3.0-or-later
+.\" Page de manuel du script d'installation de backend-admin.
+.\" Rédigée d'après l'en-tête de deploy/backend-admin/installer-backend-admin.sh (0.1.11).
+.\" 0.1.16 : pose des déclarations de services de Romulus à l'étape configuration.
+.Dd November 8, 2026
+.Dt INSTALLER-BACKEND-ADMIN 8
+.Os Paresia
+.Sh NAME
+.Nm installer-backend-admin.sh
+.Nd installation complète de Pollux, pollux-session, Romulus et du tunnel sur backend-admin
+.Sh SYNOPSIS
+.Nm deploy/backend-admin/installer-backend-admin.sh
+.Op Fl \-depot Ar dossier
+.Op Fl \-langue Ar langue
+.Op Fl \-alpha-test
+.Op Fl \-activer
+.Op Fl \-confirme
+.Op Fl \-sauter Ar étape
+.Op Ar autres paramètres
+.Nm deploy/backend-admin/installer-backend-admin.sh
+.Fl \-verifier | \-aide | \-version
+.Nm deploy/backend-admin/installer-backend-admin.sh
+.Fl \-retour-arriere
+.Fl \-jeu Ar nom
+.Fl \-confirme
+.Sh DESCRIPTION
+Le script installe, sur backend-admin, le code de Paresia, les comptes, la
+configuration, les unités de Pollux et de Romulus, le lanceur
+.Xr pollux-session 1 ,
+les réglages sshd du compte
+.Li app
+et la partie « tunnel » (clé, client SSH, empreinte de l'hôte, unité, dossiers
+des sockets). Il remplace la procédure pas à pas
+.Pa installation-pollux-romulus.md
+et celle du tunnel. Il s'exécute depuis un clone du dépôt fait au préalable par
+l'administrateur ; il ne clone, ne télécharge et ne met à jour rien.
+.Pp
+Il ne pose aucune question : chaque paramètre vient de l'option, sinon de la
+variable d'environnement, sinon de sa valeur par défaut. Une valeur absente ou
+invalide arrête le script avant toute modification. Tous les messages viennent
+du catalogue
+.Pa i18n/<langue>.json
+du clone (clés
+.Li install_* ) ;
+aucun texte n'est écrit en dur.
+.Pp
+Étapes (chacune est précédée d'un contrôle « déjà en place » et suivie d'une
+vérification) :
+.Li prerequis , sauvegarde , identifiants_comptes , appartenances , dossier_app ,
+.Li code , configuration , web , sshd_app , unites , demarrage , refus , tunnel_releves ,
+.Li tunnel_cle ,
+puis, avec
+.Ev ADRESSE_RELAIS
+et
+.Ev EMPREINTE_HOTE_RELAIS :
+.Li tunnel_client , tunnel_known_hosts , tunnel_unite , tunnel_sockets ,
+et
+.Li activation
+sous
+.Fl \-activer .
+L'essai de bout en bout de la présence reste la procédure
+.Pa deploy/essai-presence.md .
+.Pp
+Ordre entre machines : backend-admin (première passe, qui crée la clé du
+tunnel), puis backend-relais (clé publique et empreintes), puis backend-admin
+(seconde passe, avec les deux paramètres du tunnel). Voir
+.Xr installer-backend-relais 8 .
+.Pp
+Le script est rejouable. Une étape qui trouve l'état attendu est « déjà en
+place » : aucune commande modifiante, aucune sauvegarde. Un état différent est
+refusé avant toute modification (code 78). Sauf sous
+.Fl \-mise-a-jour ,
+le script n'arrête ni ne redémarre aucune unité : un démon actif dont le code
+ou la configuration changerait doit d'abord être arrêté par l'administrateur.
+Seul
+.Li reload ssh
+est lancé, après
+.Li sshd -t
+et avec
+.Ev SESSION_SECOURS Ns =oui .
+strfry, Docker, lighttpd, bunkerd et les autres services ne sont jamais
+touchés.
+.Sh OPTIONS
+Chaque paramètre existe en option et en variable ; l'option l'emporte.
+.Bl -tag -width Ds
+.It Fl \-depot Ar dossier , Ev DEPOT
+Racine du clone qui contient le script (copie propre du dépôt).
+.It Fl \-langue Ar langue , Ev LANGUE
+Catalogue des messages :
+.Li fr-FR
+ou
+.Li en-US .
+Par défaut dérivée de
+.Ev LC_ALL
+ou
+.Ev LANG ,
+repli
+.Li fr-FR .
+.It Fl \-dossier-journal Ar dossier , Ev DOSSIER_JOURNAL
+Journal de
+.Fl \-alpha-test ;
+défaut : le dossier d'où le script est lancé. Le dossier doit exister, ne pas
+être un lien symbolique, appartenir à root ou au compte qui lance le script et
+n'être modifiable ni par le groupe ni par les autres.
+.It Fl \-repertoire-app Ar dossier , Ev REPERTOIRE_APP
+Répertoire du compte
+.Li app ;
+défaut
+.Pa /var/lib/paresia-app ;
+toute autre valeur est refusée.
+.It Fl \-code-remplacement-confirme Ar oui|non , Ev CODE_REMPLACEMENT_CONFIRME
+Défaut
+.Li non .
+.Li oui
+autorise le remplacement de fichiers installés différents.
+.It Fl \-session-secours Ar oui|non , Ev SESSION_SECOURS
+Défaut
+.Li non .
+.Li oui
+: une deuxième session est ouverte et testée ; obligatoire pour recharger sshd.
+.It Fl \-stockage-actif Ar oui|non , Ev PARESIA_SAUVEGARDE_STOCKAGE_ACTIF
+Défaut
+.Li oui .
+.Li non
+désactive les sauvegardes (le retour arrière échoue alors).
+.It Fl \-adresse-relais Ar adresse , Ev ADRESSE_RELAIS
+Adresse IP de backend-relais (seconde passe). Va avec
+.Ev EMPREINTE_HOTE_RELAIS .
+.It Fl \-empreinte-hote-relais Ar empreinte , Ev EMPREINTE_HOTE_RELAIS
+Empreinte
+.Li SHA256
+de la clé d'hôte, lue sur backend-relais (affichée par
+.Xr installer-backend-relais 8 )
+et comparée à celle de
+.Xr ssh-keyscan 1 .
+.It Fl \-verifier
+Contrôle les paramètres et les prérequis (dont le module Python
+.Li cryptography ) ,
+en lecture seule ; ne modifie rien et ne crée aucun journal.
+.It Fl \-alpha-test
+Option temporaire : points de contrôle après chaque étape, arrêt au premier
+écart, journal horodaté sans secret dans le dossier du journal (fichier créé en
+mode 0600, jamais écrasé, puis remis au compte appelant quand le script est lancé
+par
+.Xr sudo 8
+et que
+.Ev SUDO_UID
+et
+.Ev SUDO_GID
+sont des identifiants valides ; journal sous
+.Pa /var/log/paresia
+refusé). Le bloc « alpha-test » du script est retirable après la validation.
+.It Fl \-activer
+Active au démarrage
+.Li pollux.service
+et
+.Li romulus.service
+(étape
+.Li activation ,
+après la conformité de toutes les étapes précédentes) ; sans cette option, les
+unités sont seulement démarrées.
+.Li paresia-tunnel.service
+n'est jamais activé pour lui-même : il est tiré par ces deux services (voir
+.Xr paresia-tunnel 8 ) .
+Sur une installation où le tunnel était déjà activé, l'étape
+.Li tunnel_unite
+lance
+.Li systemctl disable paresia-tunnel.service
+sans
+.Fl \-now
+(le tunnel en marche n'est pas arrêté).
+.It Fl \-mise-a-jour
+Met à jour une installation existante (voir
+.Sx MISE À JOUR ) .
+Variable
+.Ev MISE_A_JOUR Ns =oui ,
+défaut
+.Li non .
+Incompatible avec
+.Fl \-retour-arriere
+et
+.Fl \-verifier
+(code 64).
+.It Fl \-sauter Ar étape
+Saute une étape de la liste fermée :
+.Li sudoers , nftables , isolation_remus , www-data .
+.It Fl \-retour-arriere Fl \-jeu Ar nom Fl \-confirme
+Voir
+.Sx RETOUR ARRIÈRE .
+.It Fl \-aide , \-version
+Aide et version.
+.El
+.Sh ENVIRONMENT
+Les variables des paramètres ci-dessus, ainsi que
+.Ev LC_ALL
+et
+.Ev LANG
+pour la langue. Aucune variable ne porte de secret.
+.Sh FILES
+.Bl -tag -width Ds
+.It Pa /var/backups/paresia/admin/AAAAMMJJ-HHMMSS/
+Jeu de sauvegarde créé avant toute modification (son nom est affiché sur la
+sortie standard). Voir
+.Xr paresia-sauvegarde 8 .
+.It Pa /var/lib/paresia-pollux/ , /var/lib/paresia-romulus/
+Dossiers d'état des deux démons, créés par systemd (
+.Li StateDirectory= ,
+mode 0711), jamais par le script. Contrôle à l'étape des unités
+.Li ( systemctl show \-p StateDirectory )
+et au démarrage (propriétaire, groupe et mode 711). Au retour arrière, retirés
+par
+.Xr rmdir 1
+seulement s'ils sont vides.
+.It Pa /run/paresia-installation/
+Copie du code appartenant à root, d'où l'outil de sauvegarde est lancé.
+.It Pa /usr/local/lib/paresia/server/ , /usr/local/lib/paresia/VERSION
+Code installé et son fichier de version, côte à côte.
+.It Pa /etc/paresia/paresia.conf , /etc/paresia/conf.d/10-backend-admin.conf
+Configuration (voir
+.Xr paresia.conf 5 ) .
+.It Pa /usr/local/lib/paresia/romulus/ , /usr/local/lib/paresia/romulus/services/
+Dossiers (root:root, 0755) des déclarations de services de Romulus.
+.It Pa /usr/local/lib/paresia/romulus/services/paresia-yang-<nom>.toml
+Déclarations de services posées à l'étape
+.Li configuration ,
+avant les unités (root:root, 0644) : le script pose chaque fichier
+.Li paresia-yang-*.toml
+du dossier
+.Pa deploy/backend-admin/usr/local/lib/paresia/romulus/services/
+du clone (cinq : bunkerd, journal légal, Nisaba, relais strfry et l'interface web), avec
+sauvegarde avant remplacement ; un fichier différent déjà installé est refusé
+(code 78) sans
+.Fl \-code-remplacement-confirme Ns =oui .
+Sans elles, les sections
+.Li [romulus.bunker]
+et
+.Li [romulus.relay]
+de
+.Pa 10-backend-admin.conf
+sont inconnues et Romulus sort en code 78. Voir
+.Xr paresia-romulus 8 .
+.It Pa /usr/local/share/paresia/web/ , /usr/local/share/paresia/web/greffons/
+Pages de l'interface d'administration, posées à l'étape
+.Li web
+(après la pose des déclarations) : copie de
+.Pa admin/web/
+du clone, puis, sous
+.Pa greffons/<nom>/ ,
+le dossier de chaque greffon trouvé dans
+.Pa deploy/backend-admin/usr/local/share/paresia/web/greffons/
+du clone (script de chaque page et catalogues
+.Pa i18n/fr-FR.json ,
+.Pa i18n/en-US.json ) .
+Tout appartient à root, dossiers 0755, fichiers 0644. L'étape génère ensuite
+.Pa greffons/index.json
+par
+.Xr paresia-romulus-pages 8
+et le fait vérifier ; si la génération ou la vérification échoue, l'index est retiré (aucun
+index n'est laissé) et le script s'arrête (code 78). Un dossier déjà installé qui diffère du
+clone est refusé (code 78) sans
+.Fl \-code-remplacement-confirme Ns =oui ;
+avec cette option, il est sauvegardé puis remplacé. À la fin de l'étape, le script affiche
+le dossier posé et le nombre de greffons.
+.Sy Le script n'installe aucun serveur web, n'écrit aucune configuration de serveur web et ne recharge aucun service :
+c'est à l'administrateur de faire servir ce dossier sous
+.Pa /admin/
+(exigences : voir la documentation du serveur web du dépôt).
+.It Pa /etc/systemd/system/pollux.service , romulus.service , paresia-tunnel.service
+Unités. Voir
+.Xr paresia-pollux 8 ,
+.Xr paresia-romulus 8 ,
+.Xr paresia-tunnel 8 .
+.It Pa /etc/paresia/tunnel/ , /etc/tmpfiles.d/paresia-tunnel.conf
+Client SSH du tunnel, clé, empreinte de l'hôte, dossiers des sockets.
+.It Pa /etc/ssh/sshd_config.d/50-paresia-app.conf
+Réglages sshd du compte
+.Li app .
+.El
+.Sh EXIT STATUS
+Codes de
+.Xr sysexits 3 :
+.Bl -tag -width Ds -compact
+.It 0
+Succès.
+.It 64
+Usage : paramètre absent, option inconnue.
+.It 65
+Valeur invalide.
+.It 66
+Catalogue illisible.
+.It 69
+Prérequis manquant.
+.It 73
+Journal déjà existant.
+.It 74
+Sauvegarde en échec.
+.It 77
+Compte d'exécution refusé.
+.It 78
+État différent de l'attendu (refus ou écart).
+.El
+.Pp
+Tout autre code est celui de la commande en échec.
+.Sh PREREQUIS
+Debian 13, systemd, Python 3.11 ou plus, curl,
+.Xr ssh-keygen 1 ,
+.Xr sshd 8 ,
+bash et
+.Xr python3 1
+(bibliothèque standard, pour lire les catalogues), et le paquet
+.Li python3-cryptography
+(module
+.Li cryptography ,
+nécessaire à Pollux pour vérifier la signature du défi). Le script contrôle ce
+module à l'étape
+.Li prerequis
+et s'arrête avec le code 69 s'il manque.
+.Sh COMPTES
+Les groupes et comptes système sont créés sans numéro imposé
+.Pq Li groupadd --system , useradd --system :
+le système choisit des identifiants libres dans la plage de
+.Xr login.defs 5 .
+Le script les relève, puis les reporte dans la copie installée de
+.Pa /etc/paresia/conf.d/10-backend-admin.conf ,
+dont les numéros du dépôt sont des exemples. Un groupe ou un compte déjà présent
+sous le bon nom est repris sans modification s'il est dans la plage système, si
+son groupe primaire est le groupe du même nom et si son répertoire et son
+interpréteur sont ceux attendus ; sinon le script refuse (code 78) avant toute
+création.
+.Sh MISE À JOUR
+Avec
+.Fl \-mise-a-jour ,
+le script lit la version installée
+.Pq Pa /usr/local/lib/paresia/VERSION
+et celle du clone, affiche « installée X, livrée Y » et ne remplace que ce qui diffère. Une version
+livrée plus ancienne, une version installée absente ou illisible, ou un format de manifeste de
+sauvegarde différent entre l'outil installé et l'outil livré sont refusés (code 78) avant toute
+modification. Un état identique est « déjà en place ».
+.Pp
+Demander la mise à jour vaut accepter l'interruption des unités de Paresia. Avant toute
+modification, le script annonce sur l'erreur standard les unités qui seront arrêtées (Pollux puis
+Romulus, et
+.Li paresia-tunnel
+seulement si
+.Fl \-adresse-relais
+et
+.Fl \-empreinte-hote-relais
+sont fournis et que son unité ou la configuration du tunnel change), l'effet (fermeture des sessions de
+présence) et le nom du jeu de sauvegarde. Ordre : sauvegarde complète du jeu, arrêt
+.Pq Li systemctl stop ,
+jamais
+.Li restart ,
+remplacement, rechargement de systemd, démarrage dans l'ordre inverse des seules unités qui étaient
+actives, attente de l'état actif, vérifications, contrôle de la version. Aucun service tiers n'est
+arrêté ni redémarré. L'état d'activation au démarrage n'est jamais modifié et l'étape
+.Li activation
+n'est jamais lancée.
+.Pp
+Configuration : les empreintes SHA-256 des fichiers livrés sont enregistrées dans
+.Pa /usr/local/lib/paresia/empreintes-conf .
+Un fichier de
+.Pa /etc/paresia
+inchangé depuis la pose est remplacé ; un fichier modifié par l'administrateur, ou sans empreinte
+enregistrée, est conservé octet pour octet et la version livrée est déposée à côté, en
+.Pa <fichier>.paresia-nouveau .
+Les options nouvelles et supprimées sont affichées par leur nom, jamais par leur valeur.
+.Pp
+Si une vérification échoue après l'arrêt des unités, le code et la configuration sont restaurés
+automatiquement (aucun compte ni groupe n'est supprimé) et le script sort en 78 avec le nom du jeu.
+Exception : si le journal d'une unité redémarrée montre une migration de données du démon
+.Pq Li state_migrated ,
+rien n'est restauré, les unités redémarrées sont arrêtées et la marche à suivre est affichée
+(retour manuel, avec la sauvegarde propre du démon). Les scripts ne migrent aucune donnée. En fin
+de mise à jour, la commande de lecture du journal de chaque unité redémarrée est affichée.
+.Sh RETOUR ARRIERE
+.Nm
+.Fl \-retour-arriere Fl \-jeu Ar nom Fl \-confirme
+arrête les unités posées, restaure les fichiers dans l'ordre inverse de la
+pose, lance
+.Li sshd -t
+puis
+.Li reload ssh ,
+et supprime les seuls comptes et groupes créés par cette installation.
+.Fl \-confirme
+est obligatoire : sans lui, rien n'est modifié. Un fichier créé par
+l'installation est supprimé ; un fichier remplacé est rétabli. Les déclarations
+de services de Romulus et le dossier des pages
+.Pa /usr/local/share/paresia/web
+sont restaurés ou retirés de la même façon, puis les
+dossiers
+.Pa /usr/local/lib/paresia/romulus/services
+et
+.Pa /usr/local/lib/paresia/romulus
+sont retirés par
+.Xr rmdir 1
+s'ils sont vides. La liste des déclarations est celle du clone au moment du
+retour arrière : le clone doit être présent et contenir les mêmes fichiers que
+lors de la pose (limite connue).
+Garder une session de secours ouverte et testée.
+.Sh SECURITY
+.Bl -bullet -compact
+.It
+Le script s'exécute en root, sans
+.Xr sudo 8
+; tout autre compte est refusé (code 77). Les commandes restent écrites
+.Li /usr/bin/... ,
+une par ligne, avec le chemin absolu.
+.It
+Aucune clé privée n'est lue, copiée, affichée ni journalisée ; seules la clé
+publique et les empreintes sortent. La génération de la clé du tunnel et son
+mode 0400 sont faits par
+.Xr ssh-keygen 1 ,
+.Xr chown 1
+et
+.Xr chmod 1 .
+.It
+L'empreinte de la clé d'hôte de backend-relais n'est jamais acceptée sans
+comparaison (pas de confiance au premier usage).
+.It
+Aucun compte système n'a de répertoire sous
+.Pa /home
+; un chemin sous
+.Pa /home
+ou
+.Pa /root
+est refusé, sauf pour le clone source.
+.It
+Jamais
+.Li restart
+de sshd.
+.El
+.Sh SEE ALSO
+.Xr installer-backend-relais 8 ,
+.Xr paresia-sauvegarde 8 ,
+.Xr paresia-pollux 8 ,
+.Xr paresia-romulus 8 ,
+.Xr paresia-tunnel 8 ,
+.Xr pollux-session 1
+.Pp
+Guide :
+.Pa docs/exploitation.md .

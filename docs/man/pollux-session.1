@@ -1,0 +1,231 @@
+.\" SPDX-License-Identifier: AGPL-3.0-or-later
+.\" Page de manuel de pollux-session (relais SSH de présence).
+.\" D'après server/bin/pollux-session,
+.\" server/pollux/session.py et server/conf/paresia.conf.
+.Dd November 7, 2026
+.Dt POLLUX-SESSION 1
+.Os Paresia
+.Sh NAME
+.Nm pollux-session
+.Nd relais SSH de la session de présence d'un administrateur
+.Sh SYNOPSIS
+.Nm
+.Sh DESCRIPTION
+.Nm
+est la commande forcée du compte SSH
+.Li app
+de backend-admin. Elle n'est pas lancée à la main : sshd l'exécute à chaque
+connexion de l'application d'administration (Paresia-admin), depuis le fichier
+.Pa authorized_keys
+du compte (option
+.Li command= ) .
+Elle relaie, sur son entrée et sa sortie standard, des lignes NDJSON
+(protocole
+.Li jumeaux/1 )
+entre l'application et la socket Unix de
+.Xr paresia-pollux 8 .
+.Pp
+Le lanceur
+.Pa server/bin/pollux-session
+est un script
+.Xr sh 1 .
+Il sort avec le code 3 si
+.Ev SSH_USER_AUTH
+ou
+.Ev SSH_CONNECTION
+manque, puis exécute
+.Li python3 -P -s -B -m server.pollux.session
+dans un environnement vidé (voir
+.Sx ENVIRONMENT ) .
+Il n'a aucun argument : aucun argument de l'appelant n'est transmis.
+.Pp
+Actions relayées :
+.Li presence/session/challenge ,
+.Li presence/session/open ,
+.Li presence/session/ping ,
+.Li presence/session/close .
+L'identité de l'administrateur n'est jamais fournie par le client : elle est
+déduite de la clé publique que sshd a authentifiée (fichier
+.Ev SSH_USER_AUTH ,
+fourni par l'option sshd
+.Li ExposeAuthInfo yes )
+et du commentaire de la ligne correspondante d'
+.Pa authorized_keys ;
+l'adresse source vient de
+.Ev SSH_CONNECTION .
+La signature du défi est relayée sans être vérifiée par ce processus : la
+vérification est faite par Pollux. Les entrées invalides reçoivent les codes
+d'erreur
+.Li bad_request ,
+.Li unknown_action ,
+.Li protocol_version_mismatch
+ou
+.Li line_too_long .
+.Pp
+Échéances : sans
+.Li ping
+pendant
+.Li timeout_s
+(défaut 90 s), la session est coupée ; tant qu'aucun
+.Li open
+n'a réussi, elle l'est à
+.Li open_timeout_s
+(défaut 30 s) après le démarrage du processus, sans réarmement.
+.Sh OPTIONS
+Aucune. Tout argument fait échouer la lecture de la configuration (code
+.Li config_invalid_arguments ) ;
+le lanceur n'en transmet de toute façon aucun. Ni
+.Fl \-help
+ni
+.Fl \-version
+n'existent pour cette commande forcée (elle n'est pas un démon du socle
+commun) ; ses codes de sortie sont inchangés.
+.Pp
+Le niveau du journal se règle par la section
+.Li [pollux-session.journal] .
+.Pp
+La configuration vient des seules couches fichier de
+.Xr paresia.conf 5 ,
+sections
+.Li [pollux-session.transport]
+(clés
+.Li socket ,
+.Li timeout_s ,
+.Li open_timeout_s ,
+.Li max_line )
+et
+.Li [pollux-session.auth]
+(clés
+.Li authorized_keys ,
+.Li max_signature ) .
+.Sh ENVIRONMENT
+Le processus n'utilise que les variables que le lanceur lui transmet :
+.Bl -tag -width Ds
+.It Ev SSH_USER_AUTH
+Fichier fourni par sshd (informations d'authentification). Obligatoire.
+.It Ev SSH_CONNECTION
+Adresses de la connexion, fournies par sshd. Obligatoire.
+.It Ev PYTHONPATH
+Fixée par le lanceur au dossier du code installé (celui du dépôt copié par
+l'installation, propriété de root), jamais héritée.
+.It Ev PYTHONSAFEPATH , PATH
+Fixées par le lanceur.
+.El
+.Pp
+Toute autre variable héritée de sshd est supprimée (le lanceur utilise
+.Xr env 1
+.Fl i ) .
+Aucune variable
+.Ev PARESIA_*
+n'est lue : la configuration ne vient pas de l'environnement, qui est fourni
+par le client SSH.
+.Sh FILES
+.Bl -tag -width Ds
+.It Pa /usr/local/bin/pollux-session
+Emplacement attendu du lanceur par la ligne
+.Li command=
+d'
+.Pa authorized_keys
+(d'après le commentaire de
+.Pa deploy/backend-admin/etc/ssh/sshd_config.d/50-paresia-app.conf ) .
+.It Pa /etc/paresia/paresia.conf , /etc/paresia/conf.d/NN-*.conf
+Configuration (voir
+.Xr paresia.conf 5 ) .
+.It Pa /run/paresia-pollux/pollux.sock
+Socket de
+.Xr paresia-pollux 8 ,
+valeur d'illustration de
+.Li [pollux-session.transport] socket .
+.It Pa authorized_keys
+Chemin de
+.Li [pollux-session.auth] authorized_keys
+(illustration : un dossier de comptes hors
+.Pa /home ) .
+.It Pa /etc/ssh/sshd_config.d/50-paresia-app.conf
+Réglages sshd du compte
+.Li app :
+.Li ExposeAuthInfo yes ,
+.Li AuthenticationMethods publickey ,
+.Li PasswordAuthentication no ,
+.Li ClientAliveInterval 15 ,
+.Li ClientAliveCountMax 3 ;
+hors du bloc
+.Li Match :
+.Li StrictModes yes
+et
+.Li PermitUserEnvironment no .
+.El
+.Sh EXIT STATUS
+.Bl -tag -width Ds -compact
+.It 0
+Fin normale (fin de l'entrée standard).
+.It 1
+Délai dépassé (silence trop long, ou aucun
+.Li open
+réussi à l'échéance).
+.It 2
+Pollux est absent (socket injoignable).
+.It 3
+Erreur de protocole, d'authentification ou de configuration, ou
+.Ev SSH_USER_AUTH
+/
+.Ev SSH_CONNECTION
+absent (le lanceur sort alors avec 3), ou Pollux ferme la connexion avec une
+requête en attente.
+.El
+.Pp
+Ces codes sont propres à ce lanceur : il n'utilise pas le socle commun des
+démons (codes de
+.Xr sysexits 3 ,
+options
+.Fl \-check
+et
+.Fl \-version ) .
+.Sh DIAGNOSTICS
+La sortie standard ne porte que du NDJSON. Les événements de journal sont
+des lignes JSON envoyées à syslog (le flux d'erreur n'est pas utilisé).
+Codes de refus d'identité :
+.Li auth_info_unavailable
+(fichier illisible, clé absente ou en double dans
+.Pa authorized_keys ,
+commentaire invalide, adresse source invalide) ;
+.Li peer_unavailable
+(Pollux absent). Événements de journal :
+.Li session_timeout ,
+.Li request_rejected ,
+.Li session_opened ,
+.Li session_ended ,
+.Li peer_unavailable ,
+.Li transport_error .
+.Sh SECURITY
+.Bl -bullet -compact
+.It
+Le fichier
+.Pa authorized_keys
+est ouvert sans suivre de lien symbolique final et doit appartenir au
+compte du service ou à root, sans droit d'écriture pour le groupe ni les
+autres. Il en va de même du fichier
+.Ev SSH_USER_AUTH .
+.It
+Une clé présente sur deux lignes d'
+.Pa authorized_keys
+est refusée, de même qu'une ligne à guillemet non fermé (refus par défaut).
+.It
+Le compte de connexion n'a pas de fichier d'environnement modifiable par la
+session. Le dossier du code installé appartient à root et n'est pas
+modifiable par le compte.
+.It
+Risque résiduel reconnu : tout processus de l'uid du compte
+.Li app
+peut forger
+.Ev SSH_USER_AUTH ;
+l'identité n'est fiable que si seul sshd tourne sous cet uid.
+.El
+.Sh SEE ALSO
+.Xr paresia-pollux 8 ,
+.Xr paresia.conf 5 ,
+.Xr sshd 8 ,
+.Xr sshd_config 5
+.Pp
+Protocole :
+.Pa docs/protocole.md .

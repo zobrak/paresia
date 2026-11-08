@@ -1,0 +1,285 @@
+#!/usr/bin/python3
+# Simulacre des commandes externes des scripts journal-legal-* (tests T012).
+# Un seul exécutable, appelé par liens symboliques nommés chmod, setfacl, getfacl,
+# chattr, lsattr, logger, flock, rsync, ssh, ots, runuser. Chaque appel est
+# journalisé dans $SIM_DIR/appels.log ; l'état simulé (attributs i/a, ACL) est
+# conservé sous $SIM_DIR. Aucun accès réseau, aucune écriture hors de $SIM_DIR
+# et des chemins passés en argument (dossier temporaire du test).
+# Dépendances : bibliothèque standard.
+# Suivi des versions
+#   3.0.0-alpha.25  2026-11-05  Première version (T012).
+import os
+import shlex
+import sys
+from pathlib import Path
+
+SIM = Path(os.environ["SIM_DIR"])
+NAME = os.path.basename(sys.argv[0])
+ARGS = sys.argv[1:]
+
+
+def key(path):
+    return str(Path(os.path.abspath(path))).replace("/", "%")
+
+
+def attrs_file(path):
+    return SIM / "attrs" / key(path)
+
+
+def get_attrs(path):
+    f = attrs_file(path)
+    return f.read_text() if f.exists() else ""
+
+
+def set_attrs(path, value):
+    f = attrs_file(path)
+    f.parent.mkdir(parents=True, exist_ok=True)
+    f.write_text(value)
+
+
+def acl_file(path):
+    return SIM / "acl" / key(path)
+
+
+def acl_load(path):
+    import json
+    f = acl_file(path)
+    return json.loads(f.read_text()) if f.exists() else None
+
+
+def acl_save(path, state):
+    import json
+    f = acl_file(path)
+    f.parent.mkdir(parents=True, exist_ok=True)
+    f.write_text(json.dumps(state))
+
+
+def perm_bits(text):
+    text = text.strip()
+    if text and text[0].isdigit():
+        return int(text) & 7
+    bits = 0
+    for ch, val in (("r", 4), ("w", 2), ("x", 1)):
+        if ch in text:
+            bits |= val
+    return bits
+
+
+def perm_str(bits):
+    return ("r" if bits & 4 else "-") + ("w" if bits & 2 else "-") + ("x" if bits & 1 else "-")
+
+
+def die(msg, code=1):
+    sys.stderr.write(msg + "\n")
+    sys.exit(code)
+
+
+def path_arg():
+    rest = ARGS[ARGS.index("--") + 1:] if "--" in ARGS else ARGS[-1:]
+    return rest[0]
+
+
+def fail_requested(var, text):
+    wanted = os.environ.get(var, "")
+    return bool(wanted) and (wanted == "1" or wanted in text)
+
+
+with open(SIM / "appels.log", "a") as log:
+    extra = ""
+    if NAME == "rsync":
+        extra = " stderr=" + os.readlink("/proc/self/fd/2")
+    log.write(shlex.join([NAME] + ARGS) + extra + "\n")
+
+
+def recompute_mask(state):
+    bits = perm_bits(state["group"])
+    for perms in state["named"].values():
+        bits |= perm_bits(perms)
+    state["mask"] = perm_str(bits)
+
+
+def sync_mode(path, state):
+    mode = os.stat(path).st_mode & 0o7000
+    mode |= perm_bits(state["user"]) << 6 | perm_bits(state["mask"]) << 3 | perm_bits(state["other"])
+    os.chmod(path, mode)
+
+
+if NAME == "chmod":
+    mode, path = ARGS[0], path_arg()
+    if get_attrs(path):
+        die("chmod: Opération non permise (attribut i ou a)")
+    os.chmod(path, int(mode, 8))
+    state = acl_load(path)
+    if state:                       # un chmod recalcule le masque, pas l'entrée du groupe
+        state["mask"] = perm_str((int(mode, 8) >> 3) & 7)
+        state["user"] = perm_str((int(mode, 8) >> 6) & 7)
+        state["other"] = perm_str(int(mode, 8) & 7)
+        acl_save(path, state)
+
+elif NAME == "setfacl":
+    path = path_arg()
+    if fail_requested("SIM_SETFACL_FAIL", path):
+        die("setfacl: échec simulé")
+    if fail_requested("SIM_SETFACL_KILL_PARENT", path):
+        os.kill(os.getppid(), 15)
+        import time
+        time.sleep(0.3)
+    if get_attrs(path):
+        die("setfacl: Opération non permise (attribut i ou a)")
+    if "-b" in ARGS:
+        if acl_file(path).exists():
+            acl_file(path).unlink()
+        sys.exit(0)
+    spec = ARGS[ARGS.index("-m") + 1]
+    state = acl_load(path)
+    if state is None:
+        mode = os.stat(path).st_mode
+        state = {"user": perm_str((mode >> 6) & 7), "group": perm_str((mode >> 3) & 7),
+                 "other": perm_str(mode & 7), "named": {}, "default": {}}
+    for entry in spec.split(","):
+        parts = entry.split(":")
+        scope = "access"
+        if parts[0] in ("d", "default"):
+            scope, parts = "default", parts[1:]
+        kind, name, perms = parts
+        if name and kind != "u":
+            die("simulacre : seules les entrées d'utilisateur sont gérées")
+        target = state if scope == "access" else state["default"]
+        if name:
+            target.setdefault("named", {})[name] = perm_str(perm_bits(perms))
+        else:
+            target[{"u": "user", "g": "group", "o": "other"}[kind]] = perm_str(perm_bits(perms))
+    recompute_mask(state)
+    acl_save(path, state)
+    sync_mode(path, state)
+
+elif NAME == "getfacl":
+    path = path_arg()
+    if fail_requested("SIM_GETFACL_FAIL", path):
+        die("getfacl: échec simulé")
+    state = acl_load(path)
+    mode = os.stat(path).st_mode
+    if state is None:
+        state = {"user": perm_str((mode >> 6) & 7), "group": perm_str((mode >> 3) & 7),
+                 "other": perm_str(mode & 7), "named": {}, "default": {}}
+        has_acl = False
+    else:
+        has_acl = True
+    out = [f"user::{state['user']}"]
+    for name, perms in sorted(state["named"].items()):
+        eff = perm_bits(perms) & perm_bits(state["mask"])
+        out.append(f"user:{name}:{perms}" + (f"\t#effective:{perm_str(eff)}" if eff != perm_bits(perms) else ""))
+    out.append(f"group::{state['group']}")
+    if has_acl:
+        out.append(f"mask::{state['mask']}")
+    out.append(f"other::{state['other']}")
+    default = state.get("default") or {}
+    if default:
+        out.append(f"default:user::{default.get('user', 'rwx')}")
+        for name, perms in sorted(default.get("named", {}).items()):
+            out.append(f"default:user:{name}:{perms}")
+        out.append(f"default:group::{default.get('group', '---')}")
+        bits = perm_bits(default.get("group", "---"))
+        for perms in default.get("named", {}).values():
+            bits |= perm_bits(perms)
+        out.append(f"default:mask::{perm_str(bits)}")
+        out.append(f"default:other::{default.get('other', '---')}")
+    print("# file: " + path + "\n" + "\n".join(out) + "\n")
+
+elif NAME == "chattr":
+    mode, path = ARGS[0], path_arg()
+    if fail_requested("SIM_CHATTR_FAIL", mode):
+        die("chattr: échec simulé")
+    flag = mode[1]
+    cur = set(get_attrs(path))
+    if mode[0] == "+":
+        cur.add(flag)
+    else:
+        cur.discard(flag)
+    set_attrs(path, "".join(sorted(cur)))
+
+elif NAME == "lsattr":
+    path = path_arg()
+    if fail_requested("SIM_LSATTR_FAIL", path):
+        die("lsattr: échec simulé")
+    cur = get_attrs(path)
+    flags = list("-" * 19 + "e")
+    if "i" in cur:
+        flags[4] = "i"
+    if "a" in cur:
+        flags[5] = "a"
+    print("".join(flags) + " " + path)
+
+elif NAME == "logger":
+    pass
+
+elif NAME == "flock":
+    if os.environ.get("SIM_LOCK_HELD"):
+        sys.exit(1)
+
+elif NAME == "rsync":
+    if os.environ.get("SIM_REMOTE_DOWN"):
+        die("ssh: connexion impossible (simulée)", 255)
+    positional, skip = [], False
+    for arg in ARGS:
+        if skip:
+            skip = False
+        elif arg == "-e":
+            skip = True
+        elif not arg.startswith("-"):
+            positional.append(arg)
+    remote = Path(os.environ["SIM_REMOTE_DIR"])
+
+    def remote_path(spec):
+        return remote / spec.split(":", 1)[1].lstrip("/")
+
+    if "--list-only" in ARGS:
+        sys.exit(0 if remote_path(positional[0]).exists() else 23)
+    if "--dry-run" in ARGS:
+        sys.stdout.write(os.environ.get("SIM_RSYNC_DIFF", ""))
+        sys.exit(0)
+    if os.environ.get("SIM_RSYNC_FAIL"):
+        die("rsync: erreur simulée", 23)
+    src, dest = remote_path(positional[0]), Path(positional[1])
+    sources = sorted(src.glob("journal-*.jsonl")) if src.is_dir() else [src]
+    for item in sources:
+        target = dest / item.name if dest.is_dir() else dest
+        data = item.read_bytes()
+        if target.exists():
+            if target.stat().st_size < len(data):
+                if get_attrs(target):
+                    die("rsync: écriture refusée (fichier immuable)", 23)
+                with open(target, "ab") as fh:
+                    fh.write(data[target.stat().st_size:])
+        else:
+            fd = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            with os.fdopen(fd, "wb") as fh:
+                fh.write(data)
+
+elif NAME == "ssh":
+    die("ssh : aucun accès réseau dans les tests", 255)
+
+elif NAME == "ots":
+    if ARGS[0] == "stamp":
+        if os.environ.get("SIM_OTS_STAMP_FAIL"):
+            sys.exit(1)
+        Path(ARGS[1] + ".ots").write_text("PENDING\n")
+    elif ARGS[0] == "upgrade":
+        if not os.environ.get("SIM_OTS_UPGRADE_OK"):
+            sys.exit(1)
+        tmp = Path(ARGS[1] + ".new")      # réécriture : nouvel inode, mode large, ACL perdue
+        tmp.write_text("ANCHORED\n")
+        os.chmod(tmp, 0o644)
+        os.replace(tmp, ARGS[1])
+        if acl_file(ARGS[1]).exists():
+            acl_file(ARGS[1]).unlink()
+
+elif NAME == "runuser":
+    command = ARGS[ARGS.index("--") + 1:]
+    denied = [p for p in os.environ.get("SIM_RUNUSER_DENY", "").split("|") if p]
+    if any(arg in denied for arg in command):
+        die("Permission non accordée (simulée)")
+    os.execvp(command[0], command)
+
+else:
+    die(f"simulacre : commande inconnue {NAME}", 99)

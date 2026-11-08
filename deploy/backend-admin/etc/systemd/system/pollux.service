@@ -1,0 +1,101 @@
+# pollux.service — Pollux : session de présence des administrateurs (backend-admin).
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Rôle : démon de présence (python3 -m server.pollux), compte dédié sans shell, sans capacité,
+#   système de fichiers en lecture seule, AF_UNIX seulement. Isolation reprise de bunkerd.service 1.3.0.
+# Installation : deploy/backend-admin/installer-backend-admin.sh (comptes, groupes, configuration).
+# Configuration : couches /etc/paresia/paresia.conf et conf.d/ (D29, D43), lues par le programme ;
+#   aucun chemin de configuration, aucun argument et aucune variable PARESIA_* dans cette unité.
+# Redémarrer ou arrêter cette unité ferme TOUTES les sessions de présence (D9).
+# Pas de dépendance de démarrage envers romulus.service : Pollux s'y reconnecte à la demande (D14).
+# Suivi des versions
+#   0.1.19  2026-11-08  Démarrage du tunnel avec le service, dépendance faible.
+#   0.1.2  2026-11-07  StateDirectory=paresia-pollux, StateDirectoryMode=0711 (métriques sous ProtectSystem=strict).
+#   0.1.1  2026-11-07  Type=notify, NotifyAccess=main, RestartPreventExitStatus=, TimeoutStartSec=.
+#   0.1.0  2026-11-07  Chemin cité : le script d'installation remplace la procédure pas à pas.
+#   0.1.0  2026-11-07  Compte app hors /home : ProtectHome=yes, plus de montage (D44 et D136 révisées).
+#   3.0.0-alpha.42  2026-11-07  Fichier de confiance visible en lecture seule sous /home masqué.
+#   3.0.0-alpha.29  2026-11-06  Première version (D40, D41, D42, D66).
+#   3.0.0-alpha.39  2026-11-06  Nom en minuscules de la procédure.
+
+[Unit]
+Description=Paresia : Pollux (session de présence)
+
+# systemd.unit(5) : dépendance faible, un tunnel défaillant ou absent ne bloque pas le démon ;
+# After= règle seulement l'ordre de démarrage.
+Wants=paresia-tunnel.service
+After=paresia-tunnel.service
+
+[Service]
+Type=notify
+User=paresia-pollux
+Group=paresia-pollux
+# Groupes des sockets que Pollux crée (paresia-sessions, paresia-liaison : chown) et de celle de
+# Romulus qu'il joint (paresia-liaison) ; rien d'autre (D41).
+SupplementaryGroups=paresia-sessions paresia-liaison
+Environment=PYTHONPATH=/usr/local/lib/paresia
+ExecStart=/usr/bin/python3 -P -s -B -m server.pollux
+Restart=on-failure
+RestartSec=5
+# Type=notify : le démon envoie READY=1 une fois ses sockets liées (sd_notify(3)). NotifyAccess=main
+# n'accepte que le processus principal (systemd.service(5)). 64 (usage), 65 (données) et 78
+# (configuration) sont des erreurs permanentes : aucun redémarrage automatique. Pas de
+# WatchdogSec= (D146). TimeoutStartSec= : la liaison des sockets est immédiate, 30 s bornent l'attente de READY=1.
+NotifyAccess=main
+RestartPreventExitStatus=64 65 78
+TimeoutStartSec=30
+# Fermeture de chaque session : au plus un appel à Romulus et un à Castor bornés par pair_delai_s
+# (5 s) ; avec maximum = 16 sessions : 16 x (5 + 5) = 160 s au pire (D66). À revoir si ces
+# valeurs changent (ce délai pourra être réduit).
+TimeoutStopSec=180
+
+# Sockets /run/paresia-pollux/pollux.sock et pollux-relay.sock : un dossier par unité, recréé à
+# chaque démarrage et supprimé à l'arrêt (D40). 0711 : traversable, non listable (D41).
+RuntimeDirectory=paresia-pollux
+RuntimeDirectoryMode=0711
+# Dossier d'état /var/lib/paresia-pollux, propre au compte de l'unité, pour les métriques (inactives par
+# défaut). systemd.exec(5) : StateDirectory= et les réglages voisins « also exclude the specific
+# directories from the effect of ProtectSystem= » ; le dossier appartient à User= et Group=, n'est pas
+# supprimé à l'arrêt, et reçoit StateDirectoryMode= (défaut 0755) : 0711, traversable, non listable.
+StateDirectory=paresia-pollux
+StateDirectoryMode=0711
+# /etc/paresia reste à root (non attribué au compte du service, systemd.exec(5)), 0755.
+# « ::ro » exige systemd >= 257 : le retirer sur une cible plus ancienne (procédure, étape 10).
+ConfigurationDirectory=paresia::ro
+ConfigurationDirectoryMode=0755
+UMask=0077
+
+# Isolation
+LimitCORE=0
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+# systemd.exec(5), ProtectHome= : « If true, the directories /home/, /root, and
+# /run/user are made inaccessible and empty for processes invoked by this unit. »
+# authorized_keys est désormais sous /var/lib/paresia-app, hors /home.
+# ProtectSystem= : « If set to "strict" the entire file system hierarchy is mounted
+# read-only, except for the API file system subtrees /dev/, /proc/ and /sys/ ».
+# /var/lib/paresia-app/.ssh/authorized_keys reste lisible par paresia-pollux,
+# en lecture seule et non masqué.
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+RestrictAddressFamilies=AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+# MemoryDenyWriteExecute= est volontairement absent : risque avec les bibliothèques de la preuve
+# par signature.
+
+[Install]
+WantedBy=multi-user.target

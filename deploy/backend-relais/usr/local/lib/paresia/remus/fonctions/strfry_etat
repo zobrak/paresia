@@ -1,0 +1,72 @@
+#!/usr/bin/python3
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Suivi des versions
+#   0.1.14  2026-11-08  Fonction d'état du relais (D148, D150, D154, D167).
+"""Statut : prouve que le conteneur répond et que la base est lisible (`info`).
+
+Aucun fichier, aucun réseau, aucun sudo écrit ici : le préfixe de privilège vient de Remus
+(variable PARESIA_PRIVILEGE). La sortie d'erreur de la commande n'est jamais renvoyée.
+"""
+import json
+import os
+import re
+import subprocess
+import sys
+
+DELAI_S = 20
+SORTIE_MAX = 65536
+ARGUMENTS = ['exec', 'strfry', '/app/strfry', 'info']
+
+
+def sortir(objet, code):
+    sys.stdout.write(json.dumps(objet, separators=(',', ':')))
+    sys.stdout.flush()
+    sys.exit(code)
+
+
+def echec():
+    sortir({'ok': False, 'error': {'code': 'command_failed'}}, 1)
+
+
+def prefixe():
+    """Préfixe de privilège fourni par Remus (liste JSON), jamais écrit ici."""
+    try:
+        elements = json.loads(os.environ.get('PARESIA_PRIVILEGE', ''))
+    except ValueError:
+        echec()
+    if (type(elements) is not list or len(elements) < 2
+            or any(type(e) is not str or not e or '\0' in e for e in elements)
+            or not elements[0].startswith('/')):
+        echec()
+    return elements
+
+
+def lancer():
+    try:
+        if json.loads(sys.stdin.read(64)) != {}:
+            echec()
+    except ValueError:
+        echec()
+    try:
+        fini = subprocess.run(prefixe() + ARGUMENTS, shell=False, stdin=subprocess.DEVNULL,
+                              stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                              env={'LC_ALL': 'C'}, cwd='/', timeout=DELAI_S, check=False)
+    except (OSError, subprocess.SubprocessError):
+        echec()
+    if fini.returncode != 0 or len(fini.stdout) > SORTIE_MAX:
+        echec()
+    try:
+        return fini.stdout.decode('utf-8')
+    except UnicodeError:
+        echec()
+
+
+def main():
+    texte = lancer()
+    trouve = re.fullmatch(r'DB version: ([0-9]{1,9})\n?', texte)
+    if trouve is None:
+        echec()
+    sortir({'ok': True, 'data': {'db_version': int(trouve.group(1))}}, 0)
+
+
+main()

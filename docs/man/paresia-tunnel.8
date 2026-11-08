@@ -1,0 +1,259 @@
+.\" SPDX-License-Identifier: AGPL-3.0-or-later
+.\" Page de manuel du tunnel SSH entre backend-admin et backend-relais..\" D'après deploy/backend-admin/etc/ (unité,
+.\" tmpfiles.d, ssh_config), deploy/backend-relais/etc/ssh/sshd_config.d/50-paresia-tunnel.conf et
+.\" deploy/installation-tunnel.md.
+.Dd November 7, 2026
+.Dt PARESIA-TUNNEL 8
+.Os Paresia
+.Sh NAME
+.Nm paresia-tunnel
+.Nd tunnel SSH de backend-admin vers backend-relais
+.Sh SYNOPSIS
+.Nm /usr/bin/ssh
+.Fl F Ar /etc/paresia/tunnel/ssh_config
+.Fl N
+.Ar paresia-relais
+.Sh DESCRIPTION
+Le tunnel n'est pas un démon de Paresia : c'est l'unité systemd
+.Li paresia-tunnel.service ,
+qui exécute le client
+.Xr ssh 1
+en avant-plan (
+.Fl N :
+aucune commande distante) sous le compte
+.Li paresia-tunnel .
+Il redirige deux sockets Unix locales de backend-admin vers des sockets de
+backend-relais :
+.Bl -tag -width Ds
+.It Pa /run/paresia-tunnel/romulus/remus.sock
+vers
+.Pa /run/paresia-remus/remus.sock
+(
+.Xr paresia-remus 8 ) .
+Appelant : Romulus.
+.It Pa /run/paresia-tunnel/pollux/castor.sock
+vers
+.Pa /run/paresia-castor/castor.sock
+(
+.Xr paresia-castor 8 ) .
+Appelant : Pollux.
+.El
+.Pp
+Les redirections (
+.Li LocalForward )
+sont dans
+.Pa /etc/paresia/tunnel/ssh_config ;
+l'adresse du relais est dans
+.Pa /etc/paresia/tunnel/ssh_config.d/10-relais.conf
+(valeur d'exemple
+.Li 192.0.2.200 ,
+adresse de documentation RFC 5737, à remplacer sur place). Le tunnel se
+connecte au compte
+.Li tunnel
+de backend-relais, par la clé
+.Pa /etc/paresia/tunnel/id_ed25519
+(sans phrase secrète).
+.Pp
+Réglages notables du client :
+.Li StrictHostKeyChecking yes
+avec
+.Li UserKnownHostsFile /etc/paresia/tunnel/known_hosts
+(empreinte préchargée, jamais de confiance au premier usage),
+.Li BatchMode yes ,
+.Li IdentitiesOnly yes ,
+.Li ExitOnForwardFailure yes ,
+.Li ServerAliveInterval 15 ,
+.Li StreamLocalBindUnlink yes ,
+.Li StreamLocalBindMask 0111 ,
+aucune redirection d'agent ni de X11, pas de terminal.
+.Pp
+Le tunnel est tiré par
+.Li pollux.service
+et
+.Li romulus.service
+(chacun porte
+.Li Wants=paresia-tunnel.service
+et
+.Li After=paresia-tunnel.service ) ;
+l'unité n'a pas de section
+.Li [Install]
+et n'est donc pas activable pour elle-même : elle ne démarre ni avec la machine
+sans ces services, ni par
+.Li enable .
+Elle porte
+.Li PartOf=pollux.service romulus.service :
+arrêter ou redémarrer l'un des deux services arrête ou redémarre le tunnel, ce qui
+coupe l'autre de ses jumeaux du relais jusqu'à son propre redémarrage. Un
+démarrage manuel isolé (
+.Li systemctl start )
+reste possible ; le tunnel s'arrête avec les services.
+.Pp
+Arrêter ou redémarrer
+.Li paresia-tunnel.service
+coupe Pollux et Romulus de leurs jumeaux du relais ; l'unité est en
+.Li Restart=always ,
+.Li RestartSec=5 :
+le tunnel doit toujours être rétabli.
+.Sh OPTIONS
+Aucune : l'unité fixe la ligne de commande
+.Xr ssh 1
+ci-dessus. Les réglages passent par
+.Pa ssh_config
+(
+.Xr ssh_config 5 ) .
+.Sh ENVIRONMENT
+Aucune variable propre à Paresia.
+.Sh FILES
+.Bl -tag -width Ds
+.It Pa /etc/systemd/system/paresia-tunnel.service
+Unité (livrée par
+.Pa deploy/backend-admin/etc/systemd/system/paresia-tunnel.service ) :
+.Li Type=simple ,
+.Li User=paresia-tunnel ,
+.Li After=network-online.target ,
+.Li PartOf=pollux.service romulus.service ,
+.Li Restart=always ;
+pas de section
+.Li [Install] .
+.It Pa /etc/tmpfiles.d/paresia-tunnel.conf
+Crée les dossiers des sockets avant le démarrage (
+.Xr tmpfiles.d 5 ,
+type
+.Li d ,
+sans nettoyage périodique) :
+.Pp
+.Bl -tag -width Ds -compact
+.It Pa /run/paresia-tunnel
+.Li root:root
+0711.
+.It Pa /run/paresia-tunnel/romulus
+.Li paresia-tunnel:paresia-romulus
+0710.
+.It Pa /run/paresia-tunnel/pollux
+.Li paresia-tunnel:paresia-pollux
+0710.
+.El
+.It Pa /etc/paresia/tunnel/ssh_config , /etc/paresia/tunnel/ssh_config.d/10-relais.conf
+Configuration du client (appartient à root ; le compte du service n'y écrit pas).
+.It Pa /etc/paresia/tunnel/id_ed25519
+Clé privée du tunnel, propriétaire
+.Li paresia-tunnel ,
+mode 0400. Ne jamais la copier, l'afficher ni l'envoyer.
+.It Pa /etc/paresia/tunnel/known_hosts
+Empreinte de la clé d'hôte de backend-relais, posée avant le premier
+démarrage.
+.It Pa /etc/ssh/sshd_config.d/50-paresia-tunnel.conf
+Sur backend-relais : pour le compte
+.Li tunnel ,
+.Li AllowTcpForwarding local ,
+.Li AllowStreamLocalForwarding local ,
+.Li PermitListen none ,
+.Li PermitTTY no ,
+.Li X11Forwarding no ,
+.Li AllowAgentForwarding no ,
+.Li PasswordAuthentication no ,
+.Li AuthenticationMethods publickey ;
+hors du bloc :
+.Li StrictModes yes ,
+.Li PermitUserEnvironment no .
+.It Pa authorized_keys
+Du compte
+.Li tunnel
+sur backend-relais : ligne
+.Li restrict,port-forwarding,from="<adresse de backend-admin>",command="/bin/false" .
+.El
+.Pp
+Procédure complète, essais et retours arrière :
+.Pa deploy/installation-tunnel.md .
+.Sh EXIT STATUS
+Les codes sont ceux de
+.Xr ssh 1 ,
+qui sort avec 255 si une erreur s'est produite. Avec
+.Li Restart=always ,
+systemd relance
+.Xr ssh 1
+après 5 secondes quel que soit le code.
+.Sh DIAGNOSTICS
+Le journal du service est celui de
+.Xr ssh 1
+(texte, pas JSON) :
+.Li journalctl -u paresia-tunnel .
+Sur backend-relais,
+.Li journalctl -u ssh
+porte la ligne
+.Li Accepted publickey for tunnel from <adresse> ...
+si l'authentification réussit. Contrôles :
+.Bl -bullet -compact
+.It
+.Li systemctl status paresia-tunnel
+(
+.Li active (running) ) .
+.It
+Sockets : présentes et à l'écoute,
+.Li ss -xl | grep paresia-tunnel ;
+mode attendu 0666, à relever sur place (propriétaire
+.Li paresia-tunnel ) ,
+parent 0711, sous-dossiers 0710 avec le groupe du démon.
+.It
+.Xr ssh 1
+ne garantit pas que les sockets soient prêtes dès le retour de
+.Li systemctl start .
+.El
+.Sh SECURITY
+.Bl -bullet -compact
+.It
+Les sockets sont en 0666 (masque 0111 de
+.Xr ssh_config 5 ) ;
+l'accès est limité par les dossiers (0710, groupe du seul démon) et par le
+contrôle de l'uid du pair (
+.Dv SO_PEERCRED )
+dans chaque démon.
+.It
+Limite connue : OpenSSH ne sait pas restreindre une redirection de socket
+Unix à un chemin ; le compte
+.Li tunnel
+pourrait ouvrir des connexions TCP sortantes depuis backend-relais. Seule la
+règle nftables
+.Li paresia_relais
+(unité
+.Li paresia-nftables.service
+sur backend-relais) ferme cette limite : tant qu'elle n'est pas chargée,
+l'accès du compte
+.Li tunnel
+ne doit être ouvert que le temps d'un essai.
+.It
+Unité :
+.Li NoNewPrivileges=yes ,
+.Li CapabilityBoundingSet=
+vide,
+.Li ProtectSystem=strict
+avec
+.Li ReadWritePaths=
+limité aux deux sous-dossiers de sockets,
+.Li ProtectHome=yes ,
+.Li PrivateTmp=yes ,
+.Li RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+(dérogation : joindre le relais par IP),
+.Li SystemCallFilter=@system-service ,
+.Li UMask=0077 .
+.It
+Ne jamais redémarrer
+.Li sshd
+pour appliquer un changement : recharger (
+.Li systemctl reload ssh ) ,
+session de secours ouverte, après
+.Li sshd -t .
+.El
+.Sh SEE ALSO
+.Xr ssh 1 ,
+.Xr ssh_config 5 ,
+.Xr sshd_config 5 ,
+.Xr tmpfiles.d 5 ,
+.Xr systemd.service 5 ,
+.Xr paresia-pollux 8 ,
+.Xr paresia-romulus 8 ,
+.Xr paresia-remus 8 ,
+.Xr paresia-castor 8
+.Pp
+Guide :
+.Pa docs/exploitation.md .

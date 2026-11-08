@@ -1,0 +1,688 @@
+.\" SPDX-License-Identifier: AGPL-3.0-or-later
+.\" Page de manuel de Remus (exécuteur de commandes du relais, backend-relais).
+.\" Décrit l'état du code
+.\" (server/remus/, deploy/backend-relais/).
+.\" 0.1.6 : démon sur le socle commun (Type=notify, options, codes sysexits, sections journal et métriques).
+.\" 0.1.9 : Remus enfiché : fonctions des dossiers livré et local, manifeste, voie « script », sudoers produit par les manifestes.
+.Dd November 7, 2026
+.Dt PARESIA-REMUS 8
+.Os Paresia
+.Sh NAME
+.Nm paresia-remus
+.Nd exécuteur des commandes du relais strfry (backend-relais)
+.Sh SYNOPSIS
+.Nm python3 -P -s -B -m server.remus
+.Op Fl \-check
+.Op Fl \-debug
+.Op Fl \-config Ar fichier
+.Nm python3 -P -s -B -m server.remus
+.Fl \-help | \-version
+.Pp
+.Nm python3 -m server.remus.sudoers
+.Sh DESCRIPTION
+Remus exécute, sur backend-relais, les opérations d'administration du relais
+demandées par Romulus (actions
+.Li relay/... ,
+voir
+.Pa docs/protocole.md ) .
+Il écoute une socket Unix que le tunnel SSH relie à Romulus. Remus ne connaît
+lui-même aucune opération : ses capacités lui viennent de
+.Em fonctions
+enfichées (greffons), chacune une brique, et il aiguille chaque requête vers la
+fonction qui déclare l'action. La liste des actions admises est fermée : c'est
+le catalogue des fonctions chargées au démarrage. Une action absente du
+catalogue reçoit
+.Li unknown_action .
+Le greffon strfry livre trois fonctions (voir
+.Sx FONCTIONS LIVRÉES ) ;
+sans fonction, le catalogue ne contient que les deux actions d'introspection.
+.Ss Fonctions enfichées
+Une fonction est deux fichiers de même nom, un script exécutable et son
+manifeste
+.Pa <nom>.toml ,
+dans l'un de deux dossiers :
+.Bl -tag -width Ds -compact
+.It Pa /usr/local/lib/paresia/remus/fonctions
+fonctions livrées (défaut de
+.Li [remus.plugins] fonctions ) ;
+.It Pa /etc/paresia/remus/plugins.d
+fonctions locales (défaut de
+.Li [remus.plugins] locales ) .
+.El
+.Pp
+Les deux dossiers, et leurs ancêtres, appartiennent à root, sans lien
+symbolique ni écriture pour le groupe ou les autres ; un script n'a ni bit
+setuid ni setgid. Le nom d'une fonction suit
+.Li [a-z][a-z0-9_]{0,63}
+(256 fonctions au plus). Remus lit et contrôle ces fichiers ; il n'importe rien
+et n'exécute un script qu'à l'appel de son action. Un défaut d'une fonction
+livrée refuse le démarrage (code 78,
+.Li startup_failed
+sans nom de fichier) ; une fonction locale défectueuse est ignorée et journalisée
+.Pq Li plugin_rejected .
+Une condition
+.Li [requiert]
+non remplie écarte la fonction sans erreur
+.Pq Li plugin_skipped .
+Remus ne sert qu'un domaine en 1.0,
+.Li [remus.plugins] domaine
+(l'exemple livré :
+.Li relay ) ;
+sans lui, aucune fonction n'est chargée.
+.Pp
+Chaque domaine répond à
+.Li <domaine>/catalog/list
+et
+.Li <domaine>/catalog/describe ,
+en lecture seule, sans attendre le feu de Castor et sans publier de chemin, de
+commande ni de secret (voir
+.Pa docs/protocole.md ,
+§ 5.5).
+.Ss Manifeste
+Fichier TOML de 64 Kio au plus. Clés :
+.Bl -tag -width Ds -compact
+.It Li format
+obligatoire, vaut 1.
+.It Li forme
+facultatif, seule valeur admise :
+.Li ponctuel .
+.It Li greffon
+obligatoire,
+.Li paresia-yin-<nom> .
+.It Li nom
+obligatoire, égal au nom du fichier.
+.It Li action
+obligatoire,
+.Li domaine/objet/opération ,
+dans le domaine servi ; les suffixes
+.Li catalog/list
+et
+.Li catalog/describe
+sont réservés, de même que les domaines
+.Li presence
+et
+.Li castor .
+.It Li delai_s
+obligatoire, nombre fini positif.
+.It Li privilege
+facultatif ; étiquette publiée, non appliquée : avec
+.Xr sudo 8 ,
+les droits sont ceux du compte de Remus.
+.It Li sortie_max
+facultatif, 65536 par défaut.
+.It Li flux
+facultatif, doit valoir
+.Li false .
+.It Li parametres
+tableau de 16 tables au plus :
+.Li nom ,
+.Li type
+(texte, entier, choix, hexadecimal, liste_entiers),
+.Li obligatoire
+et les bornes du type. Un type que les gabarits de l'exécuteur n'expriment pas
+(entier négatif, liste de plus de 1024 éléments, minimum de liste supérieur à 1)
+est refusé.
+.It Li journaliser
+noms des seuls paramètres dont la valeur peut figurer au journal.
+.It Li erreurs
+codes que le script peut renvoyer avec le code de sortie 1.
+.It Li commandes_privilegiees
+commandes de
+.Xr sudo 8
+déclarées sans leur syntaxe (opération et arguments).
+.It Li requiert
+.Li binaires
+et
+.Li fichiers :
+condition de chargement, vérifiée par
+.Xr stat 2
+seulement.
+.El
+.Pp
+Exemple commenté :
+.Pa server/remus/exemples/fonctions/exemple_echo.toml
+(installé par aucun script). Détail du format :
+.Pa docs/developpement.md ,
+§ 6.2.
+.Ss Appel d'un script
+Les paramètres sont validés par les gabarits, puis envoyés en JSON (ASCII)
+sur l'entrée standard du script. Le script est lancé par son chemin absolu seul,
+sans interpréteur dans l'argv, avec pour seul environnement
+.Li LC_ALL=C ,
+dans
+.Pa / ,
+dans son propre groupe de processus. Sa sortie standard est un seul objet JSON
+strict : soit
+.Li ok
+vrai avec
+.Li data ,
+soit
+.Li ok
+faux avec
+.Li error
+et son
+.Li code ,
+rien d'autre. Le code de sortie recoupe le JSON (0 succès, 1 refus attendu, 2
+prérequis indisponible, avec le seul code
+.Li not_available ) .
+Toute autre sortie est une violation, rendue
+.Li command_failed
+sans la sortie brute. La sortie d'erreur n'est ni transmise ni journalisée
+(seul son nombre d'octets l'est).
+.Pp
+Avant d'exécuter, Remus interroge
+.Xr paresia-castor 8
+par sa socket d'état et attend le feu vert au plus
+.Li [remus.light] wait_s
+secondes (défaut 5), en interrogeant toutes les
+.Li poll_s
+(0,25 s). Si le feu reste rouge, la réponse est
+.Li relay_light_red ;
+si Castor est injoignable ou répond de façon inattendue,
+.Li peer_unavailable ;
+si la session est fermée,
+.Li session_closed .
+Pour un flux continu ouvert, le feu est contrôlé toutes les
+.Li check_s
+secondes.
+.Pp
+Chaque fonction a le délai
+.Li delai_s
+de son manifeste : à l'échéance,
+.Dv SIGTERM
+est envoyé au groupe de processus, puis
+.Dv SIGKILL
+après
+.Li kill_grace_s
+(5 s). La sortie conservée est limitée à
+.Li sortie_max
+octets (celui du manifeste pour une fonction, 65536 par défaut) ; un dépassement
+arrête la fonction et donne
+.Li command_failed .
+Au plus
+.Li simultanes
+commandes (4) s'exécutent en même temps, une cinquième attend
+.Li attente_s
+secondes (5) puis reçoit
+.Li command_busy .
+.Pp
+Redémarrer Remus interrompt la mise en attente du feu vert mais n'interrompt
+jamais une opération en cours avant
+.Li [remus.server] stop_s
+(120 s par défaut).
+.Pp
+Générateur de sudoers :
+.Li python3 -m server.remus.sudoers
+écrit sur la sortie standard le fichier de la liste fermée de commandes
+privilégiées, à partir des
+.Em seuls manifestes
+des fonctions chargées (même configuration) ; il n'exécute aucun script. Chaque
+commande privilégiée passe d'abord par un rendu d'essai du générateur : toute
+commande qu'il refuse fait refuser la fonction. Le fichier est écrit pour le
+compte
+.Li chef .
+Il n'installe rien. Sans fonction, le fichier ne contient que son en-tête (c'est
+le fichier livré). Limite : une fonction écartée par sa condition
+.Li [requiert]
+(un binaire absent à la génération, par exemple) ne produit aucune règle ; le
+fichier dépend donc de l'état de la machine au moment de la génération, et une
+fonction dont le binaire est installé ensuite exige une nouvelle génération. Cet
+écart retire des droits, il n'en ajoute jamais. Sortie 0, ou 1 avec un code
+d'erreur sur la sortie d'erreur.
+.Pp
+Cycle de vie (systemd
+.Li Type=notify ) :
+le démon envoie
+.Li READY=1
+une fois sa socket liée, puis
+.Li STOPPING=1
+à
+.Dv SIGTERM
+ou
+.Dv SIGINT ;
+l'arrêt attend ensuite les opérations en cours (voir ci-dessus). Son fil
+principal attend l'arrêt par tranches de 0,1 s, car un signal reçu par un
+autre fil ne le réveille pas forcément.
+.Sh FONCTIONS LIVRÉES
+Le greffon
+.Li paresia-yin-strfry
+livre trois fonctions dans
+.Pa /usr/local/lib/paresia/remus/fonctions
+(posées par
+.Xr installer-backend-relais 8 ,
+étape
+.Li fonctions ) .
+Chacune déclare, dans son manifeste, le produit visé (strfry, version
+.Li 4cd3cf6 )
+et le greffon de Romulus compatible (
+.Li paresia-yang-strfry ) ;
+Remus n'inspecte pas cette déclaration et n'a aucun droit sur Docker.
+.Bl -tag -width Ds
+.It Li relay/state/status
+(fonction
+.Li strfry_etat )
+Prouve que le conteneur répond et que la base est lisible. Réponse :
+.Li {"db_version": <entier>} .
+Délai 25 s.
+.It Li relay/sync/trees
+(fonction
+.Li strfry_arbres )
+Liste les arbres negentropy, en lecture seule : jamais d'ajout ni de reconstruction. Réponse :
+.Li {"lines": [...]} .
+Délai 35 s.
+.It Li relay/container/restart
+(fonction
+.Li strfry_redemarrer )
+Redémarre le conteneur. Délai 150 s (arrêt gracieux de deux minutes plus une marge).
+.El
+.Pp
+Aucune de ces actions ne prend de paramètre. Les trois n'utilisent que le privilège
+.Li utilisateurs
+et trois commandes
+.Xr sudo 8
+exactes, que le générateur inscrit dans
+.Pa /etc/sudoers.d/paresia-remus
+sous le compte
+.Li chef :
+.Li docker exec strfry /app/strfry info ,
+.Li docker exec strfry /app/strfry negentropy list
+et
+.Li docker restart strfry .
+Une erreur de la commande donne
+.Li command_failed ,
+sans recopier sa sortie d'erreur ; une sortie hors forme est refusée de même.
+.Sh OPTIONS
+Options du socle commun
+.Pa server/commun/demon.py
+(le générateur de sudoers n'en a aucune) :
+.Bl -tag -width Ds
+.It Fl \-config Ar fichier
+Fichier de configuration explicite, qui remplace les couches fichier (voir
+.Xr paresia.conf 5 ) .
+Donnée une seule fois, avec un argument non vide qui ne commence pas par
+.Li \-\- .
+.It Fl \-check
+Lit et valide la configuration, puis sort avec le code 0, sans ouvrir de
+socket ni de fichier.
+.It Fl \-debug
+Niveau de journal
+.Li debug
+(l'emporte sur la configuration).
+.It Fl \-version
+Affiche le nom du démon et le numéro de version lu dans le fichier
+.Pa VERSION
+installé à côté de
+.Pa server/ ,
+puis sort avec 0.
+.It Fl \-help
+Affiche un rappel des options, puis sort avec 0.
+.El
+.Pp
+Tout autre argument, ou un
+.Fl \-config
+répété, affiche l'usage sur la sortie d'erreur et sort avec le code 64. Les
+messages sont tirés des catalogues
+.Pa i18n/ .
+.Sh ENVIRONMENT
+.Bl -tag -width Ds
+.It Ev PARESIA_REMUS_CONFIG
+Fichier de configuration explicite.
+.It Ev PARESIA_REMUS_<DOMAINE>_<CLE>
+Remplace l'option correspondante. Pour les fonctions :
+.Ev PARESIA_REMUS_PLUGINS_FONCTIONS ,
+.Ev PARESIA_REMUS_PLUGINS_LOCALES ,
+.Ev PARESIA_REMUS_PLUGINS_DOMAINE
+et
+.Ev PARESIA_REMUS_PLUGINS_CIBLE .
+.It Ev JOURNAL_STREAM
+Posée par systemd : préfixe de priorité des lignes de journal.
+.It Ev PYTHONPATH
+Fixée par l'unité.
+.It Ev NOTIFY_SOCKET
+Posée par systemd (
+.Li Type=notify ) :
+le démon y envoie
+.Li READY=1 ,
+.Li STATUS=
+et
+.Li STOPPING=1
+(
+.Xr sd_notify 3 ) .
+Absente hors de systemd : les avis sont simplement omis.
+.It Ev STATE_DIRECTORY
+Posée par systemd si l'unité a
+.Li StateDirectory= .
+Base du dossier des métriques (voir
+.Sx FILES ) .
+.It Ev LC_ALL , LC_MESSAGES , LANG
+La première non vide choisit le catalogue des messages affichés (
+.Fl \-help ,
+.Fl \-version ,
+usage) : anglais si elle commence par
+.Li en ,
+français sinon.
+.El
+.Sh FILES
+.Bl -tag -width Ds
+.It Pa /etc/systemd/system/remus.service
+Unité livrée par
+.Pa deploy/backend-relais/etc/systemd/system/remus.service :
+.Li Type=notify ,
+.Li NotifyAccess=main
+(les fils lancés par
+.Xr sudo 8
+ne peuvent pas notifier),
+.Li User=chef ,
+.Li SupplementaryGroups=paresia-remus-tunnel paresia-castor-etat ,
+.Li Restart=on-failure ,
+.Li RestartSec=5 ,
+.Li RestartPreventExitStatus=64 65 78
+(erreurs permanentes : usage, données, configuration ; pas de relance),
+.Li TimeoutStartSec=30 ,
+.Li TimeoutStopSec=150 ,
+.Li KillMode=mixed .
+Pas de
+.Li WatchdogSec= .
+.It Pa /usr/local/lib/paresia/remus/fonctions , /etc/paresia/remus/plugins.d
+Dossiers des fonctions livrées et locales (voir
+.Sx DESCRIPTION ) .
+Vides ou absents : Remus démarre sans fonction. L'unité les ouvre en lecture
+seule (
+.Li ReadOnlyPaths=/etc/paresia /usr/local/lib/paresia ) .
+.It Pa /etc/sudoers.d/paresia-remus
+Liste fermée des commandes (livrée par
+.Pa deploy/backend-relais/etc/sudoers.d/paresia-remus ,
+fichier généré à partir des manifestes, à ne pas modifier à la main ; vide en
+l'absence de fonction).
+.It Pa /etc/paresia/paresia.conf , /etc/paresia/conf.d/NN-*.conf
+Clés, types et défauts de chaque option : la « Référence des options des démons »
+de
+.Pa docs/configuration.md .
+Sections
+.Li [remus.server] ,
+.Li [remus.castor] ,
+.Li [remus.light] ,
+.Li [remus.transport] ,
+.Li [remus.executor] ,
+.Li [remus.plugins]
+(clés
+.Li fonctions ,
+.Li locales ,
+.Li domaine ,
+.Li cible ;
+défauts : les deux dossiers ci-dessus, aucun domaine, cible
+.Li principale ) ,
+.Li [remus.journal]
+(clé
+.Li niveau ,
+défaut
+.Li info ) ,
+.Li [remus.metriques]
+(clés
+.Li actif ,
+.Li dossier ,
+.Li periode_s ) .
+Exemple :
+.Pa server/conf/paresia-relais.conf .
+Le générateur de sudoers lit la même configuration, sections journal et
+métriques comprises.
+.It Pa <dossier d'état>/metriques/remus.prom
+Métriques au format texte de Prometheus 0.0.4, écrites de façon atomique
+toutes les
+.Li periode_s
+secondes (15). Désactivées par défaut (
+.Li actif = false ) .
+Le dossier est
+.Li [remus.metriques] dossier
+ou, à défaut,
+.Pa metriques/
+sous
+.Ev STATE_DIRECTORY .
+Sans
+.Li dossier
+ni
+.Ev STATE_DIRECTORY ,
+l'activation fait refuser la configuration (code 78,
+.Li config_missing ) .
+.It Pa /var/lib/paresia-remus/
+Dossier d'état de l'unité (
+.Li StateDirectory=paresia-remus ,
+.Li StateDirectoryMode=0711 :
+traversable, non listable). Créé par systemd au démarrage, propriété du compte
+de l'unité (le compte d'exploitation de Remus, utilisateur et groupe),
+conservé à l'arrêt, inscriptible sous
+.Li ProtectSystem=strict
+sans
+.Li ReadWritePaths=
+(seul
+.Pa /run/sudo
+y figure). Contrôle à l'installation : propriétaire, groupe et mode (711)
+vérifiés par le script d'installation, avec
+.Li systemctl show \-p StateDirectory .
+Au retour arrière, retiré s'il est vide. Voir
+.Xr installer-backend-relais 8 .
+.It Pa /run/paresia-remus/remus.sock
+Socket de Remus (illustration), mode 0660 ; dossier
+.Pa /run/paresia-remus/
+en 0711, recréé à chaque démarrage.
+.It Pa /run/paresia-castor/castor-state.sock
+Socket d'état de Castor (illustration), jointe par Remus.
+.It Pa /usr/bin/sudo , /usr/bin/docker
+Chemins de l'exécuteur
+.Li [remus.executor] sudo
+et
+.Li docker
+(emplacements usuels de Debian, sans défaut dans le code).
+.It Pa /run/sudo
+Seule exception en écriture de l'unité (horodatages de
+.Xr sudo 8 ) ;
+à valider sur la cible.
+.El
+.Sh EXIT STATUS
+Codes de
+.Xr sysexits 3 :
+.Bl -tag -width Ds -compact
+.It 0
+Arrêt demandé par
+.Dv SIGTERM
+ou
+.Dv SIGINT ,
+ou
+.Fl \-check ,
+.Fl \-help ,
+.Fl \-version
+réussis.
+.It 64
+Usage : argument inconnu (EX_USAGE).
+.It 65
+Données illisibles (EX_DATAERR).
+.It 70
+Erreur interne (EX_SOFTWARE), par exemple fichier
+.Pa VERSION
+absent à côté de
+.Pa server/ .
+.It 71
+Erreur du système, par exemple socket déjà utilisée (EX_OSERR).
+.It 78
+Configuration invalide (EX_CONFIG), y compris une fonction livrée défectueuse
+(codes
+.Li plugin_* ,
+voir
+.Pa docs/protocole.md ,
+§ 5.5), un
+.Li domaine
+ou une
+.Li cible
+invalide, et un délai
+.Li [remus.transport] delai_s
+qui ne couvre pas
+.Li wait_s
+plus le délai maximal des commandes.
+.El
+.Pp
+L'unité ne relance pas le démon après 64, 65 ou 78. Le message d'un échec
+n'est écrit sur le terminal que si la sortie d'erreur en est un. Le
+générateur de sudoers sort avec 0, ou 1 et un code d'erreur sur la sortie
+d'erreur.
+.Sh DIAGNOSTICS
+Journal : une ligne JSON par événement sur la sortie standard. Niveau :
+.Li [remus.journal] niveau
+(défaut
+.Li info ) ,
+ou
+.Li debug
+avec
+.Fl \-debug .
+.Bl -tag -width Ds -compact
+.It Li startup_failed , service_failed
+Échec avant la mise en service (
+.Li startup_failed )
+ou pendant (
+.Li service_failed ) .
+Champs
+.Li cause :
+.Li os_error
+(avec
+.Li errno
+numérique),
+.Li data_unreadable ,
+.Li internal_error
+ou le code de configuration, et pour une erreur de configuration
+.Li section
+et
+.Li option .
+Jamais de valeur ni de message d'exception.
+.It Li internal_error_detail
+Niveau
+.Li debug
+seulement, après un échec : champs
+.Li classe
+(nom de la classe d'exception, 64 caractères au plus) et
+.Li pile
+(au plus les 16 derniers cadres du paquet
+.Pa server ,
+chemin relatif, ligne, fonction ; aucune valeur).
+.It Li config_read , notify_open , notify_closed , stop_requested
+Niveau
+.Li debug
+seulement : lecture d'une option (section et option, jamais la valeur),
+échanges avec systemd, demande d'arrêt.
+.It Li metrics_write_failed
+Écriture du fichier de métriques impossible (champ
+.Li errno ) ;
+le démon continue.
+.It Li startup , shutdown
+Démarrage ; arrêt (au niveau
+.Li warning
+s'il restait des opérations).
+.It Li light_wait
+Résultat de l'attente du feu (champs
+.Li action , session , waited_ms , result ) .
+.It Li operation_started , operation_finished
+Début et fin d'une opération (durée, résultat ou code).
+.It Li operation_refused
+Opération refusée (
+.Li reason :
+.Li bad_request , unknown_action , not_available , peer_unavailable , relay_light_red , session_closed ) .
+.It Li plugins_loaded
+Fin du chargement des fonctions (champs
+.Li functions ,
+.Li count ,
+.Li skipped ) .
+.It Li plugin_rejected , plugin_skipped
+Fonction locale rejetée (niveau erreur) ou écartée par sa condition
+(avertissement) ; champs
+.Li code ,
+.Li scope ,
+.Li file
+(nom de base), jamais de chemin ni de valeur.
+.It Li command_started , command_finished , command_refused
+Cycle de vie d'une fonction : début (avec les seules valeurs des paramètres
+déclarés dans
+.Li journaliser ) ,
+fin (champs
+.Li code ,
+.Li exit_code ,
+.Li duration_ms ,
+.Li truncated ,
+.Li stdout_bytes ,
+.Li stderr_bytes ,
+.Li contract :
+nombres d'octets seulement, jamais la sortie), refus.
+.It Li program_missing
+Un programme de l'exécuteur est absent ou non exécutable.
+.It Li kill_denied , process_not_reaped
+Échec d'arrêt d'une commande : à traiter à la main.
+.It Li monitor_failed
+La surveillance du feu des flux a échoué.
+.It Li peer_refused , connection_limit , peercred_unavailable , connection_start_failed , connection_cleanup_failed , request_completed , stream_failed , stream_aborted
+Événements du serveur de sockets commun.
+.El
+.Sh SECURITY
+.Bl -bullet -compact
+.It
+Remus tourne sous le compte
+.Li chef
+(sans shell, sans mot de passe, hors du groupe
+.Li docker ) .
+Il n'obtient les droits de root que par
+.Xr sudo 8 ,
+dans la liste fermée de
+.Pa /etc/sudoers.d/paresia-remus .
+.It
+Seul l'uid du compte du tunnel peut écrire sur la socket de Remus
+(
+.Dv SO_PEERCRED ) .
+L'uid de Castor est vérifié avant chaque envoi.
+.It
+.Li NotifyAccess=main :
+seul le processus principal peut envoyer des avis à systemd, pas les
+commandes lancées par
+.Xr sudo 8 .
+.It
+Isolation de l'unité : exactement le tableau de
+.Pa deploy/backend-relais/isolation-remus.md .
+.Li NoNewPrivileges=
+y est retiré, car
+.Xr sudo 8
+est setuid root ; la compensation est la liste sudoers fermée.
+.Li CapabilityBoundingSet=CAP_SETUID CAP_SETGID CAP_AUDIT_WRITE ,
+.Li ProtectSystem=strict ,
+.Li ProtectHome=yes ,
+.Li RestrictAddressFamilies=AF_UNIX ,
+.Li SystemCallFilter=@system-service ,
+.Li ReadWritePaths=/run/sudo ,
+.Li ReadOnlyPaths=/etc/paresia /usr/local/lib/paresia ,
+.Li UMask=0077 .
+.It
+Les paramètres des fonctions sont validés par les gabarits de l'exécuteur
+(type, puis longueur, avant tout motif) et n'atteignent jamais l'argv, seulement
+l'entrée standard du script. La sortie d'un script est une donnée non fiable,
+interprétée en JSON strict. Un résidu accepté : sudoers ne distingue pas
+des arguments fixes fusionnés en un seul.
+.It
+Limite assumée : avec
+.Xr sudo 8 ,
+les droits d'une fonction sont ceux du compte
+.Li chef ,
+non les siens ; le champ
+.Li privilege
+est publié, non appliqué. Les fonctions livrées et locales sont écrites par
+root : leur contenu est de confiance.
+.It
+Principe des greffons : un greffon ne livre pas le produit qu'il
+administre, il déclare sa compatibilité ; Paresia est étranger au produit
+installé.
+.El
+.Sh SEE ALSO
+.Xr paresia-castor 8 ,
+.Xr paresia-romulus 8 ,
+.Xr paresia-tunnel 8 ,
+.Xr paresia.conf 5 ,
+.Xr sudoers 5
+.Pp
+Guide :
+.Pa docs/exploitation.md .
+Manifeste et fonctions :
+.Pa docs/developpement.md ,
+§ 6.2.

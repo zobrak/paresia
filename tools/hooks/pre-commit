@@ -1,0 +1,13 @@
+#!/bin/sh
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Crochet Git : installer avec  git config core.hooksPath tools/hooks
+# Contrôle strict par défaut : le fichier local de motifs privés est obligatoire ;
+# seule la valeur booléenne false de paresia.gardeStricte l'assouplit (avertissement).
+# Suivi des versions
+#   0.1.18  2026-11-08  Mode strict par défaut ; non strict seulement si paresia.gardeStricte vaut false.
+#   3.0.0-alpha.28  2026-11-05  Appel en --strict : fichier de motifs privés obligatoire.
+#   3.0.0-alpha.1   2026-11-05  Première version.
+if [ "$(git config --type=bool --get paresia.gardeStricte)" = false ]; then
+    exec python3 tools/hooks/scan_secrets.py --staged
+fi
+exec python3 tools/hooks/scan_secrets.py --staged --strict

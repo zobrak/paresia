@@ -1,0 +1,114 @@
+.\" SPDX-License-Identifier: AGPL-3.0-or-later
+.\" Page de manuel des scripts journal-legal-* (backend-admin).
+.\" D'après deploy/backend-admin/usr/local/sbin/journal-legal-{pull,seal,acl,purge}.sh.
+.Dd November 8, 2026
+.Dt JOURNAL-LEGAL 8
+.Os Paresia
+.Sh NAME
+.Nm journal-legal-pull ,
+.Nm journal-legal-seal ,
+.Nm journal-legal-acl ,
+.Nm journal-legal-purge
+.Nd scripts d'origine du journal légal sur backend-admin
+.Sh SYNOPSIS
+.Nm journal-legal-pull.sh
+.Nm journal-legal-seal.sh
+.Op Ar AAAA-MM-JJ | Fl \-verifier | Fl \-horodater
+.Nm journal-legal-acl.sh
+.Fl \-verifier | Fl \-appliquer
+.Nm journal-legal-purge.sh
+.Sh DESCRIPTION
+Quatre scripts
+.Xr sh 1 ,
+livrés dans
+.Pa deploy/backend-admin/usr/local/sbin/ ,
+tiennent le journal légal sur backend-admin. Ils sont les ancêtres de
+.Xr paresia-nisaba 8 ,
+qui en reprend les fonctions ; ils restent livrés. Ils doivent être lancés en
+root. Leurs variables (source, destination, clé SSH, compte de l'ACL) sont
+définies en tête de chaque script et à adapter à l'installation.
+Procédure d'installation :
+.Pa docs/installation-journal-legal-acl.md .
+.Bl -tag -width Ds
+.It Nm journal-legal-pull.sh
+Copie, par
+.Xr rsync 1
+(sur SSH, clé dédiée, option
+.Fl \-append ,
+sans suppression), les fichiers
+.Pa journal-*.jsonl
+de backend-relais vers
+.Pa /var/log/paresia/journal-legal/ .
+Prévu pour être lancé chaque minute par une minuterie. Le verrou
+.Pa /run/journal-legal.lock
+est partagé avec le scellement : si celui-ci tourne, la copie est sautée (sortie 0).
+Après chaque copie réussie, le dossier reçoit le mode 0700 et l'ACL du compte de
+Romulus, les journaux non scellés (non immuables) le mode 0640 et l'ACL de lecture.
+.It Nm journal-legal-seal.sh
+Sans argument : scelle, dans l'ordre chronologique, toutes les journées non
+scellées jusqu'à la veille (UTC), en s'arrêtant au premier échec.
+.Ar AAAA-MM-JJ
+scelle cette seule journée, qui doit être terminée.
+.Fl \-verifier
+vérifie tout le registre
+.Pa MANIFEST
+(lecture seule, utilisable par le compte de Romulus) et se termine par
+.Li RÉSULTAT : ... .
+.Fl \-horodater
+ne fait que l'horodatage OpenTimestamps.
+Le scellement contrôle que la copie est identique à l'original, chaîne
+l'empreinte SHA-256 du fichier avec la ligne précédente du registre, puis rend le
+fichier immuable (chattr +i) et le registre en ajout seul (chattr +a).
+.It Nm journal-legal-acl.sh
+.Fl \-verifier
+contrôle (lecture seule) modes, ACL, attributs et lecture effective par le
+compte de Romulus ;
+.Fl \-appliquer
+pose les modes et ACL sur l'existant, un fichier à la fois, en retirant puis en
+rétablissant l'attribut d'immuabilité si besoin. Refuse de tourner si la copie ou
+le scellement est en cours.
+.It Nm journal-legal-purge.sh
+Supprime les fichiers
+.Pa journal-AAAA-MM-JJ.jsonl
+dont la date est antérieure de plus de 365 jours (UTC) ; le registre
+.Pa MANIFEST
+est conservé.
+.El
+.Sh EXIT STATUS
+.Bl -tag -width Ds
+.It Nm journal-legal-pull.sh
+0 en cas de succès ou de copie sautée ; 1 si la copie échoue ou si un droit ou une
+ACL ne peut être posé.
+.It Nm journal-legal-seal.sh
+0 en cas de succès ; 1 sur échec de scellement ou de vérification, ou si un droit
+ou une ACL ne peut être posé.
+.It Nm journal-legal-acl.sh
+0 si conforme (ou appliqué) ; 1 sinon ; 2 pour un usage incorrect ; 130 ou 143 sur
+interruption ou arrêt.
+.It Nm journal-legal-purge.sh
+0 en cas de succès.
+.El
+.Sh DIAGNOSTICS
+Les échecs sont écrits sur la sortie d'erreur et dans syslog (étiquette du script)
+avec un code stable en tête de ligne :
+.Li ECHEC_COPIE ,
+.Li ECHEC_SCELLEMENT ,
+.Li ECHEC_HORODATAGE ,
+.Li ECHEC_ACL .
+Chaque suppression de la purge est tracée dans syslog.
+.Sh FILES
+.Bl -tag -width Ds -compact
+.It Pa /var/log/paresia/journal-legal/
+journaux
+.Pa journal-AAAA-MM-JJ.jsonl ,
+.Pa MANIFEST ,
+.Pa seals/ .
+.It Pa /run/journal-legal.lock
+verrou partagé.
+.El
+.Sh SEE ALSO
+.Xr paresia-nisaba 8 ,
+.Xr nisaba-ctl 1 ,
+.Xr rsync 1 ,
+.Xr setfacl 1 ,
+.Xr chattr 1

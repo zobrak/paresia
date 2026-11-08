@@ -1,0 +1,345 @@
+.\" SPDX-License-Identifier: AGPL-3.0-or-later
+.\" Page de manuel de la CLI des sauvegardes de procédure.
+.\" Version du document : 0.1.0 · 2026-11-07.
+.\" D'après server/sauvegarde/__main__.py et server/sauvegarde/__init__.py (manifeste en version 3).
+.Dd November 7, 2026
+.Dt PARESIA-SAUVEGARDE 8
+.Os Paresia 0.1.0
+.Sh NAME
+.Nm paresia-sauvegarde
+.Nd sauvegardes de procédure de Paresia
+.Sh SYNOPSIS
+.Nm python3 -P -m server.sauvegarde
+.Op Fl \-config Ar fichier
+.Cm copier
+.Op Fl \-arbre
+.Op Fl \-si-absent
+.Op Fl \-jeu Ar jeu
+.Ar chemin ...
+.Nm python3 -P -m server.sauvegarde
+.Op Fl \-config Ar fichier
+.Cm releve
+.Op Fl \-jeu Ar jeu
+.Ar nom
+.Nm python3 -P -m server.sauvegarde
+.Op Fl \-config Ar fichier
+.Cm lister | taille | jeu | nettoyer
+.Nm python3 -P -m server.sauvegarde
+.Op Fl \-config Ar fichier
+.Cm retrouver
+.Op Fl \-jeu Ar jeu
+.Ar chemin
+.Nm python3 -P -m server.sauvegarde
+.Op Fl \-config Ar fichier
+.Cm retrouver
+.Fl \-releve Ar nom
+.Nm python3 -P -m server.sauvegarde
+.Op Fl \-config Ar fichier
+.Cm restaurer
+.Op Fl \-jeu Ar jeu
+.Ar chemin
+.Sh DESCRIPTION
+.Nm
+crée, lit et restaure les copies de sécurité prises par les procédures
+d'installation et de mise à jour de Paresia. Les procédures la lancent depuis
+une copie du code appartenant à root, avec
+.Ev PYTHONPATH
+pointant sur cette copie (jamais depuis le clone du dépôt). Elle n'écrit des
+données que dans le dossier de sauvegarde configuré.
+.Pp
+Intégrité : chaque fichier copié dans un jeu a l'empreinte SHA-256 de
+son contenu inscrite au manifeste (un fichier : une empreinte ; un arbre : une
+empreinte par fichier ; un relevé : une empreinte). Avant toute restauration,
+et avant d'afficher la copie d'une sauvegarde avec
+.Cm retrouver ,
+les empreintes sont recalculées et comparées : si l'une diffère ou manque, la
+commande refuse (code 1, message
+.Li backup_integrity_failed ) ,
+et rien n'est restauré. Pour un arbre, tous les
+fichiers sont vérifiés avant la première écriture.
+.Pp
+Chaque procédure crée un jeu : un dossier daté au format
+.Ar AAAAMMJJ-HHMMSS
+(heure UTC, forme de base de l'ISO 8601). Les jeux sont rangés sous
+.Pa <dossier>/<machine>/ .
+Une copie est faite une seule fois par chemin dans un jeu : un rejeu ne
+remplace jamais la première sauvegarde.
+.Pp
+Commandes :
+.Bl -tag -width Ds
+.It Cm copier Oo Fl \-arbre Oc Oo Fl \-si-absent Oc Oo Fl \-jeu Ar jeu Oc Ar chemin ...
+Copie des fichiers ordinaires dans un jeu. Un dossier est refusé, sauf avec
+.Fl \-arbre
+(copie récursive, liens symboliques conservés sans être suivis). Un chemin
+inexistant est refusé, sauf avec
+.Fl \-si-absent :
+la commande enregistre alors une marque d'absence, qui signifie que le
+fichier n'existait pas et que la procédure va le créer. Les chemins doivent
+être absolus et normalisés. Affiche le chemin du jeu.
+.It Cm releve Oo Fl \-jeu Ar jeu Oc Ar nom
+Lit l'entrée standard et l'enregistre sous
+.Ar nom
+dans le jeu. Le nom ne comporte que des lettres ASCII, des chiffres, des
+points, des tirets bas ou des tirets, sur 1 à 64 caractères. Affiche le chemin
+du jeu.
+.It Cm lister
+Affiche, une ligne par jeu, son nom et sa taille en octets, séparés par une
+tabulation.
+.It Cm taille
+Affiche la taille totale, en octets, du dossier de la machine.
+.It Cm jeu
+Crée un jeu daté et affiche son chemin. La procédure peut le réutiliser avec
+.Fl \-jeu .
+.It Cm nettoyer
+Lance la rotation manuelle : les jeux les plus anciens sont supprimés tant que
+la taille dépasse la limite. Le jeu le plus récent n'est jamais supprimé.
+.It Cm retrouver Oo Fl \-jeu Ar jeu Oc Ar chemin
+.It Cm retrouver Fl \-releve Ar nom
+Affiche le jeu, le genre et le chemin de la copie de la dernière sauvegarde
+du chemin, ou du relevé. Le genre est
+.Li fichier ,
+.Li arbre ,
+.Li absent
+ou
+.Li releve .
+Le chemin de la copie est affiché, ou un tiret si la marque d'absence ne
+comporte pas de copie. La commande ne modifie rien.
+.It Cm restaurer Oo Fl \-jeu Ar jeu Oc Ar chemin
+Rétablit le chemin à partir de sa dernière sauvegarde. Un fichier est rétabli
+de façon atomique, avec ses droits, son propriétaire quand c'est permis, et
+ses dates. Un arbre est rétabli entièrement ; l'ancien arbre est retiré
+seulement après succès. Une marque d'absence supprime le fichier ou l'arbre
+créé par la procédure. Sans sauvegarde retrouvée, la commande échoue avec le
+code 5 et ne modifie rien.
+.El
+.Pp
+Les messages sont tirés des catalogues de langue du projet. Les caractères
+de contrôle sont filtrés. Les événements sont journalisés sur la sortie
+d'erreur ; la sortie standard reste réservée aux données.
+.Pp
+La configuration porte sur la section
+.Li stockage :
+.Bl -tag -width Ds
+.It Li stockage.actif
+.Cm oui
+ou
+.Cm non .
+Avec
+.Cm non ,
+.Cm copier ,
+.Cm releve
+et
+.Cm jeu
+n'écrivent rien ; la restauration lit toujours les sauvegardes existantes.
+.It Li stockage.taille_max_mio
+Limite de taille du dossier de la machine, en mébioctets. Valeur par défaut :
+64.
+.It Li stockage.dossier
+Dossier de base, chemin absolu normalisé.
+.It Li stockage.machine
+Nom de la machine, en minuscules : une lettre, puis lettres, chiffres ou
+tirets, 32 caractères au plus.
+.El
+.Sh OPTIONS
+.Bl -tag -width Ds
+.It Fl \-config Ar fichier
+Lit la configuration depuis
+.Ar fichier
+(voir
+.Sx FILES ) .
+.It Fl \-arbre
+Avec
+.Cm copier ,
+accepte un dossier et le copie récursivement.
+.It Fl \-si-absent
+Avec
+.Cm copier ,
+enregistre la marque d'absence d'un chemin qui n'existe pas.
+.It Fl \-jeu Ar jeu
+Choisit un jeu existant au format
+.Ar AAAAMMJJ-HHMMSS .
+Avec
+.Cm copier
+et
+.Cm releve ,
+le jeu doit exister ; sans cette option, un nouveau jeu est créé.
+.It Fl \-releve Ar nom
+Avec
+.Cm retrouver ,
+cherche le relevé
+.Ar nom
+au lieu d'un chemin. Une seule des deux formes est acceptée.
+.It Fl \-help
+Affiche l'aide sur la sortie standard et sort avec le code 0.
+.It Fl \-version
+Affiche la version (fichier
+.Pa VERSION )
+sur la sortie standard et sort avec le code 0.
+.El
+.Pp
+.Fl \-help
+et
+.Fl \-version
+ne sont reconnus que comme argument unique ; combinés à une autre option ou à
+une commande, ils donnent le code 2. Le niveau du journal (sortie d'erreur) se
+règle par la section
+.Li [sauvegarde.journal] ;
+au niveau
+.Li debug ,
+seuls le nom de la section et celui de l'option lus sont journalisés,
+jamais la valeur.
+.Sh ENVIRONMENT
+.Bl -tag -width Ds
+.It Ev LC_ALL , LC_MESSAGES , LANG
+La première de ces variables non vide choisit la langue des messages : français
+si sa valeur commence par
+.Li fr ,
+anglais sinon.
+.It Ev XDG_CONFIG_HOME
+Dossier de configuration de l'utilisateur (voir FILES).
+.It Ev PYTHONPATH
+Doit désigner la copie du code appartenant à root.
+.It Ev PARESIA_SAUVEGARDE_CONFIG
+Désigne le fichier de configuration (équivaut à
+.Fl \-config ;
+l'option l'emporte).
+.It Ev PARESIA_SAUVEGARDE_STOCKAGE_ACTIF , PARESIA_SAUVEGARDE_STOCKAGE_TAILLE_MAX_MIO , PARESIA_SAUVEGARDE_STOCKAGE_DOSSIER , PARESIA_SAUVEGARDE_STOCKAGE_MACHINE
+Valeur de la clé
+.Li stockage.actif ,
+.Li stockage.taille_max_mio ,
+.Li stockage.dossier
+ou
+.Li stockage.machine .
+Une variable présente l'emporte sur tous les fichiers de configuration.
+.El
+.Sh FILES
+.Bl -tag -width Ds
+.It Pa /etc/paresia/paresia.conf
+Configuration générale.
+.It Pa /etc/paresia/conf.d/NN-*.conf
+Fragments de configuration, lus dans l'ordre de leurs noms.
+.It Pa $XDG_CONFIG_HOME/paresia/
+Configuration de l'utilisateur, lue après celle du système.
+.It Pa <dossier>/<machine>/AAAAMMJJ-HHMMSS/
+Un jeu. Il contient
+.Pa manifeste.json
+(version 3 : les chemins sauvegardés et leur genre ; l'empreinte SHA-256 de
+chaque fichier ; pour un arbre, ses dossiers et ses liens symboliques avec leur
+cible ; un jeu d'une autre version, dont la version 2, est refusé à la
+restauration),
+le dossier
+.Pa fichiers/
+et le dossier
+.Pa releves/ .
+.El
+.Pp
+Le fichier de configuration est lu dans l'ordre des couches du projet, la
+variable d'environnement ayant le dernier mot. Les clés sont décrites à la
+section DESCRIPTION.
+.Sh EXIT STATUS
+La commande se termine avec l'un de ces codes :
+.Bl -tag -width Ds
+.It 0
+Réussite, y compris
+.Fl \-help
+et
+.Fl \-version .
+.It 1
+Échec : configuration invalide, E/S, dossier non sûr, lien symbolique dans le
+chemin, source absente sans
+.Fl \-si-absent ,
+conflit avec une entrée existante du jeu, type de fichier non pris en charge,
+intégrité refusée (empreinte SHA-256 d'une sauvegarde différente ou absente,
+manifeste d'une version sans empreinte) ; dans ce dernier cas rien n'est
+restauré.
+.It 2
+Usage invalide : commande ou option inconnue (y compris
+.Fl \-help
+ou
+.Fl \-version
+combinés à autre chose), argument manquant, chemin, nom de jeu ou nom de relevé refusé.
+.It 3
+Limite dépassée : le jeu courant reste en place, mais la taille du dossier
+reste supérieure à la limite après la rotation.
+.It 4
+Refus d'un fichier contenant une clé privée, détectée sur tout le fichier.
+Aucune clé n'est sauvegardée.
+.It 5
+Aucune sauvegarde retrouvée pour le chemin. Rien n'est modifié ni supprimé.
+.El
+.Sh SECURITY
+Les sauvegardes peuvent contenir des données sensibles (configuration,
+relevés, fichiers de comptes) : elles sont rangées dans des dossiers en 0700,
+propriétaire
+.Li root:root ,
+et le dossier de sauvegarde doit le rester.
+.Pp
+.Bl -bullet -compact
+.It
+Le masque de création est 0077. Le dossier de base et le dossier de la machine
+sont créés en 0700, propriétaire
+.Li root:root .
+Un dossier existant est accepté s'il appartient à
+.Li root
+ou à l'utilisateur effectif et n'est inscriptible ni par le groupe ni par les
+autres ; sinon il est refusé.
+.It
+Un composant de chemin qui est un lien symbolique est refusé. Dans un arbre,
+les liens sont copiés comme liens, sans être suivis.
+.It
+Un fichier copié est refusé (code 4) si son contenu, lu en entier pendant la
+copie, contient un en-tête de clé privée de la forme
+.Li -----BEGIN ... PRIVATE KEY-----
+(partie variable de 64 caractères au plus : majuscules, chiffres et espaces),
+ce qui couvre les formats PEM et OpenSSH. C'est la seule détection faite.
+Une clé dont l'en-tête ne se termine pas par
+.Li PRIVATE KEY-----
+(par exemple
+.Li PRIVATE KEY BLOCK ) ,
+une clé sans en-tête de ce type et le contenu d'un relevé lu sur l'entrée
+standard : dans ces trois cas, la clé n'est pas reconnue.
+.It
+Sont atomiques (fichier ou dossier temporaire du même dossier, puis
+renommage) : la copie d'un fichier, le manifeste, un relevé, la restauration
+d'un fichier et la restauration d'un arbre. Ne le sont pas : la copie d'un
+arbre dans un jeu (création du dossier, puis copie des entrées) et la
+suppression d'un fichier restauré par une marque d'absence.
+.It
+Les chemins viennent de la ligne de commande. Ils sont absolus, normalisés,
+sans caractère de contrôle, et ne sont jamais interprétés par un shell. Les
+chemins qui commencent par
+.Li //
+sont refusés. La restauration n'écrit que des chemins consignés dans le
+manifeste d'un jeu.
+.It
+La rotation ne supprime que des dossiers dont le nom suit strictement le
+format
+.Ar AAAAMMJJ-HHMMSS ,
+dans son propre dossier.
+.It
+La confiance repose sur le propriétaire du dossier de sauvegarde : le dossier
+de base et celui de la machine doivent appartenir à
+.Li root
+(ou à l'utilisateur qui lance la commande) et n'être inscriptibles ni par le
+groupe ni par les autres. La commande tourne en root : elle ne s'exécute
+jamais depuis le clone du dépôt, mais depuis une copie de
+.Pa server/
+faite par les procédures d'installation dans
+.Pa /run/paresia-installation
+(root, 0700 ; fichiers 0644, dossiers 0755, aucun lien symbolique), désignée
+par
+.Ev PYTHONPATH .
+.It
+Le manifeste consigne aussi les dossiers et les liens d'un arbre (les liens
+avec leur cible) ; tout écart est refusé. Les empreintes SHA-256 protègent
+contre une altération ou une corruption des copies, non contre un attaquant
+qui pourrait écrire à la fois la copie et le manifeste ; c'est le rôle des
+droits 0700 du dossier de sauvegarde. La
+vérification se fait avant toute écriture et la copie restaurée est comparée
+une seconde fois pendant son écriture.
+.It
+La restauration ne supprime un fichier, ou un arbre, qu'après avoir retrouvé
+sa copie ou sa marque d'absence.
+.El
+.Sh SEE ALSO
+.Xr python3 1

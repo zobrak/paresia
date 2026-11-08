@@ -1,0 +1,154 @@
+.\" SPDX-License-Identifier: AGPL-3.0-or-later
+.\" Page de manuel de l'outil qui génère et vérifie l'index des pages des greffons yang
+.\" (server/romulus/pages.py). Décrit le code actuel.
+.Dd November 8, 2026
+.Dt PARESIA-ROMULUS-PAGES 8
+.Os Paresia
+.Sh NAME
+.Nm paresia-romulus-pages
+.Nd génère et vérifie l'index des pages d'administration des greffons
+.Sh SYNOPSIS
+.Nm python3 -P -s -B -m server.romulus.pages
+.Fl \-ecrire
+.Ar dossier
+.Nm python3 -P -s -B -m server.romulus.pages
+.Fl \-verifier
+.Ar dossier
+.Nm python3 -P -s -B -m server.romulus.pages
+.Fl \-help | Fl \-version
+.Sh DESCRIPTION
+Un greffon yang peut apporter des pages à l'interface d'administration (voir
+.Xr paresia-admin 1 ) .
+Cet outil contrôle les fichiers de ces pages et écrit, ou vérifie, le fichier
+.Pa index.json
+que l'interface lit pour les découvrir. Il n'est pas un démon : l'installation le lance
+(voir
+.Xr installer-backend-admin 8 ) ,
+et l'administrateur peut le relancer à la main, en root, après avoir modifié un greffon livré.
+.Pp
+Il lit les déclarations de services
+.Em livrées
+(dossier
+.Pa /usr/local/lib/paresia/romulus/services ,
+voir
+.Xr paresia-romulus 8 ) ;
+les déclarations locales ne contribuent jamais à l'index. Pour chaque greffon qui déclare des
+pages (clé
+.Li pages
+de sa déclaration), il vérifie, sous
+.Ar dossier Ns Pa /<nom>/ ,
+où
+.Ar nom
+est le nom du greffon sans le préfixe
+.Li paresia-yang- :
+.Bl -bullet -compact
+.It
+que le script de chaque page existe ;
+.It
+que
+.Pa i18n/fr-FR.json
+existe, et
+.Pa i18n/en-US.json
+s'il est présent, et que chacun est un objet JSON de chaînes dont
+.Em toutes
+les clés commencent par
+.Li ui_ Ns Ar nom Ns Li _
+(les tirets du nom sont remplacés par
+.Li _ ) ;
+.It
+que chaque fichier et chaque dossier appartient à root, qu'aucun n'est modifiable par le groupe
+ou par les autres, qu'aucun n'est un lien symbolique, et que chaque fichier fait 1 Mio au plus.
+.El
+.Pp
+Un greffon qui ne respecte pas ces règles est refusé en entier et l'outil échoue : aucun index
+partiel n'est produit.
+.Pp
+.Fl \-ecrire
+écrit
+.Pa Ar dossier Ns Pa /index.json
+de façon atomique (fichier temporaire dans le même dossier, puis renommage), propriétaire root,
+mode 0644. L'index est un objet JSON (RFC 8259) en ASCII, de 64 Kio au plus, à deux clés :
+.Li format
+(l'entier 1) et
+.Li greffons
+(tableau trié par nom, chaque greffon étant
+.Li {"nom", "pages"}
+avec les pages triées par
+.Li id ,
+chacune
+.Li {"id", "titre_cle", "script"} ) .
+.Fl \-verifier
+ne modifie rien : il recalcule l'index d'après les fichiers actuels et échoue si
+.Pa index.json
+est absent, modifiable par un autre compte, de mode différent de 0644, ou différent de ce que les
+fichiers produiraient.
+.Sh OPTIONS
+.Bl -tag -width Ds
+.It Fl \-ecrire Ar dossier
+Contrôle les greffons puis écrit l'index. Le dossier est celui qui contient un sous-dossier par
+greffon, par exemple
+.Pa /usr/local/share/paresia/web/greffons .
+.It Fl \-verifier Ar dossier
+Vérifie l'index présent dans le dossier.
+.It Fl \-help , Fl \-version
+Affichent l'aide et la version. Ces deux options sont reconnues seules.
+.El
+.Sh EXIT STATUS
+Les codes suivent
+.Pa sysexits.h .
+.Bl -tag -width Ds -compact
+.It 0
+Succès. Rien n'est affiché.
+.It 64
+Usage : arguments absents ou inconnus.
+.It 65
+Greffon ou index invalide (
+.Li pages_invalid ,
+.Li pages_catalog_invalid ,
+.Li pages_too_large ) .
+.It 74
+Erreur d'entrée-sortie.
+.It 78
+Droits ou propriétaire non sûrs (
+.Li pages_unsafe_permissions ) .
+.El
+.Sh DIAGNOSTICS
+Les diagnostics sont écrits sur l'erreur standard, une ligne préfixée par la priorité de
+.Xr sd-daemon 3
+(par exemple
+.Li <3>pages_invalid nom ) ,
+sans chemin ni contenu de fichier : seulement un code stable et, quand il est connu, le nom du
+greffon.
+.Bl -tag -width Ds -compact
+.It Li pages_invalid
+Déclaration illisible, fichier ou dossier absent, qui n'est pas ordinaire, ou index différent
+de celui que produiraient les fichiers.
+.It Li pages_catalog_invalid
+Un catalogue n'est pas un objet JSON de chaînes, ou l'une de ses clés n'a pas le préfixe du
+greffon.
+.It Li pages_too_large
+Un fichier dépasse 1 Mio ou l'index dépasse 64 Kio.
+.It Li pages_unsafe_permissions
+Propriétaire différent de root, écriture pour le groupe ou les autres, lien symbolique, ou mode
+de l'index différent de 0644.
+.El
+.Sh FILES
+.Bl -tag -width Ds
+.It Pa /usr/local/share/paresia/web/greffons/<nom>/
+Pages d'un greffon : un script par page et le dossier
+.Pa i18n/ .
+.It Pa /usr/local/share/paresia/web/greffons/index.json
+L'index généré.
+.It Pa /usr/local/lib/paresia/romulus/services/paresia-yang-<nom>.toml
+Déclarations livrées lues par l'outil.
+.El
+.Sh SECURITY
+La page d'un greffon s'exécute dans l'interface avec les mêmes droits que le noyau de la page :
+l'intégrité des fichiers est la barrière. C'est pourquoi seul root écrit ces dossiers et que
+l'outil refuse tout fichier modifiable par un autre compte. L'outil ne sert aucun fichier : le
+serveur web que l'administrateur configure le fait. Il ne contrôle que la forme des fichiers,
+non leur contenu : n'installer que des greffons de provenance connue.
+.Sh SEE ALSO
+.Xr installer-backend-admin 8 ,
+.Xr paresia-romulus 8 ,
+.Xr paresia-admin 1

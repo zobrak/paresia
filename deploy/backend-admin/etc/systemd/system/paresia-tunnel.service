@@ -1,0 +1,81 @@
+# paresia-tunnel.service — tunnel SSH backend-admin vers backend-relais (service du tunnel).
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Rôle : ssh en avant-plan (ssh -N) sous le compte dédié paresia-tunnel ; adresse, redirections
+#   de sockets, clé et empreintes sont dans /etc/paresia/tunnel/ssh_config (voir la procédure du tunnel), jamais ici.
+# Installation, démarrage et essai de bout en bout : procédure du tunnel (document d'installation distinct).
+# Dossiers des sockets : /etc/tmpfiles.d/paresia-tunnel.conf, appliqué avant le démarrage.
+# Tunnel tiré par pollux.service et romulus.service, sans activation propre.
+# Arrêter ou redémarrer l'un des services arrête ou redémarre le tunnel partagé : l'autre
+# perd ses jumeaux du relais jusqu'à son propre redémarrage (D8, D9).
+# Un démarrage manuel isolé (systemctl start) reste possible ; le tunnel s'arrête avec les services.
+# Suivi des versions
+#   0.1.19  2026-11-08  Tunnel tiré par les services, propagation de leurs arrêts et redémarrages.
+#   0.1.1  2026-11-07  Dossiers persistants par tmpfiles.d, parent réservé à root, isolation par groupes et modes.
+#   3.0.0-alpha.34  2026-11-06  Première version (D61, D62).
+
+[Unit]
+Description=Paresia : tunnel SSH vers backend-relais
+# systemd.special(7), network-online.target : les unités qui exigent une connexion réseau
+# configurée tirent ce target par Wants= et se placent après lui.
+After=network-online.target
+Wants=network-online.target
+# systemd.unit(5), PartOf= : propagation de l'arrêt et du redémarrage des services.
+PartOf=pollux.service romulus.service
+
+[Service]
+Type=simple
+User=paresia-tunnel
+Group=paresia-tunnel
+ExecStart=/usr/bin/ssh -F /etc/paresia/tunnel/ssh_config -N paresia-relais
+# Le tunnel doit toujours être rétabli.
+Restart=always
+RestartSec=5
+UMask=0077
+
+# Dossiers des sockets locales : un sous-dossier par démon (D62).
+# Le masque des anciens droits de traversée nommés revenait à --- au lancement :
+# systemd v257, src/core/exec-invoke.c, exec_invoke/setup_exec_directory, réapplique
+# le mode des dossiers gérés par l'unité avant chaque commande. Les dossiers sont
+# désormais créés par tmpfiles.d(5), type d, avec propriétaire, groupe et mode explicites :
+# parent root:root 0711, romulus paresia-tunnel:paresia-romulus 0710,
+# pollux paresia-tunnel:paresia-pollux 0710. Seul le groupe du démon traverse son dossier ;
+# les autres comptes n'y accèdent pas (hors propriétaire paresia-tunnel et root).
+# Les sockets 0666 (ssh_config(5), StreamLocalBindMask 0111) restent protégées par ces
+# dossiers ; unix(7) exige écriture et traversée du dossier pour créer une socket.
+# Les dossiers doivent exister avant ssh, à l'installation puis via tmpfiles au démarrage
+# du système. Leur durée de vie est indépendante du service : un redémarrage conserve
+# les droits. StreamLocalBindUnlink yes retire une socket restante avant sa recréation.
+# Type=simple reste adapté : aucune commande de permission ne suit le lancement de ssh.
+# systemd.service(5) ne garantit pas que les sockets soient prêtes dès le retour de start ;
+# les contrôler dans la procédure avant les essais applicatifs.
+# TimeoutStopSec= : valeur par défaut (ssh se termine sur SIGTERM, aucune opération longue).
+
+# Isolation : celle de castor.service, sauf RestrictAddressFamilies (ssh joint backend-relais
+# par IP) et les deux dossiers où ssh crée ses sockets. systemd.exec(5), ProtectSystem=
+# et ReadWritePaths= : seules ces exceptions permettent leur écriture sous strict ;
+# le parent reste en lecture seule. Sans préfixe « - », les dossiers sont requis.
+# Les empreintes sont pré-chargées par la procédure du tunnel (StrictHostKeyChecking yes).
+LimitCORE=0
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ReadWritePaths=/run/paresia-tunnel/romulus /run/paresia-tunnel/pollux
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+# Dérogation à l'isolation de pollux.service : sockets de domaine Unix locales, plus IPv4 et IPv6 pour joindre le relais.
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service

@@ -1,0 +1,49 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Suivi des versions
+#   0.1.8  2026-11-07  Déclaration du service de journal légal (Nisaba) : état et vérification (D148, D150, D154).
+#
+# Greffon livré avec Paresia : Romulus aiguille le domaine « nisaba » vers le processus annexe
+# du journal légal, par sa socket réservée à Romulus (actions d'état et de vérification,
+# lecture seule, docs/protocole.md, § 5.2). Service facultatif : sans la section
+# [romulus.nisaba], ou sans socket configurée, les actions répondent 501 not_available.
+format = 1
+forme = "ponctuel"
+greffon = "paresia-yang-nisaba"
+domaine = "nisaba"
+section = "nisaba"
+obligatoire = false
+destination = "nisaba"
+catalogue = "declaration"
+codes = ["command_busy", "bad_request", "not_available"]
+
+# Section [romulus.nisaba] : socket du service et uid de son compte (vérifié avant tout envoi),
+# échéance d'un appel, longueur maximale d'une ligne.
+[[options]]
+nom = "socket"
+type = "chemin"
+role = "socket"
+
+[[options]]
+nom = "uid"
+type = "uid"
+role = "uid"
+
+[[options]]
+nom = "delai_s"
+type = "duree"
+defaut = 120
+role = "delai"
+
+[[options]]
+nom = "max_line"
+type = "limite"
+defaut = 1048576
+role = "max_line"
+
+[[actions]]
+nom = "state/status"
+erreurs = ["command_busy"]
+
+[[actions]]
+nom = "state/verify"
+erreurs = ["command_busy"]

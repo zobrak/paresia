@@ -1,0 +1,26 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Suivi des versions
+#   0.1.14  2026-11-08  Manifeste strfry_redemarrer du greffon paresia-yin-strfry (D148, D150, D154, D167).
+#
+# Redémarrage du conteneur ; délai : arrêt gracieux de deux minutes plus marge.
+# La section [produit] est une déclaration : Remus ne l'inspecte pas et n'a aucun droit sur
+# Docker (D153) ; la comparaison avec l'image réellement installée se fait à l'installation.
+format = 1
+forme = "ponctuel"
+greffon = "paresia-yin-strfry"
+nom = "strfry_redemarrer"
+action = "relay/container/restart"
+privilege = "utilisateurs"
+delai_s = 150
+sortie_max = 16384
+erreurs = ["command_failed"]
+compatible_yang = ["paresia-yang-strfry"]
+
+[produit]
+nom = "strfry"
+source = "https://github.com/hoytech/strfry"
+version = "4cd3cf6"
+
+[[commandes_privilegiees]]
+operation = "restart"
+arguments = ["strfry"]

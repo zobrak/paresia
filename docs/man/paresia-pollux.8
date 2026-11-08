@@ -1,0 +1,395 @@
+.\" SPDX-License-Identifier: AGPL-3.0-or-later
+.\" Page de manuel de Pollux (session de présence, backend-admin).
+.\" Décrit l'état du code
+.\" (server/pollux/, deploy/backend-admin/etc/systemd/system/pollux.service).
+.\" 0.1.6 : démon sur le socle commun (Type=notify, options, codes sysexits, sections journal et métriques).
+.Dd November 7, 2026
+.Dt PARESIA-POLLUX 8
+.Os Paresia
+.Sh NAME
+.Nm paresia-pollux
+.Nd démon de session de présence des administrateurs (backend-admin)
+.Sh SYNOPSIS
+.Nm python3 -P -s -B -m server.pollux
+.Op Fl \-check
+.Op Fl \-debug
+.Op Fl \-config Ar fichier
+.Nm python3 -P -s -B -m server.pollux
+.Fl \-help | \-version
+.Sh DESCRIPTION
+Pollux tient les sessions de présence des administrateurs. Une session
+s'ouvre quand l'application d'administration (Paresia-admin) se connecte en
+SSH au compte
+.Li app ,
+que
+.Xr pollux-session 1
+relaie ses messages, que Pollux vérifie la preuve de possession de la clé SSH
+(défi signé, espace de noms
+.Li paresia-presence ) ,
+puis qu'il prévient Romulus et Castor. La session expire sans
+.Li ping
+pendant
+.Li timeout_s .
+Pollux ferme alors la session auprès de ses pairs.
+.Pp
+Pollux écoute deux sockets Unix :
+.Bl -tag -width Ds -compact
+.It Li [pollux.sessions] socket
+écoute de
+.Xr pollux-session 1 ;
+.It Li [pollux.relay] socket
+écoute réservée à l'uid de Romulus (ping de session sur l'ordre des
+requêtes HTTP).
+.El
+.Pp
+Il joint deux pairs : Romulus ([pollux.romulus]) et Castor, par le tunnel
+SSH ([pollux.castor], voir
+.Xr paresia-tunnel 8 ) .
+Protocole
+.Li jumeaux/1 :
+.Pa docs/protocole.md .
+.Pp
+Arrêter ou redémarrer Pollux ferme toutes les sessions de présence.
+.Pp
+Cycle de vie (systemd
+.Li Type=notify ) :
+le démon envoie
+.Li READY=1
+une fois ses sockets liées, puis
+.Li STOPPING=1
+à
+.Dv SIGTERM
+ou
+.Dv SIGINT .
+Son fil principal attend l'arrêt par tranches de 0,1 s, car un signal reçu
+par un autre fil ne le réveille pas forcément.
+.Sh OPTIONS
+Options du socle commun
+.Pa server/commun/demon.py :
+.Bl -tag -width Ds
+.It Fl \-config Ar fichier
+Fichier de configuration explicite, qui remplace les couches fichier (voir
+.Xr paresia.conf 5 ) .
+Donnée une seule fois, avec un argument non vide qui ne commence pas par
+.Li \-\- .
+.It Fl \-check
+Lit et valide la configuration, puis sort avec le code 0, sans ouvrir de
+socket ni de fichier.
+.It Fl \-debug
+Niveau de journal
+.Li debug
+(l'emporte sur la configuration).
+.It Fl \-version
+Affiche le nom du démon et le numéro de version lu dans le fichier
+.Pa VERSION
+installé à côté de
+.Pa server/ ,
+puis sort avec 0.
+.It Fl \-help
+Affiche un rappel des options, puis sort avec 0.
+.El
+.Pp
+Tout autre argument, ou un
+.Fl \-config
+répété, affiche l'usage sur la sortie
+d'erreur et sort avec le code 64. Les messages sont tirés des catalogues
+.Pa i18n/ .
+.Sh ENVIRONMENT
+.Bl -tag -width Ds
+.It Ev PARESIA_POLLUX_CONFIG
+Fichier de configuration explicite (l'option l'emporte).
+.It Ev PARESIA_POLLUX_<DOMAINE>_<CLE>
+Remplace l'option correspondante. Exemple :
+.Ev PARESIA_POLLUX_SESSIONS_TIMEOUT_S .
+.It Ev JOURNAL_STREAM
+Posée par systemd : si la sortie standard est le journal, chaque ligne reçoit
+le préfixe de priorité de
+.Xr sd-daemon 3 .
+.It Ev PYTHONPATH
+Fixée par l'unité au dossier du code installé.
+.It Ev NOTIFY_SOCKET
+Posée par systemd (
+.Li Type=notify ) :
+le démon y envoie
+.Li READY=1 ,
+.Li STATUS=
+et
+.Li STOPPING=1
+(
+.Xr sd_notify 3 ) .
+Absente hors de systemd : les avis sont simplement omis.
+.It Ev STATE_DIRECTORY
+Posée par systemd si l'unité a
+.Li StateDirectory= .
+Sert de base au dossier des métriques (voir
+.Sx FILES ) .
+.It Ev LC_ALL , LC_MESSAGES , LANG
+La première non vide choisit le catalogue des messages affichés (
+.Fl \-help ,
+.Fl \-version ,
+usage) : anglais si elle commence par
+.Li en ,
+français sinon.
+.El
+.Pp
+L'unité livrée ne fixe aucune variable
+.Ev PARESIA_* .
+.Sh FILES
+.Bl -tag -width Ds
+.It Pa /etc/systemd/system/pollux.service
+Unité (livrée :
+.Pa deploy/backend-admin/etc/systemd/system/pollux.service ) .
+.Li Type=notify ,
+.Li NotifyAccess=main ,
+.Li User=paresia-pollux ,
+.Li SupplementaryGroups=paresia-sessions paresia-liaison ,
+.Li Restart=on-failure ,
+.Li RestartSec=5 ,
+.Li RestartPreventExitStatus=64 65 78
+(erreurs permanentes : usage, données, configuration ; pas de relance),
+.Li TimeoutStartSec=30 ,
+.Li TimeoutStopSec=180 .
+Pas de
+.Li WatchdogSec= .
+.It Pa /etc/paresia/paresia.conf , /etc/paresia/conf.d/NN-*.conf
+Sections
+.Li [pollux.sessions] ,
+.Li [pollux.signature] ,
+.Li [pollux.relay] ,
+.Li [pollux.romulus] ,
+.Li [pollux.castor] ,
+.Li [pollux.transport] .
+Clés, types et défauts de chaque option : la « Référence des options des démons »
+de
+.Pa docs/configuration.md
+(voir aussi
+.Xr paresia.conf 5 ) .
+.It Pa /run/paresia-pollux/
+Dossier d'exécution de l'unité (
+.Li RuntimeDirectory=paresia-pollux ,
+mode 0711, recréé à chaque démarrage, supprimé à l'arrêt).
+.It Pa /run/paresia-pollux/pollux.sock
+Socket des sessions. Valeur d'illustration de la configuration ; mode 0660,
+propriétaire et groupe fixés par
+.Li [pollux.sessions] uid
+et
+.Li gid .
+.It Pa /run/paresia-pollux/pollux-relay.sock
+Socket réservée à Romulus (illustration).
+.It Pa /run/paresia-romulus/romulus.sock
+Socket de Romulus, jointe par Pollux (illustration).
+.It Pa /run/paresia-tunnel/pollux/castor.sock
+Socket du tunnel vers Castor, jointe par Pollux (illustration).
+.It Pa authorized_keys
+Fichier lu à chaque vérification (
+.Li [pollux.signature] authorized_keys ) ;
+retrait d'une ligne immédiat.
+.It Pa <dossier d'état>/metriques/pollux.prom
+Métriques au format texte de Prometheus 0.0.4, écrites de façon atomique
+toutes les
+.Li periode_s
+secondes (15). Désactivées par défaut :
+.Li [pollux.metriques] actif = false .
+Le dossier est
+.Li [pollux.metriques] dossier
+ou, à défaut,
+.Pa metriques/
+sous
+.Ev STATE_DIRECTORY .
+Sans
+.Li dossier
+ni
+.Ev STATE_DIRECTORY ,
+l'activation fait refuser la configuration (code 78,
+.Li config_missing ) .
+.It Pa /var/lib/paresia-pollux/
+Dossier d'état de l'unité (
+.Li StateDirectory=paresia-pollux ,
+.Li StateDirectoryMode=0711 :
+traversable, non listable). Créé par systemd au démarrage, propriété de
+.Li paresia-pollux:paresia-pollux ,
+conservé à l'arrêt. Il reste inscriptible sous
+.Li ProtectSystem=strict
+sans
+.Li ReadWritePaths= .
+Contrôle à l'installation : le script d'installation lit
+.Li systemctl show \-p StateDirectory
+et vérifie propriétaire, groupe et mode (711). Au retour arrière, le dossier est
+retiré s'il est vide (jamais autrement). Voir
+.Xr installer-backend-admin 8 .
+.El
+.Pp
+Les chemins, uid et gid des exemples sont des illustrations : le code n'en
+fixe aucun.
+.Sh EXIT STATUS
+Codes de
+.Xr sysexits 3 :
+.Bl -tag -width Ds -compact
+.It 0
+Arrêt demandé par
+.Dv SIGTERM
+ou
+.Dv SIGINT ,
+ou
+.Fl \-check ,
+.Fl \-help ,
+.Fl \-version
+réussis.
+.It 64
+Usage : argument inconnu (EX_USAGE).
+.It 65
+Données illisibles (EX_DATAERR).
+.It 70
+Erreur interne (EX_SOFTWARE), par exemple fichier
+.Pa VERSION
+absent à côté de
+.Pa server/ .
+.It 71
+Erreur du système, par exemple socket déjà utilisée (EX_OSERR).
+.It 78
+Configuration invalide (EX_CONFIG).
+.El
+.Pp
+L'unité ne relance pas le démon après 64, 65 ou 78. Le message d'un échec
+n'est écrit sur le terminal que si la sortie d'erreur en est un.
+.Sh DIAGNOSTICS
+Journal : une ligne JSON par événement sur la sortie standard (champs
+.Li ts , level , component , event ) ,
+donc dans journald (
+.Li journalctl -u pollux -o cat ) .
+Niveau :
+.Li [pollux.journal] niveau
+(défaut
+.Li info ) ,
+ou
+.Li debug
+avec
+.Fl \-debug .
+Événements :
+.Bl -tag -width Ds -compact
+.It Li startup_failed , service_failed
+Échec avant la mise en service (
+.Li startup_failed )
+ou pendant (
+.Li service_failed ) .
+Champs
+.Li cause :
+.Li os_error
+(avec
+.Li errno
+numérique),
+.Li data_unreadable ,
+.Li internal_error
+ou le code de configuration (
+.Li config_missing ,
+.Li config_invalid ,
+\&...), et pour une erreur de configuration
+.Li section
+et
+.Li option .
+Jamais de valeur ni de message d'exception.
+.It Li internal_error_detail
+Niveau
+.Li debug
+seulement, après un échec : champs
+.Li classe
+(nom de la classe d'exception, 64 caractères au plus) et
+.Li pile
+(au plus les 16 derniers cadres du paquet
+.Pa server ,
+chemin relatif, ligne, fonction ; aucune valeur).
+.It Li config_read , notify_open , notify_closed , stop_requested
+Niveau
+.Li debug
+seulement : lecture d'une option (section et option, jamais la valeur),
+échanges avec systemd, demande d'arrêt.
+.It Li metrics_write_failed
+Écriture du fichier de métriques impossible (champ
+.Li errno ) ;
+le démon continue.
+.It Li session_opened , session_closed
+Ouverture et fermeture de session (champs
+.Li session , admin , source ,
+et
+.Li reason
+à la fermeture :
+.Li timeout , disconnect , close , romulus_lost ) .
+.It Li challenge_issued , auth_ok , auth_failed
+Preuve de possession. Aucun défi, aucune signature, aucun jeton n'est
+journalisé ;
+.Li auth_failed
+porte un motif technique.
+.It Li key_ignored
+Ligne d'
+.Pa authorized_keys
+écartée (type de clé, options, autorité de certification).
+.It Li peer_unavailable
+Romulus ou Castor injoignable (champs
+.Li peer , action , session ) .
+.It Li expiry_failed
+Erreur dans le contrôle d'expiration.
+.It Li peer_refused , peercred_unavailable , connection_limit , connection_start_failed , connection_cleanup_failed , request_completed
+Événements du serveur de sockets commun.
+.El
+.Pp
+Codes d'erreur renvoyés aux clients :
+.Li bad_request , unknown_action , session_closed , session_limit , peer_unavailable , challenge_required , challenge_expired , signature_invalid , protocol_version_mismatch , line_too_long , not_available , internal_error .
+.Sh SECURITY
+.Bl -bullet -compact
+.It
+Compte dédié
+.Li paresia-pollux ,
+sans shell, groupes
+.Li paresia-sessions
+et
+.Li paresia-liaison
+seulement. Chaque socket a son propre groupe.
+.It
+Chaque connexion est contrôlée par l'uid de son pair (
+.Dv SO_PEERCRED ) :
+la socket de relais n'admet que l'uid de Romulus ; le refus est journalisé
+(
+.Li peer_refused ) .
+Pollux vérifie aussi l'uid du serveur de Romulus avant tout envoi.
+.It
+Unité : aucune capacité (
+.Li CapabilityBoundingSet=
+vide), pas de nouveaux privilèges,
+.Li ProtectSystem=strict ,
+.Li ProtectHome=yes ,
+.Li PrivateTmp=yes ,
+.Li PrivateDevices=yes ,
+.Li RestrictAddressFamilies=AF_UNIX ,
+.Li RestrictNamespaces=yes ,
+.Li SystemCallFilter=@system-service ,
+.Li UMask=0077 ,
+.Li LimitCORE=0 .
+.Li MemoryDenyWriteExecute=
+est volontairement absent.
+.It
+.Li NotifyAccess=main :
+seul le processus principal peut envoyer des avis à systemd ; les avis sont
+validés (clé, valeur, taille) et envoyés par une socket de domaine Unix, sans
+élargir
+.Li RestrictAddressFamilies= .
+.It
+Le fichier de configuration appartient à root (
+.Li ConfigurationDirectory=paresia::ro ;
+le suffixe
+.Li ::ro
+exige systemd 257 ou plus).
+.It
+Les verrous sont globaux mais aucun appel à un pair ne se fait sous le verrou
+global.
+.El
+.Sh SEE ALSO
+.Xr pollux-session 1 ,
+.Xr paresia.conf 5 ,
+.Xr paresia-romulus 8 ,
+.Xr paresia-castor 8 ,
+.Xr paresia-tunnel 8 ,
+.Xr systemd.service 5 ,
+.Xr journalctl 1
+.Pp
+Guide :
+.Pa docs/exploitation.md .

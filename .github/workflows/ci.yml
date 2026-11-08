@@ -1,0 +1,145 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# =============================================================================
+#  ci.yml — intégration continue : recherche de secrets puis tests
+# -----------------------------------------------------------------------------
+#  Les tests tournent dans un conteneur Debian 13 (même système que la cible,
+#  systemd 257 ; le runner ubuntu-latest fournit systemd 255, sous lequel
+#  `systemd-analyze verify` donne un autre résultat) et sous un compte non
+#  privilégié, comme sur un poste de développement.
+#  Sources (documentation officielle de GitHub Actions) :
+#   - https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#jobsjob_idcontainer
+#   - https://docs.github.com/en/actions/how-tos/write-workflows/choose-where-workflows-run/run-jobs-in-a-container
+#  Paquets : https://packages.debian.org/trixie/ (noms vérifiés, rubrique trixie).
+#  Version du document : 3.0.0-alpha.40 · 2026-11-06.
+#  Suivi des versions :
+#    0.1.18 · 2026-11-08 : dépendances de test limitées à pytest.
+#   - 0.1.6 · 2026-11-07 : prérequis des scripts d'installation installés dans le conteneur de vérification (curl, iproute2, openssh-client, openssh-server).
+#   - 0.1.0 · 2026-11-07 : banc de présence isolé à deux conteneurs.
+#   - 3.0.0-alpha.40 · 2026-11-06 : exécution dans un conteneur debian:trixie, sous un compte non root.
+# =============================================================================
+name: ci
+on:
+  push:
+    branches: [alpha, "task/**"]
+  pull_request:
+    branches: [alpha]
+permissions:
+  contents: read
+env:
+  # Valeurs explicites pour les étapes exécutées sous le compte « ci ».
+  CI_HOME: /var/lib/ci
+  CI_PATH: /var/lib/ci/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+jobs:
+  verifications:
+    runs-on: ubuntu-latest
+    container:
+      image: debian:trixie
+    defaults:
+      run:
+        # Dans un conteneur, le shell par défaut est sh ; bash est présent dans l'image.
+        shell: bash
+    steps:
+      - name: Paquets système
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          # Une éventuelle exclusion des pages de manuel de l'image est levée avant
+          # l'installation de systemd, pour que man 5 systemd.exec fonctionne.
+          ls -l /etc/dpkg/dpkg.cfg.d/ || true
+          for f in /etc/dpkg/dpkg.cfg.d/* /etc/dpkg/dpkg.cfg; do
+            [ -f "$f" ] || continue
+            if grep -q -E '^[[:space:]]*path-exclude[=[:space:]]+/usr/share/man' "$f"; then
+              echo "exclusion des pages de manuel dans $f :"
+              grep -n -E '^[[:space:]]*path-exclude[=[:space:]]+/usr/share/man' "$f"
+              sed -i -E '/^[[:space:]]*path-exclude[=[:space:]]+\/usr\/share\/man/d' "$f"
+            fi
+          done
+          apt-get update
+          apt-get install --yes --no-install-recommends \
+            acl ca-certificates curl git groff-base lighttpd man-db nftables nodejs \
+            iproute2 openssh-client openssh-server \
+            python3 python3-cryptography python3-pip python3-pyqt6 python3-pyqt6.qtwebengine python3-venv \
+            shellcheck sudo systemd
+          cat /etc/os-release
+      - uses: actions/checkout@v4
+      - name: Compte non privilégié
+        run: |
+          uid="$(stat -c %u "$GITHUB_WORKSPACE")"
+          if [ "$uid" -eq 0 ]; then
+            echo "le dossier de travail appartient à root : compte non root impossible" >&2
+            exit 1
+          fi
+          useradd --uid "$uid" --create-home --home-dir "$CI_HOME" --shell /bin/bash ci
+          chown -R ci "$GITHUB_WORKSPACE"
+          getent passwd ci
+      - name: Recherche de secrets
+        run: runuser -u ci -- env HOME="$CI_HOME" PATH="$CI_PATH" python3 tools/hooks/scan_secrets.py --all
+      - name: Dépendances de test
+        run: |
+          runuser -u ci -- env HOME="$CI_HOME" PATH="$CI_PATH" bash -e -c '
+            python3 -m venv --system-site-packages "$HOME/venv"
+            pip install pytest
+          '
+      - name: Outils présents
+        run: |
+          runuser -u ci -- env HOME="$CI_HOME" PATH="$CI_PATH" bash -e -c '
+            id -u
+            manquants=0
+            for outil in systemd-analyze man visudo nft setfacl getfacl shellcheck git; do
+              command -v "$outil" || { echo "outil absent : $outil" >&2; manquants=1; }
+            done
+            man -w 5 systemd.exec || { echo "page absente : systemd.exec(5)" >&2; manquants=1; }
+            [ "$manquants" -eq 0 ]
+            systemd-analyze --version | head -n 1
+            sudo -V | head -n 1
+            python3 --version
+            python3 -c "import cryptography; print(\"cryptography\", cryptography.__version__)"
+          '
+      - name: Tests
+        run: |
+          runuser -u ci -- env HOME="$CI_HOME" PATH="$CI_PATH" bash -e -c '
+            uid="$(id -u)"
+            echo "uid : $uid"
+            [ "$uid" -ne 0 ] || { echo "les tests ne doivent pas tourner en root" >&2; exit 1; }
+            python3 -m pytest -q -rs
+          '
+  banc:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 45
+    env:
+      PYTHONPATH: tests
+    steps:
+      - uses: actions/checkout@v4
+      - name: Versions du runner
+        run: |
+          python3 --version
+          docker version
+      - name: Construction des images
+        run: python3 -m banc.orchestrateur construire
+      - name: Banc du serveur web (lighttpd éphémère, silence prolongé du flux)
+        env:
+          PARESIA_BANC_SILENCE: "1"
+        run: |
+          # Outil de développement du banc seulement, jamais une dépendance du produit.
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends lighttpd python3-pytest
+          lighttpd -v
+          python3 -m pytest -q -s -rs tests/test_serveur_web_banc.py
+      - name: Démarrage des unités
+        run: python3 -m banc.orchestrateur demarrer
+      - name: Scénario de présence
+        run: python3 -m banc.orchestrateur scenario
+      - name: Export du journal
+        if: always()
+        run: python3 -m banc.orchestrateur journal
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: banc-journal
+          path: banc-journal/*.txt
+          if-no-files-found: error
+      - name: Arrêt du banc
+        if: always()
+        run: python3 -m banc.orchestrateur arreter

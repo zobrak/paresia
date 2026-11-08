@@ -1,0 +1,421 @@
+.\" SPDX-License-Identifier: AGPL-3.0-or-later
+.\" Page de manuel du script d'installation de backend-relais.
+.\" Rédigée d'après l'en-tête de deploy/backend-relais/installer-backend-relais.sh (0.1.11).
+.Dd November 8, 2026
+.Dt INSTALLER-BACKEND-RELAIS 8
+.Os Paresia
+.Sh NAME
+.Nm installer-backend-relais.sh
+.Nd installation complète de Castor, Remus, du sudoers, de nftables et du tunnel sur backend-relais
+.Sh SYNOPSIS
+.Nm deploy/backend-relais/installer-backend-relais.sh
+.Op Fl \-depot Ar dossier
+.Op Fl \-langue Ar langue
+.Op Fl \-profil Ar relais|partage
+.Op Fl \-alpha-test
+.Op Fl \-activer
+.Op Fl \-confirme
+.Op Fl \-sauter Ar étape
+.Op Ar autres paramètres
+.Nm deploy/backend-relais/installer-backend-relais.sh
+.Fl \-verifier | \-aide | \-version
+.Nm deploy/backend-relais/installer-backend-relais.sh
+.Fl \-retour-arriere
+.Fl \-jeu Ar nom
+.Fl \-confirme
+.Sh DESCRIPTION
+Le script installe, sur backend-relais, le code de Paresia, les comptes, la
+configuration, le sudoers généré de Remus, la table nftables
+.Li paresia_relais ,
+les unités de Castor et de Remus et la partie « tunnel » (compte, clé publique
+autorisée, réglages sshd). Il remplace la procédure pas à pas
+.Pa installation-relais.md .
+Il s'exécute depuis un clone du dépôt fait au préalable par l'administrateur ; il
+ne clone, ne télécharge et ne met à jour rien.
+.Pp
+Il ne pose aucune question : option, sinon variable d'environnement, sinon valeur
+par défaut. Une valeur absente ou invalide arrête le script avant toute
+modification. Tous les messages viennent du catalogue
+.Pa i18n/<langue>.json
+du clone ; aucun texte n'est écrit en dur.
+.Pp
+Étapes (chacune précédée d'un contrôle « déjà en place », suivie d'une
+vérification) :
+.Li prerequis , produit , sauvegarde , identifiants_comptes , verification_comptes ,
+.Li code_configuration , fonctions , sudoers , nftables , unites , castor , remus , refus_castor ,
+.Li isolation_remus ,
+puis, avec les trois paramètres du tunnel :
+.Li tunnel_releves , tunnel_authorized_keys , tunnel_sshd , tunnel_compte ,
+et
+.Li activation
+sous
+.Fl \-activer .
+.Pp
+Ordre entre machines : backend-admin (première passe, qui crée la clé du tunnel),
+puis backend-relais (ce script), puis backend-admin (seconde passe). À la fin
+d'une exécution, l'empreinte de la clé d'hôte est affichée sur la sortie
+standard : elle est à fournir à backend-admin. Voir
+.Xr installer-backend-admin 8 .
+.Pp
+Le script est rejouable : un état conforme est « déjà en place » ; un état
+différent est refusé avant toute modification (code 78). Il n'arrête ni ne
+redémarre aucune unité, sauf sous
+.Fl \-mise-a-jour .
+Seul
+.Li reload ssh
+est lancé, après
+.Li sshd -t
+et avec
+.Ev SESSION_SECOURS Ns =oui .
+strfry, Docker, lighttpd, bunkerd et les autres services ne sont jamais
+touchés ; la table
+.Li paresia_relais
+est la seule ajoutée au pare-feu.
+.Sh OPTIONS
+Chaque paramètre existe en option et en variable ; l'option l'emporte.
+.Bl -tag -width Ds
+.It Fl \-depot Ar dossier , Ev DEPOT
+Racine du clone qui contient le script.
+.It Fl \-langue Ar langue , Ev LANGUE
+.Li fr-FR
+ou
+.Li en-US ;
+défaut dérivé de
+.Ev LC_ALL
+ou
+.Ev LANG ,
+repli
+.Li fr-FR .
+.It Fl \-dossier-journal Ar dossier , Ev DOSSIER_JOURNAL
+Journal de
+.Fl \-alpha-test ;
+défaut : le dossier d'où le script est lancé. Le dossier doit exister, ne pas
+être un lien symbolique, appartenir à root ou au compte qui lance le script et
+n'être modifiable ni par le groupe ni par les autres.
+.It Fl \-repertoire-tunnel Ar dossier , Ev REPERTOIRE_TUNNEL
+Répertoire du compte
+.Li tunnel ;
+défaut
+.Pa /var/lib/paresia-tunnel ;
+jamais sous
+.Pa /home .
+.It Fl \-profil Ar profil , Ev PROFIL
+.Li relais
+(défaut) ou
+.Li partage
+(code partagé avec backend-admin, profil « tout sur une machine »).
+.It Fl \-code-remplacement-confirme Ar oui|non , Ev CODE_REMPLACEMENT_CONFIRME
+Défaut
+.Li non .
+.Li oui
+autorise le remplacement de fichiers installés différents.
+.It Fl \-port-essai Ar port , Ev PORT_ESSAI
+Port TCP libre de l'essai local, de 1024 à 65535 ; défaut 49152.
+.It Fl \-session-secours Ar oui|non , Ev SESSION_SECOURS
+Défaut
+.Li non .
+.Li oui
+: deuxième session ouverte et testée ; obligatoire pour recharger sshd.
+.It Fl \-stockage-actif Ar oui|non , Ev PARESIA_SAUVEGARDE_STOCKAGE_ACTIF
+Défaut
+.Li oui .
+.Li non
+désactive les sauvegardes (le retour arrière échoue alors).
+.It Fl \-acces-tunnel-sans-nftables Ar oui|non , Ev ACCES_TUNNEL_SANS_NFTABLES
+Défaut
+.Li non .
+.Li oui
+ouvre l'accès du compte de tunnel sans la table
+.Li paresia_relais
+(à ne faire que le temps d'un essai).
+.It Fl \-adresse-admin Ar adresse , Ev ADRESSE_ADMIN
+Adresse IP source de backend-admin (partie tunnel).
+.It Fl \-cle-publique-tunnel Ar clé , Ev CLE_PUBLIQUE_TUNNEL
+Clé publique
+.Li ssh-ed25519 AAAA...
+du tunnel (partie publique seulement).
+.It Fl \-empreinte-cle-tunnel Ar empreinte , Ev EMPREINTE_CLE_TUNNEL
+Empreinte
+.Li SHA256
+de cette clé, lue sur backend-admin et comparée.
+.El
+.Pp
+La partie tunnel exige les trois paramètres de tunnel ensemble, ou aucun.
+.Bl -tag -width Ds
+.It Fl \-verifier
+Contrôle paramètres et prérequis, en lecture seule ; ne modifie rien et ne crée
+aucun journal.
+.It Fl \-alpha-test
+Option temporaire : points de contrôle après chaque étape, arrêt au premier
+écart, journal horodaté sans secret dans le dossier du journal (fichier créé en
+mode 0600, jamais écrasé, puis remis au compte appelant quand le script est lancé
+par
+.Xr sudo 8
+et que
+.Ev SUDO_UID
+et
+.Ev SUDO_GID
+sont des identifiants valides ; journal sous
+.Pa /var/log/paresia
+refusé). Le bloc « alpha-test » est retirable après la validation.
+.It Fl \-activer
+Active au démarrage
+.Li castor.service ,
+.Li remus.service
+et, sauf si l'étape
+.Li nftables
+est sautée,
+.Li paresia-nftables.service ;
+sans cette option, elles sont seulement démarrées. L'unité du tunnel est sur
+backend-admin : son activation dépend de
+.Xr installer-backend-admin 8 .
+.It Fl \-mise-a-jour
+Met à jour une installation existante (voir
+.Sx MISE À JOUR ) .
+Variable
+.Ev MISE_A_JOUR Ns =oui ,
+défaut
+.Li non .
+Incompatible avec
+.Fl \-retour-arriere
+et
+.Fl \-verifier
+(code 64).
+.It Fl \-sauter Ar étape
+Liste fermée :
+.Li produit , fonctions , sudoers , nftables , isolation_remus , www-data .
+.Li produit
+saute le contrôle de l'image du relais (essai du noyau seul, sans conteneur strfry) ;
+.Li fonctions
+saute la pose des fonctions de Remus.
+.It Fl \-retour-arriere Fl \-jeu Ar nom Fl \-confirme
+Voir
+.Sx RETOUR ARRIÈRE .
+.It Fl \-aide , \-version
+Aide et version.
+.El
+.Sh ENVIRONMENT
+Les variables des paramètres ci-dessus, ainsi que
+.Ev LC_ALL
+et
+.Ev LANG .
+Aucune variable ne porte de secret.
+.Sh FILES
+.Bl -tag -width Ds
+.It Pa /var/backups/paresia/relais/AAAAMMJJ-HHMMSS/
+Jeu de sauvegarde créé avant toute modification. Voir
+.Xr paresia-sauvegarde 8 .
+.It Pa /var/lib/paresia-castor/ , /var/lib/paresia-remus/
+Dossiers d'état des deux démons, créés par systemd (
+.Li StateDirectory= ,
+mode 0711), jamais par le script. Contrôle à l'étape des unités
+.Li ( systemctl show \-p StateDirectory )
+et au démarrage (propriétaire, groupe et mode 711 ; Remus : compte
+d'exploitation de Remus). Au retour arrière, retirés par
+.Xr rmdir 1
+seulement s'ils sont vides.
+.It Pa /usr/local/lib/paresia/server/ , /usr/local/lib/paresia/VERSION
+Code installé et son fichier de version, côte à côte.
+.It Pa /etc/paresia/paresia.conf
+Configuration (modèle
+.Pa server/conf/paresia-relais.conf ;
+en profil
+.Li partage ,
+.Pa conf.d/20-relais.conf ) .
+.It Pa /usr/local/lib/paresia/remus/fonctions/
+Fonctions livrées par le greffon strfry (scripts et manifestes
+.Pa *.toml ) ,
+posées à l'étape
+.Li fonctions
+depuis
+.Pa deploy/backend-relais/usr/local/lib/paresia/remus/fonctions/
+du clone : root:root, dossiers 0755, scripts 0755, manifestes 0644, aucun lien symbolique.
+La pose est atomique (copie dans la zone de travail, puis
+.Xr mv 1
+.Fl T ) ,
+avec sauvegarde. Un dossier déjà installé qui diffère du clone est refusé (code 78) sans
+.Fl \-code-remplacement-confirme Ns =oui ;
+un fichier d'un autre propriétaire ou modifiable par le groupe ou les autres est toujours refusé.
+Aucune unité n'est arrêtée ni redémarrée : si Remus est actif, c'est à l'administrateur de le
+relancer pour qu'il recharge ses fonctions. Au retour arrière, le dossier sauvegardé est
+restauré (ou retiré s'il n'existait pas). Voir
+.Xr paresia-remus 8 .
+.It Pa /etc/sudoers.d/paresia-remus
+Liste fermée des commandes de Remus (voir
+.Xr paresia-remus 8 ) .
+.It Pa /etc/systemd/system/castor.service , remus.service , paresia-nftables.service
+Unités. Voir
+.Xr paresia-castor 8 .
+.It Pa /etc/ssh/sshd_config.d/50-paresia-tunnel.conf
+Réglages sshd du compte
+.Li tunnel
+(voir
+.Xr paresia-tunnel 8 ) .
+.El
+.Sh EXIT STATUS
+Codes de
+.Xr sysexits 3 :
+.Bl -tag -width Ds -compact
+.It 0
+Succès.
+.It 64
+Usage : paramètre absent, option inconnue.
+.It 65
+Valeur invalide.
+.It 66
+Catalogue illisible.
+.It 69
+Prérequis manquant.
+.It 73
+Journal déjà existant.
+.It 74
+Sauvegarde en échec.
+.It 77
+Compte d'exécution refusé (root).
+.It 78
+État différent de l'attendu (refus ou écart).
+.El
+.Pp
+Tout autre code est celui de la commande en échec.
+.Sh PREREQUIS
+Debian 13, systemd, Python 3.11 ou plus,
+.Xr sudo 8
+1.9.10 ou plus,
+.Xr nft 8 ,
+.Xr visudo 8 ,
+.Xr runuser 1 ,
+.Xr ss 8
+et bash. À l'étape
+.Li produit ,
+un conteneur Docker nommé
+.Li strfry
+doit exister et son image doit correspondre au produit que déclarent les fonctions livrées
+(nom, source, version, empreinte facultative) : le script lit, par une seule commande de lecture
+.Pq Li docker inspect ,
+la référence et l'identifiant de l'image, puis compare. Une empreinte déclarée prévaut (égalité avec
+l'identifiant de l'image) ; sinon la version déclarée doit se retrouver dans l'étiquette de l'image
+(exactement, ou dans l'intervalle donné). Désaccord, conteneur absent ou référence illisible :
+refus (code 78) avant toute modification, avec le nom, la source et la version déclarés.
+Le script ne crée, ne démarre, ne modifie ni ne supprime jamais de conteneur ni d'image.
+Le module Python
+.Li cryptography
+n'est pas requis sur cette machine (il l'est sur backend-admin).
+.Sh COMPTES
+Les groupes et comptes système sont créés sans numéro imposé
+.Pq Li groupadd --system , useradd --system :
+le système choisit des identifiants libres dans la plage de
+.Xr login.defs 5 .
+Le script les relève, puis les reporte dans la copie installée de la
+configuration (couple section et option de sa table). Un groupe ou un compte
+déjà présent sous le bon nom est repris sans modification s'il est dans la plage
+système, si son groupe primaire est le groupe du même nom et si son répertoire
+et son interpréteur sont ceux attendus ; sinon le script refuse (code 78) avant
+toute création.
+.Sh MISE À JOUR
+Avec
+.Fl \-mise-a-jour ,
+le script lit la version installée
+.Pq Pa /usr/local/lib/paresia/VERSION
+et celle du clone, affiche « installée X, livrée Y » et ne remplace que ce qui diffère. Une version
+livrée plus ancienne, une version installée absente ou illisible, ou un format de manifeste de
+sauvegarde différent entre l'outil installé et l'outil livré sont refusés (code 78) avant toute
+modification. Un état identique est « déjà en place ».
+.Pp
+Demander la mise à jour vaut accepter l'interruption des unités de Paresia. Avant toute
+modification, le script annonce sur l'erreur standard les unités qui seront arrêtées (Remus puis
+Castor), l'effet (remise au rouge des feux de Castor, interruption de la mise en attente de Remus)
+et le nom du jeu de sauvegarde. Ordre : sauvegarde complète du jeu, arrêt
+.Pq Li systemctl stop ,
+jamais
+.Li restart ,
+remplacement, rechargement de systemd, démarrage dans l'ordre inverse des seules unités qui étaient
+actives, attente de l'état actif, vérifications, contrôle de la version. Aucun service tiers
+(strfry, Docker, lighttpd, bunkerd) n'est arrêté ni redémarré. L'état d'activation au démarrage
+n'est jamais modifié et l'étape
+.Li activation
+n'est jamais lancée.
+.Pp
+Configuration : les empreintes SHA-256 des fichiers livrés sont enregistrées dans
+.Pa /usr/local/lib/paresia/empreintes-conf .
+Un fichier de
+.Pa /etc/paresia
+inchangé depuis la pose est remplacé ; un fichier modifié par l'administrateur, ou sans empreinte
+enregistrée, est conservé octet pour octet et la version livrée est déposée à côté, en
+.Pa <fichier>.paresia-nouveau .
+Les options nouvelles et supprimées sont affichées par leur nom, jamais par leur valeur.
+.Pp
+Sont comparés au clone : le code, la configuration, le fichier sudoers (sauf avec
+.Fl \-sauter Li sudoers ) ,
+les unités de Castor et de Remus, et, si les trois paramètres du tunnel sont fournis, le réglage
+sshd du compte
+.Li tunnel
+(une différence exige alors
+.Fl \-session-secours Ns =oui ) .
+Le script n'arrête que Remus puis Castor. Les unités de Pollux et de Romulus, présentes avec le
+profil
+.Li partage ,
+ne sont jamais arrêtées : si des fichiers doivent être remplacés pendant qu'elles tournent, le
+script refuse (code 78) et c'est à l'administrateur de les arrêter. La table
+.Li paresia_relais
+de
+.Xr nft 8
+et son unité ne sont ni rechargées ni modifiées d'une installation existante : un écart avec la
+version livrée est seulement signalé.
+.Pp
+Si une vérification échoue après l'arrêt des unités, le code et la configuration sont restaurés
+automatiquement (aucun compte ni groupe n'est supprimé) et le script sort en 78 avec le nom du jeu.
+Exception : si le journal d'une unité redémarrée montre une migration de données du démon
+.Pq Li state_migrated ,
+rien n'est restauré, les unités redémarrées sont arrêtées et la marche à suivre est affichée
+(retour manuel, avec la sauvegarde propre du démon). Les scripts ne migrent aucune donnée. En fin
+de mise à jour, la commande de lecture du journal de chaque unité redémarrée est affichée.
+.Sh RETOUR ARRIERE
+.Nm
+.Fl \-retour-arriere Fl \-jeu Ar nom Fl \-confirme
+arrête les unités posées, restaure les fichiers dans l'ordre inverse de la pose,
+lance
+.Li visudo -c ,
+.Li sshd -t
+puis
+.Li reload ssh ,
+et supprime les seuls comptes et groupes créés par cette installation.
+.Fl \-confirme
+est obligatoire. Garder une session de secours ouverte et testée.
+.Sh SECURITY
+.Bl -bullet -compact
+.It
+Pas de shell root : le script refuse de s'exécuter en root (code 77) et se lance
+sous un compte ordinaire doté de
+.Xr sudo 8 ,
+qu'il appelle commande par commande avec le chemin absolu. Jamais
+.Li sudo -i ,
+.Li su
+ou
+.Li sudo sh -c .
+.It
+Aucune clé privée n'est lue, copiée, affichée ni journalisée ; seules la clé
+publique et les empreintes sortent.
+.It
+La clé publique du tunnel n'est installée qu'avec l'empreinte comparée, lue sur
+backend-admin par un second canal.
+.It
+Limite connue de l'accès par tunnel : sans la table
+.Li paresia_relais ,
+le compte
+.Li tunnel
+pourrait ouvrir des connexions TCP sortantes ; voir
+.Xr paresia-tunnel 8 .
+.It
+Jamais
+.Li restart
+de sshd.
+.El
+.Sh SEE ALSO
+.Xr installer-backend-admin 8 ,
+.Xr paresia-sauvegarde 8 ,
+.Xr paresia-castor 8 ,
+.Xr paresia-remus 8 ,
+.Xr paresia-tunnel 8
+.Pp
+Guide :
+.Pa docs/exploitation.md .

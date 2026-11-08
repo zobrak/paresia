@@ -1,0 +1,26 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Suivi des versions
+#   0.1.8  2026-11-07  Déclaration du domaine du journal légal : routé, sans destination (D148, D150, D154).
+#
+# Greffon livré avec Paresia : le domaine « legal » est routé (une route par action), mais sans
+# destination : toute action répond 501 not_available tant qu'une action locale n'est pas
+# enregistrée. L'action d'export répond par une archive binaire (docs/protocole.md, § 6.1).
+format = 1
+forme = "ponctuel"
+greffon = "paresia-yang-journal-legal"
+domaine = "legal"
+sans_destination = true
+catalogue = "aucun"
+
+[[actions]]
+nom = "journal/search"
+
+[[actions]]
+nom = "journal/export"
+export = true
+
+[[actions]]
+nom = "journal/status"
+
+[[actions]]
+nom = "journal/verify"

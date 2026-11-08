@@ -1,0 +1,39 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later
+   Feuille de style commune des pages d'administration ; aucune police ni image externe.
+   Les réglages propres à chaque langue sont dans langues/<langue>.css.
+   Suivi des versions
+     3.0.0-alpha.41  2026-11-06  Première version. */
+:root {
+  --espacement: 1rem;
+  --largeur-menu: 14rem;
+  font-family: system-ui, sans-serif;
+}
+body {
+  margin: 0;
+  display: grid;
+  grid-template-columns: var(--largeur-menu) 1fr;
+  gap: var(--espacement);
+}
+nav {
+  padding: var(--espacement);
+}
+nav button {
+  display: block;
+  width: 100%;
+  margin-bottom: 0.25rem;
+  text-align: start;
+}
+main {
+  padding: var(--espacement);
+}
+details {
+  grid-column: 1 / -1;
+  padding: var(--espacement);
+}
+pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+dialog {
+  max-width: 32rem;
+}

@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Suivi des versions
+#   0.1.9  2026-11-08  Déclaration du greffon de l'interface web : sans destination ni action (D148, D150).
+#
+# Greffon livré avec Paresia : l'interface web d'administration est elle-même un greffon yang.
+# Ses fichiers sont ceux de admin/web/, posés par l'installation dans le dossier des pages de
+# Paresia ; elle ne déclare ni action ni page de greffon.
+format = 1
+forme = "ponctuel"
+greffon = "paresia-yang-webui"
+domaine = "webui"
+sans_destination = true
+catalogue = "aucun"

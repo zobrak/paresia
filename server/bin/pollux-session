@@ -1,0 +1,21 @@
+#!/bin/sh
+# Lanceur SSH ; dépendances : sh, /usr/bin/env, /usr/bin/python3 (3.11 ou plus) et paquet server.
+# Suivi des versions
+#   3.0.0-alpha  2026-11-05  Configuration d'installation, aucun argument transmis.
+#   3.0.0-alpha  2026-11-05  Environnement vidé : seules les variables nécessaires sont transmises.
+#   3.0.0-alpha  2026-11-05  Configuration en couches (D29) : plus de chemin de configuration exporté.
+#   3.0.0-alpha  2026-11-05  Option -P de python3 (échoue avant 3.11 : fermé par défaut).
+# Configuration : couches /etc/paresia/paresia.conf et /etc/paresia/conf.d/ (D29), lues par
+# le programme lui-même ; aucun chemin de configuration à adapter ici.
+# à adapter à l'installation : répertoire contenant le paquet server ; il doit appartenir
+# à root et ne pas être modifiable par l'utilisateur app (ni groupe/autres).
+PYTHONPATH_DE_INSTALL=/usr/local/lib/paresia
+# Sans les informations d'authentification de sshd : refus silencieux (code 3).
+if [ -z "${SSH_USER_AUTH:-}" ] || [ -z "${SSH_CONNECTION:-}" ]; then
+    exit 3
+fi
+# Environnement vidé (aucune variable héritée n'agit) ; PYTHONSAFEPATH=1 (3.11+) :
+# -P (3.11+, échoue sinon) : le répertoire courant n'entre pas dans sys.path ; -s : pas de site utilisateur.
+# Aucun argument de l'appelant n'est transmis.
+exec /usr/bin/env -i PATH=/usr/bin:/bin PYTHONSAFEPATH=1 PYTHONPATH="$PYTHONPATH_DE_INSTALL" \
+    SSH_USER_AUTH="$SSH_USER_AUTH" SSH_CONNECTION="$SSH_CONNECTION" /usr/bin/python3 -P -s -B -m server.pollux.session

@@ -1,0 +1,20 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Suivi des versions : 3.0.0-alpha — 2026-11-06, création (D65).
+# Nouvelles connexions IP de tunnel, tous protocoles, boucle locale comprise.
+# Sockets Unix exclues : les redirections de sockets continuent de fonctionner.
+# nft(8), TABLES : « add Add a new table for the given family with the given name. »
+# « flush Flush all chains and rules of the specified table. »
+# L'ajout d'une table existante est sans effet ; seul son contenu est vidé.
+# nft(8), CHAINS : priorité filter (0), politique accept ; OUTPUT : paquets locaux.
+# META EXPRESSIONS : skuid = UID associated with originating socket.
+# CONNTRACK EXPRESSIONS : state = State of the connection.
+# REJECT STATEMENT : « send back an error packet in response to the matched packet ».
+# OPTIONS : -c « Check commands validity without actually applying the changes. »
+add table inet paresia_relais
+flush table inet paresia_relais
+table inet paresia_relais {
+    chain output {
+        type filter hook output priority filter; policy accept;
+        meta skuid "tunnel" ct state new reject
+    }
+}

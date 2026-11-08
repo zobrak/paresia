@@ -1,0 +1,343 @@
+.\" SPDX-License-Identifier: AGPL-3.0-or-later
+.\" Page de manuel de Paresia-admin (poste client), 0.1.17 : décrit le code actuel
+.\" (admin/app/__main__.py, controleur.py, fenetre.py, config.py, presence.py, signature.py, cles.py,
+.\" conf/paresia-admin.conf ; admin/web/greffons.js pour les pages des greffons ;
+.\" admin/web/noyau.js pour les pages du noyau).
+.Dd November 8, 2026
+.Dt PARESIA-ADMIN 1
+.Os Paresia
+.Sh NAME
+.Nm paresia-admin
+.Nd application d'administration de Paresia pour le poste client
+.Sh SYNOPSIS
+.Nm
+.Op Fl \-config Ar fichier
+.Sh DESCRIPTION
+.Nm
+est l'application de bureau qui ouvre la session de présence d'un administrateur sur
+backend-admin, puis pilote les pages d'administration.
+.Pp
+.Sy État actuel.
+Le noyau Qt est écrit : une fenêtre principale, la session de présence, la lecture de la
+clé publique et la signature du défi. Les pages d'administration (bunker, journal légal,
+relais) ne sont pas encore livrées : la vue web affiche trois pages du noyau (voir
+.Sx PAGES DU NOYAU )
+et les pages que les greffons installés sur le serveur déclarent (voir
+.Sx PAGES DES GREFFONS ) .
+L'application se lance par
+.Li python3 -m admin.app .
+Elle exige PyQt6 avec QtWebEngine.
+.Pp
+Une seule session de présence est ouverte à la fois.
+.Sh OPTIONS
+.Bl -tag -width Ds
+.It Fl \-config Ar fichier
+Fichier de configuration unique, qui remplace les couches de fichiers. C'est la seule
+option : tout autre argument est refusé (voir
+.Sx DIAGNOSTICS ) .
+.El
+.Sh FENÊTRE
+La fenêtre porte un menu à quatre entrées, dont les libellés viennent du catalogue de la
+langue configurée :
+.Bl -tag -width Ds
+.It Ouvrir l'administration
+Lance l'ouverture de la présence (voir
+.Sx OUVERTURE DE LA PRÉSENCE )
+sans bloquer la fenêtre. Sans effet si une ouverture est en cours ou si la session est déjà
+ouverte.
+.It Fermer l'administration
+Ferme la session, efface le cookie du jeton et vide la vue.
+.It Ligne de clé à remettre
+Affiche, dans un champ en lecture seule, la ligne à ajouter au fichier des clés autorisées
+(voir
+.Sx LIGNE AUTHORIZED_KEYS ) .
+.It Quitter
+Ferme la fenêtre ; la session est fermée et le cookie effacé.
+.El
+.Ss Vue web
+La vue est un
+.Li QWebEngineView
+sur un profil privé : un profil sans nom, qui n'écrit rien sur le disque (ni cookie, ni cache,
+ni stockage web). Les téléchargements sont annulés. Les erreurs de certificat ne sont pas
+contournées. Aucune option de Chromium n'est posée par l'application.
+.Ss Cookie du jeton
+Quand la session est ouverte, l'application dépose elle-même le cookie
+.Li admin_token
+dans le profil privé, puis charge l'adresse de base suivie de
+.Li /admin/ .
+Le jeton n'entre jamais par une adresse, un script, un journal ni un message. Le cookie est
+.Li Secure ,
+.Li HttpOnly ,
+.Li SameSite=Strict ,
+de chemin
+.Li / ,
+sans expiration, et lié au seul hôte de l'adresse de base : il n'a aucun attribut de domaine
+et n'est donc pas envoyé aux sous-domaines. Il est effacé à la fermeture, à la perte de la
+session et à la sortie.
+.Ss Indicateur d'état
+Trois états, visibles dans le titre de la fenêtre, une étiquette, l'icône de la fenêtre et,
+quand le bureau en offre une, l'icône de la barre des tâches (dont l'info-bulle reprend le
+libellé) :
+.Bl -tag -width Ds
+.It fermée
+pastille grise : aucune session.
+.It ouverte
+pastille verte : la session est ouverte et la vue est chargée.
+.It perdue
+pastille rouge : la session a été perdue (voir
+.Sx OUVERTURE DE LA PRÉSENCE ) .
+Le cookie est effacé, la vue est vidée, et l'application propose de rouvrir. Elle ne
+rouvre jamais seule.
+.El
+.Ss Navigation limitée
+La vue n'accepte que l'origine de
+.Cm connexion.url :
+même schéma
+.Li https ,
+même hôte (casse ignorée) et même port (443 sous-entendu). Une adresse qui porte des
+identifiants (un
+.Li @
+dans la partie réseau) est refusée. Toute autre navigation est refusée et signalée par une
+boîte de message, une seule à la fois ; aucune fenêtre supplémentaire ne s'ouvre et rien
+n'est confié à un navigateur externe. La seule adresse hors origine admise est
+.Li about:blank ,
+utilisée par l'application pour vider la vue.
+.Sh LIGNE AUTHORIZED_KEYS
+La ligne affichée par le menu est construite à partir de la clé publique désignée par
+.Cm cle_publique
+et de
+.Cm commande_forcee :
+.Pp
+.Dl restrict,command="<commande_forcee>" <type> <base64> <commentaire>
+.Pp
+Elle est à remettre à l'administrateur du serveur, qui l'ajoute au fichier des clés
+autorisées du compte de session. L'application ne l'écrit nulle part et ne la copie pas dans
+le presse-papiers. Seule la clé publique est lue. Une clé illisible, ou une commande qui n'est
+pas un chemin absolu simple, donne un message du catalogue. Cette ligne devient caduque
+avec la gestion des utilisateurs prévue.
+.Sh CONFIGURATION
+Exemple complet :
+.Pa admin/app/conf/paresia-admin.conf .
+Les couches sont celles des programmes lancés par un utilisateur
+.Pq Pa $XDG_CONFIG_HOME/paresia/ ,
+puis les variables d'environnement
+.Ev PARESIA_ADMIN_<DOMAINE>_<CLE> .
+.Fl \-config
+ou
+.Ev PARESIA_ADMIN_CONFIG
+remplace les couches de fichiers. Aucun secret ne doit figurer dans la configuration.
+.Pp
+Sections et options :
+.Bl -tag -width Ds
+.It Li [admin.connexion]
+.Cm url
+(adresse HTTPS de base),
+.Cm hote_ssh ,
+.Cm compte_ssh
+(cible de l'ouverture de présence) et
+.Cm ssh
+(chemin de l'exécutable
+.Xr ssh 1 ) ;
+toutes obligatoires.
+.It Li [admin.cle]
+.Cm cle_publique
+(clé publique de l'administrateur),
+.Cm commande_forcee
+et
+.Cm ssh_keygen
+(chemin de
+.Xr ssh-keygen 1 ,
+variable
+.Ev PARESIA_ADMIN_CLE_SSH_KEYGEN ) ;
+toutes obligatoires. La clé privée reste dans l'agent SSH.
+.It Li [admin.presence]
+.Cm ouverture_s
+(défaut 90) : durée totale accordée à l'ouverture, défi et signature compris.
+.It Li [admin.interface]
+.Cm langue
+et
+.Cm dossier_i18n
+(catalogues des textes affichés).
+.El
+.Sh OUVERTURE DE LA PRÉSENCE
+L'application lance
+.Li ssh -T
+vers la commande forcée
+.Xr pollux-session 1 ,
+avec la clé publique désignée (le client ne lit jamais de clé privée), puis :
+.Bl -enum
+.It
+demande un défi (action
+.Li presence/session/challenge ) ;
+.It
+vérifie que le défi fait 64 caractères hexadécimaux et que l'espace de noms annoncé est
+.Li paresia-presence ,
+sinon s'arrête sans signer ;
+.It
+construit elle-même le message
+.Li paresia-presence/1 ,
+le défi et le nom de l'administrateur, un par ligne, et le fait signer par
+.Li ssh-keygen -Y sign -n paresia-presence
+(le message passe par l'entrée standard) ;
+.It
+retire l'armure de la signature et envoie
+.Li presence/session/open
+avec la signature en base64.
+.El
+.Pp
+Le délai de signature est le plus petit de
+.Li expires_s
+(donné par le serveur) et de ce qui reste de
+.Cm ouverture_s .
+Voir
+.Pa docs/protocole.md ,
+§ 4.1.
+.Sh ENVIRONMENT
+.Bl -tag -width Ds
+.It Ev SSH_AUTH_SOCK
+Obligatoire : socket de l'agent SSH qui détient la clé privée. Sans elle, la signature
+est refusée avant tout lancement de
+.Xr ssh-keygen 1 .
+.It Ev PARESIA_ADMIN_CONFIG
+Fichier de configuration qui remplace les couches de fichiers.
+.It Ev PARESIA_ADMIN_<DOMAINE>_<CLE>
+Surcharge d'une option.
+.El
+.Sh EXIT STATUS
+.Bl -tag -width Ds
+.It 0
+la fenêtre a été fermée normalement.
+.It 1
+démarrage refusé : configuration invalide ou illisible, argument autre que
+.Fl \-config ,
+ou catalogue de langue introuvable. Le message
+.Li ui_config_invalide
+est écrit sur la sortie d'erreur, avec le nom de l'option en cause
+.Pq par exemple Li connexion.url
+et jamais sa valeur. Si la langue configurée est inconnue, le message est rendu en
+.Li fr-FR .
+.El
+.Pp
+Aucun import de PyQt6 n'a lieu avant la lecture de la configuration.
+.Sh DIAGNOSTICS
+Les échecs sont des clés du catalogue
+.Pa i18n/<langue>.json ,
+jamais la sortie de
+.Xr ssh-keygen 1 :
+.Bl -tag -width Ds
+.It Li ui_presence_defi_invalide
+défi du serveur invalide.
+.It Li ui_presence_espace_refuse
+espace de noms annoncé différent de celui attendu.
+.It Li ui_presence_defi_delai
+délai de signature dépassé.
+.It Li ui_presence_signature_echec
+signature impossible (agent absent, clé inconnue de l'agent, outil en échec).
+.It Li ui_presence_delai_ouverture
+aucune réponse du serveur dans
+.Cm ouverture_s .
+.It Li ui_config_invalide
+configuration refusée au démarrage (sortie d'erreur).
+.It Li ui_navigation_refusee
+adresse hors de l'administration.
+.It Li internal_error
+erreur inattendue pendant l'ouverture ; la session est fermée et le cookie effacé.
+.El
+.Pp
+Les codes distants (par exemple
+.Li challenge_required ,
+.Li challenge_expired ,
+.Li signature_invalid ,
+.Li session_limit )
+sont rendus tels quels.
+.Sh PAGES DU NOYAU
+La vue web livre trois pages qui ne connaissent aucun produit : les démons, les actions et
+les domaines viennent des réponses du serveur. Toutes sont en lecture seule, sauf le lancement
+confirmé d'une action décrit plus bas. Aucune ne montre ni ne demande de secret, et rien n'est
+mémorisé dans le navigateur. Une réponse inattendue du serveur s'affiche comme
+« Réponse inattendue (données invalides) » ; une erreur du serveur est présentée par son code,
+avec un bouton pour réessayer. Chaque section a un bouton « Actualiser » ; il n'y a aucune
+actualisation automatique.
+.Bl -tag -width Ds
+.It Sy État de Paresia
+Trois sections. Le
+.Em résumé
+donne la version, la durée de fonctionnement, le nombre de sessions ouvertes, le niveau de
+détail du journal d'activité, puis la liste des démons du noyau (nom, unité, état des
+métriques, âge de l'échantillon). Les
+.Em métriques
+d'un démon choisi dans cette liste sont un tableau nom, étiquettes, valeur ; elles sont
+désactivées par défaut, et la page l'indique quand il n'y en a aucune. La
+.Em configuration
+d'un démon choisi est un tableau section, clé, type, valeur ; une valeur masquée par le serveur
+s'affiche « masquée » et n'est jamais redemandée.
+.It Sy Journaux de Paresia
+Le journal d'activité de Romulus (qui a fait quoi, avec quel résultat), les plus récentes
+entrées d'abord : date et niveau, administrateur, événement, domaine et action, résultat et
+détails (durée, jumeau, regroupement, identifiant de requête, étape, taille, statut HTTP,
+identifiant du pair, selon le niveau). Trois réglages : le nombre d'entrées (10, 50, 100 ou 200 ;
+50 par défaut), le niveau (1, 2 ou 3 ; 1 par défaut) et un domaine facultatif (minuscules,
+chiffres et
+.Li _ ,
+32 caractères au plus ; toute autre saisie est refusée sans envoi). La page rappelle le niveau
+de détail configuré, signale un niveau demandé plus élevé que lui et un résultat tronqué.
+.It Sy Catalogue des actions
+La liste des services (domaine, greffon, cible, mode de catalogue, disponibilité). Pour un
+domaine qui publie un catalogue, un bouton affiche ses actions ; un clic sur une action affiche
+son descripteur (greffon, privilège, délai, paramètres avec type, caractère obligatoire et
+bornes, erreurs possibles). Seule une action
+.Em sans paramètre
+annoncée par le catalogue reçu peut être lancée, après une confirmation qui rappelle son nom et
+avertit qu'elle peut modifier l'état du serveur, car le catalogue ne distingue pas les actions
+qui lisent de celles qui modifient. Le résultat s'affiche en texte structuré (profondeur
+et taille limitées, 64 Kio au plus) ; toute valeur dont le nom de clé évoque un secret (jeton,
+clé, signature, mot de passe…) est remplacée par « masquée », en défense supplémentaire : la
+garantie qu'aucun secret ne figure dans une réponse relève du serveur. Une action qui renvoie un
+flux d'événements n'est pas prise en charge.
+.El
+.Sh PAGES DES GREFFONS
+Au démarrage de la vue web, avant la construction du menu, la page lit l'index
+.Pa /admin/greffons/index.json
+(JSON, 64 Kio au plus, format 1, 16 greffons au plus) servi par le serveur d'administration.
+Pour chaque greffon retenu, elle lit son catalogue de textes
+.Pa /admin/greffons/ Ns Ar nom Ns Pa /i18n/ Ns Ar langue Ns Pa .json ,
+dont toutes les clés commencent par
+.Li ui_ Ns Ar nom Ns Li _ ,
+puis charge le script de chacune de ses pages, qui enregistre la page dans le menu.
+Chaque lecture et chaque script ont 10 secondes, l'ensemble 30 secondes ; au-delà, le menu est
+construit avec les pages déjà enregistrées.
+.Pp
+Un greffon, un catalogue ou une page invalide est écarté et signalé dans la zone de
+diagnostic par un code constant, sans valeur reçue ; les pages du noyau restent utilisables.
+Un index absent n'est pas une panne.
+.Pp
+.Sy Un greffon installé est du code d'administration :
+son script s'exécute dans la page avec les mêmes droits que le noyau de l'interface. N'installer
+que des greffons dont la provenance est connue. Contrat complet :
+.Pa docs/developpement.md ,
+§ 6.4.
+.Sh SECURITY
+La clé privée n'est ni lue, ni copiée, ni journalisée ; l'agent SSH la garde. Le serveur ne
+fournit aucun texte à signer. Le défi, la signature et le jeton ne figurent dans aucun
+message d'erreur ni journal. Les textes affichés passent par le catalogue, sans caractère de
+contrôle ; aucun détail brut d'une erreur n'est montré. Les pages des greffons ne sont
+chargées que depuis l'origine du serveur d'administration, par des adresses recomposées par
+l'application ; leur confiance est décrite sous
+.Sx PAGES DES GREFFONS .
+.Sh BUGS
+Limites connues, à corriger dans une version ultérieure :
+une exception levée dans un traitement de l'interface peut encore arrêter l'application ;
+l'historique de navigation et le cache de la vue persistent jusqu'à la sortie ;
+les permissions web (caméra, notifications…) ne sont pas refusées explicitement ;
+les variables
+.Ev QTWEBENGINE_REMOTE_DEBUGGING ,
+.Ev QTWEBENGINE_CHROMIUM_FLAGS
+et
+.Ev QTWEBENGINE_DISABLE_SANDBOX
+ne sont pas contrôlées au démarrage : ne pas les définir.
+.Sh SEE ALSO
+.Xr pollux-session 1 ,
+.Xr paresia-pollux 8 ,
+.Xr ssh 1 ,
+.Xr ssh-keygen 1 ,
+.Xr ssh-agent 1

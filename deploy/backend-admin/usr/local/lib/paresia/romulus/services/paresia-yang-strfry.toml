@@ -1,0 +1,211 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Suivi des versions
+#   0.1.8  2026-11-07  Déclaration du côté Romulus du relais strfry : domaine relay, ping de session, suivi différé (D148, D150, D154).
+#
+# Greffon livré avec Paresia, côté Romulus : le relais strfry est une paire de greffons de même
+# nom de base, paresia-yin-strfry (côté Remus) et paresia-yang-strfry (ce fichier). Romulus
+# aiguille le domaine « relay » vers Remus ; les paramètres des actions sont validés par Remus
+# et publiés par son catalogue (relay/catalog/list et relay/catalog/describe lui sont transmis).
+# Avant chaque transmission, Romulus pingue la session auprès de Pollux au plus une fois par
+# battement ; un feu rouge du pair (relay_light_red) lui fait oublier ce ping.
+format = 1
+forme = "ponctuel"
+greffon = "paresia-yang-strfry"
+domaine = "relay"
+section = "relay"
+obligatoire = true
+destination = "remus"
+ping = true
+ping_oubli = ["relay_light_red"]
+catalogue = "pair"
+codes = [
+  "bad_request",
+  "not_available",
+  "relay_light_red",
+  "session_closed",
+  "peer_unavailable",
+  "command_failed",
+  "command_timeout",
+  "command_busy",
+  "internal_error",
+]
+
+# Section [romulus.relay] : socket locale du tunnel vers Remus et uid de son processus ;
+# socket de Pollux pour le ping de session et son uid ; échéances ; longueur de ligne ; plafond
+# de flux simultanés.
+[[options]]
+nom = "remus_socket"
+type = "chemin"
+role = "socket"
+
+[[options]]
+nom = "remus_uid"
+type = "uid"
+role = "uid"
+
+[[options]]
+nom = "pollux_socket"
+type = "chemin"
+role = "ping_socket"
+
+[[options]]
+nom = "pollux_uid"
+type = "uid"
+role = "ping_uid"
+
+[[options]]
+nom = "delai_s"
+type = "duree"
+defaut = 600
+role = "delai"
+
+[[options]]
+nom = "ping_delai_s"
+type = "duree"
+defaut = 5
+inferieure_a = "heartbeat_s"
+role = "ping_delai"
+
+[[options]]
+nom = "heartbeat_s"
+type = "duree"
+defaut = 30
+role = "battement"
+
+[[options]]
+nom = "max_line"
+type = "limite"
+defaut = 1048576
+role = "max_line"
+
+[[options]]
+nom = "flux_max_simultanes"
+type = "limite"
+defaut = 8
+maximum = 1024
+role = "flux_max"
+
+[[actions]]
+nom = "state/status"
+params_transmis = true
+
+[[actions]]
+nom = "state/metrics"
+params_transmis = true
+
+[[actions]]
+nom = "state/nip11"
+params_transmis = true
+
+[[actions]]
+nom = "state/log"
+params_transmis = true
+
+[[actions]]
+nom = "state/warnings"
+params_transmis = true
+
+[[actions]]
+nom = "state/connections"
+params_transmis = true
+
+[[actions]]
+nom = "state/follow"
+params_transmis = true
+suivi = true
+
+[[actions]]
+nom = "events/count"
+params_transmis = true
+
+[[actions]]
+nom = "events/kinds"
+params_transmis = true
+
+[[actions]]
+nom = "events/list"
+params_transmis = true
+
+[[actions]]
+nom = "events/show"
+params_transmis = true
+
+[[actions]]
+nom = "events/delete-filter"
+params_transmis = true
+
+[[actions]]
+nom = "events/delete-age"
+params_transmis = true
+
+[[actions]]
+nom = "backup/export"
+params_transmis = true
+
+[[actions]]
+nom = "backup/import"
+params_transmis = true
+
+[[actions]]
+nom = "backup/list"
+params_transmis = true
+
+[[actions]]
+nom = "sync/download"
+params_transmis = true
+
+[[actions]]
+nom = "sync/compare"
+params_transmis = true
+
+[[actions]]
+nom = "sync/trees"
+params_transmis = true
+
+[[actions]]
+nom = "container/restart"
+params_transmis = true
+
+[[actions]]
+nom = "container/stop"
+params_transmis = true
+
+[[actions]]
+nom = "container/start"
+params_transmis = true
+
+[[actions]]
+nom = "container/config"
+params_transmis = true
+
+[[actions]]
+nom = "container/compact"
+params_transmis = true
+
+[[actions]]
+nom = "moderation/reports"
+params_transmis = true
+
+[[actions]]
+nom = "moderation/ban"
+params_transmis = true
+
+[[actions]]
+nom = "moderation/unban"
+params_transmis = true
+
+[[actions]]
+nom = "moderation/ban-import"
+params_transmis = true
+
+[[actions]]
+nom = "moderation/log"
+params_transmis = true
+
+[[actions]]
+nom = "moderation/mute-list"
+params_transmis = true
+
+[[actions]]
+nom = "moderation/publish-mute-list"
+params_transmis = true

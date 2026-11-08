@@ -1,0 +1,13 @@
+Sources des vecteurs de test publiés (aucun secret réel ; clés publiques de démonstration).
+
+bip340-test-vectors.csv : copie exacte (aucune modification) de
+  https://raw.githubusercontent.com/bitcoin/bips/200f9b26fe0a2f235a2af8b30c4be9f12f6bc9cb/bip-0340/test-vectors.csv
+  dépôt https://github.com/bitcoin/bips, fichier bip-0340/test-vectors.csv, commit
+  200f9b26fe0a2f235a2af8b30c4be9f12f6bc9cb (dernier commit modifiant ce fichier au 2026-11-06).
+  Le CSV n'admet pas de commentaire ni de marqueur par ligne : voir le contrôle de secrets
+  ci-dessous.
+
+nip49-vecteur.txt : valeurs recopiées exactement de
+  https://raw.githubusercontent.com/nostr-protocol/nips/ae9f80eb288996d126179733403bcaf9e86eb8ab/49.md
+  dépôt https://github.com/nostr-protocol/nips, fichier 49.md, commit
+  ae9f80eb288996d126179733403bcaf9e86eb8ab (dernier commit modifiant ce fichier au 2026-11-06).

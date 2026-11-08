@@ -1,0 +1,105 @@
+# remus.service — Remus : exécuteur de commandes du relais (backend-relais).
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Rôle : démon (python3 -m server.remus) sous le compte chef (sans shell, sans mot de passe, hors
+#   groupe docker) ; il lance les commandes de la table par sudo, dans la liste fermée de sudoers.
+#   API et options : remus(8).
+# Isolation : EXACTEMENT le tableau de deploy/backend-relais/isolation-remus.md, directive
+#   par directive ; NoNewPrivileges= y est retirée (ligne « NoNewPrivileges » du tableau d'isolation-remus.md) car
+#   sudo est setuid root. Toute divergence avec ce tableau se signale, elle ne s'adapte pas ici.
+# Installation : deploy/backend-relais/installer-backend-relais.sh (étapes unites, castor, remus).
+# Configuration : couches /etc/paresia/paresia.conf et conf.d/ (D29), lues par le programme ;
+#   aucun chemin de configuration, aucun argument et aucune variable PARESIA_* dans cette unité.
+# Redémarrer cette unité interrompt la mise en attente du feu vert, mais n'interrompt JAMAIS une
+#   opération en cours avant stop_s (D53) : voir KillMode= et TimeoutStopSec= ci-dessous.
+# Pas de dépendance de démarrage envers castor.service (D52) : Remus interroge Castor à la demande
+#   et répond peer_unavailable s'il est absent. Aucune unité n'est activée avant la vérification.
+# Journal : stdout et stderr vont à journald par défaut (systemd.exec(5), StandardOutput=) ;
+#   aucune directive ne les redirige.
+# Suivi des versions
+#   0.1.2  2026-11-07  StateDirectory=paresia-remus, StateDirectoryMode=0711 (métriques sous ProtectSystem=strict).
+#   0.1.1  2026-11-07  Type=notify, NotifyAccess=main, RestartPreventExitStatus=, TimeoutStartSec=.
+#   0.1.0  2026-11-07  Chemin cité : le script d'installation remplace la procédure pas à pas.
+#   0.1.0  2026-11-07  Description : exécuteur de commandes du relais strfry.
+#   3.0.0-alpha.34  2026-11-06  Première version (D46, D48, D49, D53, D65, D81).
+
+[Unit]
+Description=Paresia : Remus (exécuteur de commandes du relais strfry)
+
+[Service]
+Type=notify
+User=chef
+Group=chef
+# Groupes de la socket que Remus crée (paresia-remus-tunnel : remus.sock) et de celle de Castor
+# qu'il joint (paresia-castor-etat : castor-state.sock) ; rien d'autre (D49).
+SupplementaryGroups=paresia-remus-tunnel paresia-castor-etat
+Environment=PYTHONPATH=/usr/local/lib/paresia
+ExecStart=/usr/bin/python3 -P -s -B -m server.remus
+Restart=on-failure
+RestartSec=5
+# Type=notify : le démon envoie READY=1 une fois ses sockets liées (sd_notify(3)). NotifyAccess=main
+# n'accepte que le processus principal (systemd.service(5)). 64 (usage), 65 (données) et 78
+# (configuration) sont des erreurs permanentes : aucun redémarrage automatique. Pas de
+# WatchdogSec= (D146). TimeoutStartSec= : la liaison des sockets est immédiate, 30 s bornent l'attente de READY=1.
+NotifyAccess=main
+RestartPreventExitStatus=64 65 78
+TimeoutStartSec=30
+# Arrêt (D53, D65). Remus::arreter() attend les opérations en cours jusqu'à [remus.server] stop_s
+# (120 s par défaut), puis ferme son serveur en 2 s au plus : 120 + 30 s de marge = 150 s.
+# systemd.service(5), TimeoutStopSec= : SIGKILL passé ce délai. À revoir si stop_s change.
+TimeoutStopSec=150
+# systemd.kill(5), KillMode= : par défaut (control-group), tout le groupe de contrôle est tué à
+#   l'arrêt, donc les sudo en cours et leurs commandes. Avec « mixed », SIGTERM va au seul
+#   processus principal (Remus, qui attend stop_s), puis SIGKILL au reste du groupe (processus
+#   « remaining ») lorsque le processus principal est terminé ou que TimeoutStopSec= est écoulé.
+#   Les commandes lancées par sudo restent dans le groupe de contrôle de l'unité. Posé sans
+#   condition (D81). Retour arrière : défaut control-group (D53 serait violée).
+KillMode=mixed
+
+# Socket /run/paresia-remus/remus.sock : un dossier par unité, recréé à chaque démarrage (D48).
+# 0711 : traversable, non listable.
+RuntimeDirectory=paresia-remus
+RuntimeDirectoryMode=0711
+# Dossier d'état /var/lib/paresia-remus, propre au compte de l'unité, pour les métriques (inactives par
+# défaut). systemd.exec(5) : StateDirectory= et les réglages voisins « also exclude the specific
+# directories from the effect of ProtectSystem= » ; le dossier appartient à User= et Group=, n'est pas
+# supprimé à l'arrêt, et reçoit StateDirectoryMode= (défaut 0755) : 0711, traversable, non listable.
+StateDirectory=paresia-remus
+StateDirectoryMode=0711
+# /etc/paresia reste à root (systemd.exec(5)), 0755.
+# « ::ro » exige systemd >= 257 : le retirer sur une cible plus ancienne (procédure, étape 9).
+ConfigurationDirectory=paresia::ro
+ConfigurationDirectoryMode=0755
+UMask=0077
+
+# Isolation : une ligne par directive du tableau d'isolation-remus.md.
+# NoNewPrivileges, PrivateUsers, DynamicUser : lignes « retirée » du tableau, donc absentes
+#   (sudo doit agir sur l'identité hôte ; compensations : sudoers fermé, chef hors docker).
+# MemoryDenyWriteExecute : ligne « absente (comme pollux.service) » du tableau, à éprouver sur la cible.
+LimitCORE=0
+CapabilityBoundingSet=CAP_SETUID CAP_SETGID CAP_AUDIT_WRITE
+AmbientCapabilities=
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+RestrictAddressFamilies=AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+# Ligne ReadWritePaths du tableau : exception restreinte au timestampdir de sudo (/run/sudo, à
+# valider par « sudo -V » sur la cible).
+ReadWritePaths=/run/sudo
+ReadOnlyPaths=/etc/paresia /usr/local/lib/paresia
+
+[Install]
+WantedBy=multi-user.target

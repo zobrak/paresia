@@ -1,0 +1,282 @@
+.\" SPDX-License-Identifier: AGPL-3.0-or-later
+.\" Page de manuel du format de configuration en couches.
+.\" Décrit l'état du code (server/commun/config.py)
+.\" et des fichiers server/conf/*.conf.
+.Dd November 7, 2026
+.Dt PARESIA.CONF 5
+.Os Paresia
+.Sh NAME
+.Nm paresia.conf
+.Nd configuration en couches des composants de Paresia
+.Sh DESCRIPTION
+Les composants de Paresia (démons, lanceur
+.Xr pollux-session 1 ,
+client
+.Xr nisaba-ctl 1 )
+lisent une configuration de type INI, en couches. Le lecteur est
+.Pa server/commun/config.py ,
+qui n'utilise que la bibliothèque standard de Python. Aucun secret ne figure
+dans ces fichiers : les secrets sont des fichiers distincts.
+.Pp
+Format : sections
+.Li [<composant>.<domaine>]
+et lignes
+.Li clé = valeur
+(module
+.Li configparser ,
+sans interpolation, mode strict). La section nue
+.Li [<composant>]
+est admise ; son domaine s'appelle
+.Li general .
+Les commentaires commencent par
+.Li #
+ou
+.Li ; .
+Une section de défauts
+.Li [DEFAULT]
+est refusée. Chaque composant ne lit que ses propres sections ; celles des
+autres composants sont ignorées.
+.Pp
+Une section ou une clé que le composant ne connaît pas est une erreur de
+configuration (le composant refuse de démarrer). Le message ne contient jamais
+la valeur fautive, seulement un code, la section, la clé et le nom de base du
+fichier.
+.Ss Couches
+Par priorité croissante (la dernière couche qui définit une option l'emporte) :
+.Bl -enum -compact
+.It
+.Pa /etc/paresia/paresia.conf
+.It
+.Pa /etc/paresia/conf.d/NN-*.conf ,
+dans l'ordre lexical des noms. Le nom suit le motif deux chiffres, un tiret,
+puis lettres, chiffres, points, tirets ou tirets bas, avec le suffixe
+.Li .conf .
+Au plus 64 fichiers.
+.It
+.Pa $XDG_CONFIG_HOME/paresia/*.conf
+(à défaut
+.Pa ~/.config/paresia/ ) .
+Cette couche n'est lue que par les programmes lancés par un utilisateur. Les
+démons n'ont aucune couche utilisateur.
+.It
+Les variables d'environnement
+.Ev PARESIA_<COMPOSANT>_<DOMAINE>_<CLE> .
+.El
+.Pp
+Aucune couche n'est obligatoire. Une option sans défaut qu'aucune couche ne
+définit est une erreur (code
+.Li config_missing ) .
+Chaque valeur rencontrée est contrôlée, même si une couche supérieure la
+masque.
+.Ss Fichier explicite
+L'option
+.Fl \-config Ar fichier
+ou la variable
+.Ev PARESIA_<COMPOSANT>_CONFIG
+désigne un fichier unique qui remplace les couches fichier 1 à 3 (les
+variables d'environnement s'appliquent ensuite). L'option l'emporte sur la
+variable. Le fichier est alors obligatoire. Le lecteur n'accepte que cette
+option : tout autre argument est refusé (code
+.Li config_invalid_arguments ) .
+.Ss Contrôle de chaque fichier lu
+Chaque fichier et chaque dossier de couche doit être sans lien symbolique
+final, régulier (ou dossier), appartenir à root ou à l'utilisateur effectif du
+programme, n'être inscriptible ni par le groupe ni par les autres, et ne pas
+dépasser 1 Mio. Sinon :
+.Li config_unsafe_permissions ,
+.Li config_too_large
+ou
+.Li config_unreadable .
+.Ss Types de valeur
+.Bl -tag -width Ds -compact
+.It Li chemin
+chemin absolu.
+.It Li compte
+nom de compte (lettres, chiffres, tiret bas, point, tiret).
+.It Li uid
+entier de 0 à 4294967294.
+.It Li duree
+secondes, strictement positives, au plus 3600.
+.It Li limite
+entier de 1 à 16777216.
+.It Li texte
+texte sans caractère de contrôle, 4096 caractères au plus.
+.It Li niveau
+l'un de
+.Li debug , info , notice , warning , error , critical .
+.It Li booleen
+.Li true
+ou
+.Li false .
+.El
+.Pp
+Chemins, comptes et uid n'ont aucun défaut dans le code : le fichier de
+chaque déploiement les fixe. Seuls les types durée, limite, niveau et
+booléen peuvent avoir une valeur par défaut. Certaines options de chemin, de
+texte ou de compte sont facultatives (absentes : aucune valeur).
+.Ss Variables d'environnement
+Le nom est
+.Ev PARESIA_<COMPOSANT>_<DOMAINE>_<CLE>
+en majuscules, les tirets du nom du composant devenant des tirets bas. Exemple :
+.Ev PARESIA_POLLUX_SESSIONS_TIMEOUT_S .
+Une variable présente l'emporte sur tous les fichiers. Le lanceur
+.Xr pollux-session 1
+n'en lit aucune, car son environnement vient du client SSH.
+.Ss Sections communes du socle
+Le socle commun
+.Pa server/commun/demon.py
+ajoute deux sections à chaque démon qu'il lance (Pollux, Romulus, Castor,
+Remus, Nisaba et bunkerd) :
+.Bl -tag -width Ds
+.It Li [<composant>.journal]
+.Li niveau :
+.Li debug , info , notice , warning , error
+ou
+.Li critical
+(défaut
+.Li info ) .
+L'option
+.Fl \-debug
+du démon force
+.Li debug .
+Pour Nisaba, la clé
+.Li niveau
+est dans la section
+.Li [nisaba.journal]
+qui porte déjà d'autres clés.
+.It Li [<composant>.metriques]
+.Li actif :
+.Li true
+ou
+.Li false
+(défaut
+.Li false ) ;
+.Li dossier
+(chemin absolu, facultatif ; à défaut
+.Pa metriques/
+sous la variable
+.Ev STATE_DIRECTORY
+posée par systemd) ;
+.Li periode_s
+(secondes, défaut 15). Le fichier écrit s'appelle
+.Pa <composant>.prom
+(format texte de Prometheus 0.0.4, écriture atomique). Activer les
+métriques sans
+.Li dossier
+ni
+.Ev STATE_DIRECTORY
+fait refuser la configuration (code 78). Chaque unité livrée a son dossier
+d'état
+.Pa /var/lib/paresia-<démon>
+(mode 0711, fourni par
+.Li StateDirectory= ) ;
+les métriques restent désactivées par défaut.
+.El
+.Pp
+Ces deux sections sont lues par tous les démons (bunkerd compris) ; la valeur
+de chaque option est celle des fichiers d'exemple. Un fichier de
+configuration partagé entre composants reste valide, puisque chaque composant
+ignore les sections des autres.
+.Pp
+Les options en ligne de commande
+.Fl \-check ,
+.Fl \-debug ,
+.Fl \-help
+et
+.Fl \-version
+sont celles du socle (voir
+.Xr paresia-pollux 8 ) .
+.Sh SECTIONS
+Les clés, leurs valeurs d'illustration et leurs bornes sont dans les fichiers
+d'exemple du dépôt, commentés clé par clé :
+.Pa server/conf/paresia.conf
+(backend-admin) et
+.Pa server/conf/paresia-relais.conf
+(backend-relais). Les valeurs d'uid, de gid et de comptes y sont des
+illustrations à adapter.
+.Bl -tag -width Ds
+.It Li [pollux.sessions] , [pollux.signature] , [pollux.relay] , [pollux.romulus] , [pollux.castor] , [pollux.transport]
+.Xr paresia-pollux 8 .
+.It Li [pollux-session.transport] , [pollux-session.auth]
+.Xr pollux-session 1 .
+.It Li [romulus.presence] , [romulus.http] , [romulus.plugins] , [romulus.activite] , [romulus.noyau] , [romulus.bunker] , [romulus.relay] , [romulus.nisaba]
+(la dernière est facultative ; les sections des services viennent de leurs déclarations)
+.Xr paresia-romulus 8 .
+.It Li [admin.connexion] , [admin.cle] , [admin.presence] , [admin.interface]
+.Xr paresia-admin 1 .
+.It Li [bunkerd] , [bunkerd.etat] , [bunkerd.outils] , [bunkerd.controle] , [bunkerd.web] , [bunkerd.admin] , [bunkerd.signature]
+.Xr paresia-bunkerd 8 .
+.It Li [nisaba.socket] , [nisaba.ctl] , [nisaba.journal] , [nisaba.horaire] , [nisaba.etat] , [nisaba.source] , [nisaba.ots] , [nisaba.droits]
+.Xr paresia-nisaba 8 ,
+.Xr nisaba-ctl 1 .
+.It Li [castor.tunnel] , [castor.state] , [castor.lights] , [castor.transport]
+.Xr paresia-castor 8 .
+.It Li [remus.server] , [remus.castor] , [remus.light] , [remus.transport] , [remus.executor] , [remus.plugins]
+.Xr paresia-remus 8 .
+.It Li [sauvegarde.stockage]
+.Xr paresia-sauvegarde 8 .
+.El
+.Pp
+Sur une machine qui porte les deux rôles (profil « tout sur une machine »),
+le fichier de base est celui de backend-admin et celui de backend-relais
+s'installe en
+.Pa /etc/paresia/conf.d/20-relais.conf .
+.Sh ENVIRONMENT
+.Bl -tag -width Ds
+.It Ev PARESIA_<COMPOSANT>_CONFIG
+Fichier de configuration explicite (voir
+.Sx Fichier explicite ) .
+.It Ev PARESIA_<COMPOSANT>_<DOMAINE>_<CLE>
+Valeur d'une option ; l'emporte sur tous les fichiers.
+.It Ev XDG_CONFIG_HOME , HOME
+Choix de la couche utilisateur (programmes lancés par un utilisateur
+seulement). Lues même lorsque les variables
+.Ev PARESIA_*
+sont écartées.
+.El
+.Sh FILES
+.Bl -tag -width Ds -compact
+.It Pa /etc/paresia/paresia.conf
+Fichier de base (root, non inscriptible par le compte d'un service).
+.It Pa /etc/paresia/conf.d/NN-*.conf
+Fragments.
+.It Pa $XDG_CONFIG_HOME/paresia/*.conf
+Couche utilisateur.
+.It Pa server/conf/paresia.conf , server/conf/paresia-relais.conf
+Exemples complets livrés dans le dépôt.
+.El
+.Sh DIAGNOSTICS
+Codes d'erreur de configuration (champ
+.Li code
+ou
+.Li cause
+du journal, voir
+.Pa docs/configuration.md ) :
+.Li config_unreadable ,
+.Li config_unsafe_permissions ,
+.Li config_too_large ,
+.Li config_defaults_forbidden ,
+.Li config_unknown_section ,
+.Li config_unknown_option ,
+.Li config_invalid ,
+.Li config_missing ,
+.Li config_invalid_arguments ,
+.Li config_path_missing ,
+.Li config_invalid_daemon ,
+.Li config_invalid_schema .
+.Sh SECURITY
+Les contrôles de propriétaire et de droits protègent contre une configuration
+modifiée par le compte du service. La couche utilisateur n'existe pas pour les
+démons, afin qu'un compte non privilégié ne puisse pas changer leur
+comportement. Les erreurs ne reproduisent jamais la valeur fautive.
+.Sh SEE ALSO
+.Xr paresia-pollux 8 ,
+.Xr paresia-romulus 8 ,
+.Xr paresia-castor 8 ,
+.Xr paresia-remus 8 ,
+.Xr paresia-bunkerd 8 ,
+.Xr paresia-nisaba 8 ,
+.Xr paresia-sauvegarde 8
+.Pp
+Fichier :
+.Pa docs/configuration.md .

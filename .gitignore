@@ -1,0 +1,19 @@
+# Secrets : jamais dans le dépôt
+secrets/
+*.key
+*.pem
+.env
+.env.*
+# Orchestration : worktrees et journaux d'exécution de Codex (locaux)
+.worktrees/
+.orchestration/runs/
+# Environnements Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+# Produit 2.x et copies des machines (référence locale, jamais versionnée ni publiée)
+paresia-v2/
+
+.motifs-prives.txt
+garde-exceptions.txt

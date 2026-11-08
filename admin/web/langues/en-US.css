@@ -1,0 +1,9 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later
+   Réglages propres à la langue en-US (sens d'écriture, longueurs, espacement).
+   Suivi des versions
+     3.0.0-alpha.41  2026-11-06  Première version. */
+:root {
+  direction: ltr;
+  --largeur-menu: 12rem;
+  --espacement: 1rem;
+}

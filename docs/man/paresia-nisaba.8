@@ -1,0 +1,383 @@
+.\" SPDX-License-Identifier: AGPL-3.0-or-later
+.\" Page de manuel de Nisaba (processus annexe du journal légal, backend-admin).
+.\" Décrit l'état du code
+.\" (server/nisaba/, server/conf/paresia.conf). Aucune unité systemd n'est livrée dans deploy/ pour Nisaba
+.\" (voir FILES). 0.1.6 : démon sur le socle commun (options, codes sysexits, sections journal et métriques).
+.Dd November 7, 2026
+.Dt PARESIA-NISABA 8
+.Os Paresia
+.Sh NAME
+.Nm paresia-nisaba
+.Nd processus annexe du journal légal de backend-admin
+.Sh SYNOPSIS
+.Nm python3 -P -s -B -m server.nisaba
+.Op Fl \-check
+.Op Fl \-debug
+.Op Fl \-config Ar fichier
+.Nm python3 -P -s -B -m server.nisaba
+.Fl \-help | \-version
+.Sh DESCRIPTION
+Nisaba remplace les scripts
+.Li journal-legal-pull ,
+.Li journal-legal-seal ,
+.Li journal-legal-acl
+et
+.Li journal-legal-purge .
+Il tient, sur backend-admin, la copie du journal légal du relais, la
+scelle chaque jour, la fait horodater, applique les modes et ACL, et purge
+les journées anciennes. Quatre tâches planifiées :
+.Bl -tag -width Ds -compact
+.It Li copie
+Copie du journal depuis backend-relais (rsync par ssh, clé dédiée), toutes les
+.Li copie_s
+secondes (défaut 60).
+.It Li scellement
+Scellement quotidien à l'heure UTC
+.Li [nisaba.horaire] scellement
+(rattrapage de la dernière journée inscrite à chaque démarrage).
+.It Li horodatage
+Preuve OpenTimestamps (client
+.Li ots ) ;
+seule l'empreinte de la ligne du registre part sur Internet. Une preuve
+incomplète après
+.Li attente_max_jours
+(défaut 3) est un échec.
+.It Li purge
+Purge quotidienne à l'heure UTC
+.Li [nisaba.horaire] purge ;
+une journée D est supprimée à D + 366 jours avec la conservation par défaut
+de 365 jours.
+.El
+.Pp
+Tous les horaires sont en UTC, au format
+.Li HH:MM
+strict. Les programmes externes (
+.Xr rsync 1 ,
+.Xr ssh 1 ,
+.Xr chattr 1 ,
+.Xr lsattr 1 ,
+.Xr setfacl 1 ,
+.Xr getfacl 1 ,
+.Li ots )
+sont lancés par argv, jamais par un interpréteur de commandes.
+.Pp
+Nisaba écoute deux sockets Unix : une pour Romulus (actions de lecture
+.Li nisaba/state/status
+et
+.Li nisaba/state/verify ) ,
+l'autre pour
+.Xr nisaba-ctl 1 .
+Romulus joint la première par sa section facultative
+.Li [romulus.nisaba]
+(sans elle,
+.Li nisaba/*
+répond 501). La consultation du journal légal (recherche, export, état,
+vérification) est confiée à Nisaba ; Romulus ne fait que router. Livrées :
+l'état et la vérification. Recherche et export ne sont pas implémentées et
+.Li legal/*
+répond encore 501 côté Romulus.
+.Pp
+Cycle de vie (systemd
+.Li Type=notify ,
+si l'unité le déclare) :
+le démon envoie
+.Li READY=1
+une fois ses sockets liées, puis
+.Li STOPPING=1
+à
+.Dv SIGTERM
+ou
+.Dv SIGINT .
+Son fil principal attend l'arrêt par tranches de 0,1 s, car un signal reçu
+par un autre fil ne le réveille pas forcément.
+.Sh OPTIONS
+Options du socle commun
+.Pa server/commun/demon.py :
+.Bl -tag -width Ds
+.It Fl \-config Ar fichier
+Fichier de configuration explicite, qui remplace les couches fichier (voir
+.Xr paresia.conf 5 ) .
+Donnée une seule fois, avec un argument non vide qui ne commence pas par
+.Li \-\- .
+.It Fl \-check
+Lit et valide la configuration, puis sort avec le code 0, sans ouvrir de
+socket ni de fichier.
+.It Fl \-debug
+Niveau de journal
+.Li debug
+(l'emporte sur la configuration).
+.It Fl \-version
+Affiche le nom du démon et le numéro de version lu dans le fichier
+.Pa VERSION
+installé à côté de
+.Pa server/ ,
+puis sort avec 0.
+.It Fl \-help
+Affiche un rappel des options, puis sort avec 0.
+.El
+.Pp
+Tout autre argument, ou un
+.Fl \-config
+répété, affiche l'usage sur la sortie d'erreur et sort avec le code 64. Les
+messages sont tirés des catalogues
+.Pa i18n/ .
+.Sh ENVIRONMENT
+.Bl -tag -width Ds
+.It Ev PARESIA_NISABA_CONFIG
+Fichier de configuration explicite.
+.It Ev PARESIA_NISABA_<DOMAINE>_<CLE>
+Remplace l'option correspondante.
+.It Ev JOURNAL_STREAM
+Posée par systemd : préfixe de priorité des lignes de journal.
+.It Ev PYTHONPATH
+Dossier du code installé.
+.It Ev NOTIFY_SOCKET
+Posée par systemd (
+.Li Type=notify ) :
+le démon y envoie
+.Li READY=1 ,
+.Li STATUS=
+et
+.Li STOPPING=1
+(
+.Xr sd_notify 3 ) .
+Absente hors de systemd : les avis sont simplement omis.
+.It Ev STATE_DIRECTORY
+Posée par systemd si l'unité a
+.Li StateDirectory= .
+Base du dossier des métriques (voir
+.Sx FILES ) .
+.It Ev LC_ALL , LC_MESSAGES , LANG
+La première non vide choisit le catalogue des messages affichés (
+.Fl \-help ,
+.Fl \-version ,
+usage) : anglais si elle commence par
+.Li en ,
+français sinon.
+.El
+.Sh FILES
+.Bl -tag -width Ds
+.It Unité systemd
+Aucune unité de Nisaba n'est livrée dans
+.Pa deploy/ :
+son nom, son compte, ses groupes et son durcissement ne sont pas établis par
+le dépôt. Les commentaires de
+.Pa server/conf/paresia.conf
+indiquent seulement qu'elle donne le dossier
+.Li RuntimeDirectory=paresia-nisaba ,
+le dossier d'état
+.Li StateDirectory=paresia-nisaba
+et le droit
+.Li CAP_LINUX_IMMUTABLE
+pour
+.Xr chattr 1 ..It Pa /etc/paresia/paresia.conf , /etc/paresia/conf.d/NN-*.conf
+Clés, types et défauts de chaque option : la section Nisaba de
+.Pa docs/configuration.md .
+Sections
+.Li [nisaba.socket] ,
+.Li [nisaba.ctl] ,
+.Li [nisaba.journal]
+(dont la clé
+.Li niveau ,
+défaut
+.Li info ) ,
+.Li [nisaba.metriques]
+(clés
+.Li actif ,
+.Li dossier ,
+.Li periode_s ) ,
+.Li [nisaba.horaire] ,
+.Li [nisaba.etat] ,
+.Li [nisaba.source] ,
+.Li [nisaba.ots] ,
+.Li [nisaba.droits] .
+.It Pa <dossier d'état>/metriques/nisaba.prom
+Métriques génériques du socle (
+.Li paresia_up ,
+.Li paresia_info ,
+.Li paresia_start_time_seconds ,
+.Li paresia_log_events_total ) ,
+au format texte de Prometheus 0.0.4, écrites de façon atomique toutes les
+.Li periode_s
+secondes (15). Désactivées par défaut (
+.Li actif = false ) .
+Le dossier est
+.Li [nisaba.metriques] dossier
+ou, à défaut,
+.Pa metriques/
+sous
+.Ev STATE_DIRECTORY .
+Le dossier d'état de l'unité n'est pas établi par le dépôt, puisque l'unité
+de Nisaba n'est pas encore livrée. Les métriques propres au journal légal sont celles de
+.Xr nisaba-ctl 1
+.Cm metrics .
+.It Pa /run/paresia-nisaba/nisaba.sock
+Socket pour Romulus (illustration), groupe dédié
+.Li [nisaba.socket] gid .
+.It Pa /run/paresia-nisaba/nisaba-ctl.sock
+Socket de contrôle, mode 0600, uid 0 seul.
+.It Pa /var/log/paresia/journal-legal/
+Copie du journal : fichier
+.Li MANIFEST ,
+.Li journal-AAAA-MM-JJ.jsonl ,
+dossier
+.Pa seals/
+(illustration de
+.Li [nisaba.journal] dossier ) .
+.It Pa /var/lib/paresia-nisaba/
+Dossier d'état : derniers échecs
+.Li ECHEC_* ,
+au plus
+.Li historique
+par tâche (défaut 20, plafond 40).
+.It Pa /etc/paresia/journal-legal-pull.key
+Clé SSH dédiée à la copie (illustration de
+.Li [nisaba.source] cle_ssh ) :
+donnée à
+.Xr ssh 1
+par son chemin, jamais lue ni copiée par Nisaba.
+.El
+.Sh EXIT STATUS
+Codes de
+.Xr sysexits 3 :
+.Bl -tag -width Ds -compact
+.It 0
+Arrêt ordonné sur
+.Dv SIGTERM
+ou
+.Dv SIGINT
+(attente de la tâche en cours au plus
+.Li arret_s ,
+défaut 30 s), ou
+.Fl \-check ,
+.Fl \-help ,
+.Fl \-version
+réussis.
+.It 64
+Usage : argument inconnu (EX_USAGE).
+.It 65
+Données illisibles (EX_DATAERR).
+.It 70
+Erreur interne (EX_SOFTWARE), par exemple fichier
+.Pa VERSION
+absent à côté de
+.Pa server/ .
+.It 71
+Erreur du système (EX_OSERR).
+.It 78
+Configuration invalide (EX_CONFIG).
+.El
+.Pp
+Si l'unité de Nisaba reprend le modèle des autres, elle ne relancera pas le
+démon après 64, 65 ou 78 (non établi : aucune unité livrée).
+.Sh DIAGNOSTICS
+Deux sorties sur la sortie standard, donc dans journald. Niveau des
+événements JSON :
+.Li [nisaba.journal] niveau
+(défaut
+.Li info ) ,
+ou
+.Li debug
+avec
+.Fl \-debug .
+.Pp
+Lignes d'échec, avec le code en tête de ligne et le préfixe de priorité de
+.Xr sd-daemon 3
+(erreur) :
+.Li ECHEC_COPIE , ECHEC_ACL , ECHEC_SCELLEMENT , ECHEC_HORODATAGE , ECHEC_PURGE .
+Elles sont aussi comptées dans les métriques.
+.Pp
+Événements JSON :
+.Bl -tag -width Ds -compact
+.It Li startup , shutdown
+Démarrage et arrêt.
+.It Li startup_failed , service_failed
+Échec avant la mise en service (
+.Li startup_failed )
+ou pendant (
+.Li service_failed ) .
+Champs
+.Li cause :
+.Li os_error
+(avec
+.Li errno
+numérique),
+.Li data_unreadable ,
+.Li internal_error
+ou le code de configuration, et pour une erreur de configuration
+.Li section
+et
+.Li option .
+Jamais de valeur ni de message d'exception.
+.It Li internal_error_detail
+Niveau
+.Li debug
+seulement, après un échec : champs
+.Li classe
+(nom de la classe d'exception, 64 caractères au plus) et
+.Li pile
+(au plus les 16 derniers cadres du paquet
+.Pa server ,
+chemin relatif, ligne, fonction ; aucune valeur).
+.It Li config_read , notify_open , notify_closed , stop_requested
+Niveau
+.Li debug
+seulement : lecture d'une option (section et option, jamais la valeur),
+échanges avec systemd, demande d'arrêt.
+.It Li metrics_write_failed
+Écriture du fichier de métriques impossible (champ
+.Li errno ) ;
+le démon continue.
+.It Li journal_purged
+Une journée supprimée (champ
+.Li fichier ) .
+.It Li acl_apply
+Application des modes et ACL.
+.It Li failure_ring_empty
+L'historique des échecs est absent ou corrompu (champ
+.Li reason :
+.Li absent , corrupt ) .
+.It Li failure_ring_write_failed
+Écriture de l'historique impossible.
+.It Li scheduler_failed
+Le planificateur a échoué.
+.It Li shutdown_task_timeout
+La tâche en cours n'a pas fini dans
+.Li arret_s .
+.El
+.Pp
+Les événements de trace du scellement et de l'horodatage ne sont pas
+énumérés ici (non lus dans le code pour cette page).
+.Sh SECURITY
+.Bl -bullet -compact
+.It
+La socket de Romulus n'admet que l'uid
+.Li [nisaba.socket] uid_romulus ;
+la socket de contrôle n'admet que l'uid 0 (
+.Dv SO_PEERCRED ) ;
+un
+.Li [nisaba.ctl] uid
+différent de 0 est refusé au démarrage.
+.It
+Le journal est protégé par
+.Xr chattr 1
+(attribut) et par ACL
+.Xr setfacl 1 :
+le compte de Romulus le lit seulement (droit hérité du temps où Romulus lisait
+la copie ; la consultation étant confiée à Nisaba, Romulus ne s'en sert pas
+aujourd'hui).
+.It
+Seule l'empreinte de la ligne du registre sort vers Internet (OpenTimestamps).
+.It
+Nisaba n'écrit jamais dans le dossier de node_exporter ; les
+métriques propres au journal légal passent par
+.Xr nisaba-ctl 1
+.Cm metrics .
+.El
+.Sh SEE ALSO
+.Xr nisaba-ctl 1 ,
+.Xr paresia.conf 5 ,
+.Xr paresia-romulus 8
+.Pp
+Procédure des modes et ACL :
+.Pa docs/installation-journal-legal-acl.md .

@@ -1,0 +1,47 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Suivi des versions
+#   0.1.7  2026-11-07  Manifeste d'exemple d'une fonction de Remus : non installé (D148, D154).
+#
+# Fonction d'exemple, inoffensive : elle renvoie ses paramètres. Elle n'est installée par
+# aucun script ni aucune unité et ne figure dans aucune configuration livrée ; elle sert
+# de modèle et aux essais. Un manifeste est le fichier <nom>.toml d'un script de même nom,
+# dans le dossier des fonctions livrées ou des fonctions locales.
+format = 1
+forme = "ponctuel"
+greffon = "paresia-yin-exemple"
+nom = "exemple_echo"
+action = "exemple/echo/run"
+privilege = "utilisateurs"
+delai_s = 5
+sortie_max = 2048
+# Seules les valeurs de ces paramètres figurent au journal.
+journaliser = ["essai", "nombre"]
+# Codes d'erreur que le script peut renvoyer avec le code de sortie 1.
+erreurs = ["not_available"]
+
+[requiert]
+# La fonction n'est chargée que si ces fichiers existent (jamais exécutés).
+fichiers = ["/bin/sh"]
+
+[[parametres]]
+nom = "message"
+type = "texte"
+motif = "[A-Za-z0-9_ ]+"
+longueur_max = 64
+obligatoire = false
+
+[[parametres]]
+nom = "nombre"
+type = "entier"
+minimum = 0
+maximum = 1000
+obligatoire = false
+
+[[parametres]]
+nom = "essai"
+type = "choix"
+# Cas du contrat de sortie, pour les essais : normal, refus, refus_inconnu, indisponible,
+# code3, sortie_vide, sortie_invalide, double_cle, nan, controle, trop_long, bavard, attente.
+valeurs = ["normal", "refus", "refus_inconnu", "indisponible", "code3", "sortie_vide",
+           "sortie_invalide", "double_cle", "nan", "controle", "trop_long", "bavard", "attente"]
+obligatoire = false

@@ -1,0 +1,39 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Tunnel vers backend-relais ; dépendance : OpenSSH, unité paresia-tunnel.service.
+# Première valeur obtenue retenue (ssh_config(5) : « the first obtained value will be used ») :
+# la couche locale (Include) vient avant les valeurs communes.
+# Installation et preuves des droits : deploy/backend-admin/installer-backend-admin.sh (étapes tunnel_*) (D62, D65).
+#
+# StreamLocalBindMask 0111 (D62). ssh_config(5), StreamLocalBindMask : « Sets the octal file creation
+# mode mask (umask) used when creating a Unix-domain socket file for local or remote port forwarding. »
+# ; « The default value is 0177, which creates a Unix-domain socket file that is readable and writable
+# only by the owner. » unix(7) : « On Linux, connecting to a stream socket object requires write
+# permission on that socket ». 0111 retire seulement l'exécution : la socket est créée en 0666 si le
+# masque remplace celui du processus (UMask=0077 de l'unité, systemd.exec(5), UMask=) ; si les deux
+# masques se cumulaient, la socket serait en 0600 et Romulus ne pourrait pas s'y connecter. Aucune page
+# ne tranche : l'essai de la procédure (stat de chaque socket, connexion de chaque démon) le relève.
+# La socket n'est atteignable que par le dossier 0700 et son ACL (unité), et chaque démon contrôle
+# l'uid de son pair (SO_PEERCRED).
+# Suivi des versions
+#   0.1.0  2026-11-07  Chemin cité : le script d'installation remplace la procédure pas à pas.
+#   3.0.0-alpha.42  2026-11-07  Deux redirections de sockets Unix, hôte vérifié.
+Include /etc/paresia/tunnel/ssh_config.d/*.conf
+
+Host paresia-relais
+    User tunnel
+    IdentityFile /etc/paresia/tunnel/id_ed25519
+    IdentitiesOnly yes
+    StrictHostKeyChecking yes
+    UserKnownHostsFile /etc/paresia/tunnel/known_hosts
+    BatchMode yes
+    ExitOnForwardFailure yes
+    StreamLocalBindUnlink yes
+    StreamLocalBindMask 0111
+    ServerAliveInterval 15
+    ForwardAgent no
+    ForwardX11 no
+    RequestTTY no
+    PasswordAuthentication no
+    PubkeyAuthentication yes
+    LocalForward /run/paresia-tunnel/romulus/remus.sock /run/paresia-remus/remus.sock
+    LocalForward /run/paresia-tunnel/pollux/castor.sock /run/paresia-castor/castor.sock

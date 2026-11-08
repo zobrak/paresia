@@ -1,0 +1,157 @@
+.\" SPDX-License-Identifier: AGPL-3.0-or-later
+.\" Page de manuel de la CLI de Nisaba.
+.\" D'après server/nisaba/ctl.py.
+.Dd November 7, 2026
+.Dt NISABA-CTL 1
+.Os Paresia
+.Sh NAME
+.Nm nisaba-ctl
+.Nd contrôle de Nisaba, processus annexe du journal légal
+.Sh SYNOPSIS
+.Nm python3 -m server.nisaba.ctl
+.Op Fl \-config Ar fichier
+.Cm status | verify | metrics
+.Nm python3 -m server.nisaba.ctl
+.Op Fl \-config Ar fichier
+.Cm run
+.Ar copie | scellement | horodatage | purge
+.Nm python3 -m server.nisaba.ctl
+.Op Fl \-config Ar fichier
+.Cm run scellement
+.Ar AAAA-MM-JJ
+.Nm python3 -m server.nisaba.ctl
+.Op Fl \-config Ar fichier
+.Cm acl
+.Ar check | apply
+.Sh DESCRIPTION
+.Nm
+est la ligne de commande de
+.Xr paresia-nisaba 8 .
+Elle envoie une requête
+.Li jumeaux/1
+à la socket de contrôle de Nisaba et affiche la réponse. Aucun lanceur
+.Pa server/bin
+n'est livré pour cette commande : elle se lance comme un module Python, avec
+.Ev PYTHONPATH
+sur le dossier du code installé.
+.Bl -tag -width Ds
+.It Cm status
+Affiche l'état : démarrage, pour chaque tâche la dernière exécution, son
+résultat et la suivante, les derniers échecs, puis l'état du journal
+(publications du jour, journées, ancienneté, preuves).
+.It Cm verify
+Lance la vérification du journal légal et affiche ses lignes. Sortie 0 si le
+résultat est conforme, 1 sinon.
+.It Cm metrics
+Affiche les métriques de Nisaba au format texte des expositions Prometheus
+(champs
+.Li nisaba_last_success_timestamp_seconds ,
+.Li nisaba_failures_total ,
+.Li nisaba_manifest_days ,
+.Li nisaba_proofs ,
+.Li nisaba_oldest_journal_age_seconds ) .
+.It Cm run Ar tâche
+Exécute une tâche tout de suite : une parmi
+.Li copie ,
+.Li scellement ,
+.Li horodatage ,
+.Li purge .
+.It Cm run scellement Ar AAAA-MM-JJ
+Scelle la journée indiquée (rattrapage).
+.It Cm acl check
+Vérifie les modes, ACL et attributs du journal légal et affiche les écarts.
+.It Cm acl apply
+Les applique. Les échecs sont journalisés
+.Li ECHEC_ACL .
+.El
+.Sh OPTIONS
+.Bl -tag -width Ds
+.It Fl \-config Ar fichier
+Lit la configuration depuis ce fichier au lieu des couches (voir
+.Xr paresia.conf 5 ) .
+Donnée au plus une fois, avec un argument non vide.
+.It Fl \-help
+Affiche l'aide sur la sortie standard et sort avec le code 0.
+.It Fl \-version
+Affiche la version et sort avec le code 0.
+.El
+.Pp
+.Fl \-help
+et
+.Fl \-version
+ne sont reconnus que comme argument unique :
+.Ql nisaba-ctl --help --config x
+est un usage invalide (code 2). Le niveau du journal, écrit sur la sortie
+d'erreur, se règle par la section
+.Li [nisaba.journal] ;
+au niveau
+.Li debug ,
+seuls le nom de la section et celui de l'option lus sont journalisés
+.Pq Li config_read ,
+jamais la valeur.
+.Sh ENVIRONMENT
+.Bl -tag -width Ds
+.It Ev PARESIA_NISABA_CONFIG , PARESIA_NISABA_<DOMAINE>_<CLE>
+Comme pour le démon (voir
+.Xr paresia.conf 5 ) .
+.It Ev PYTHONPATH
+Dossier du code installé.
+.El
+.Pp
+La langue des messages est le français (catalogue
+.Pa i18n/fr-FR.json ) ;
+aucune variable de langue n'est lue. Une clé de catalogue introuvable
+s'affiche telle quelle.
+.Sh FILES
+.Bl -tag -width Ds
+.It Pa /run/paresia-nisaba/nisaba-ctl.sock
+Socket de contrôle (valeur d'illustration de
+.Li [nisaba.ctl] socket ) .
+Seul l'uid 0 est admis.
+.It Pa /etc/paresia/paresia.conf
+Section
+.Li [nisaba.ctl] ,
+clés
+.Li socket
+et
+.Li uid
+(doit valoir 0), et
+.Li [nisaba.socket] delai_s
+pour l'échéance de l'appel.
+.El
+.Sh EXIT STATUS
+.Bl -tag -width Ds -compact
+.It 0
+Réussite, y compris
+.Fl \-help
+et
+.Fl \-version .
+.It 1
+Échec de l'opération (tâche échouée, vérification non conforme, ACL en
+écart, Nisaba a répondu une erreur).
+.It 2
+Usage invalide ou configuration invalide.
+.It 3
+Nisaba injoignable, ou réponse inexploitable.
+.El
+.Sh DIAGNOSTICS
+Messages tirés du catalogue :
+.Li nisaba_usage ,
+.Li nisaba_config_failed ,
+.Li nisaba_unreachable ,
+.Li nisaba_error .
+Les caractères de contrôle sont filtrés de tout affichage. Codes d'erreur
+des sockets de Nisaba :
+.Li unknown_action ,
+.Li bad_request ,
+.Li command_busy ,
+.Li not_available ,
+.Li internal_error .
+.Sh SECURITY
+La commande doit être lancée par root : la socket est en mode 0600 et Nisaba
+vérifie l'uid de l'appelant (
+.Dv SO_PEERCRED ) .
+Aucun secret n'est lu ni affiché.
+.Sh SEE ALSO
+.Xr paresia-nisaba 8 ,
+.Xr paresia.conf 5

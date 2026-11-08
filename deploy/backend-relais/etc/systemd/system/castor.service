@@ -1,0 +1,92 @@
+# castor.service — Castor : feu de session côté backend-relais (feu vert/rouge des commandes).
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Rôle : démon (python3 -m server.castor), compte dédié sans shell, sans capacité, système de
+#   fichiers en lecture seule, AF_UNIX seulement. Aucun processus fils, aucun sudo : même isolation
+#   que pollux.service. API et options : castor(8).
+# Installation : deploy/backend-relais/installer-backend-relais.sh (étapes unites, castor, remus).
+# Configuration : couches /etc/paresia/paresia.conf et conf.d/ (D29), lues par le programme ;
+#   aucun chemin de configuration, aucun argument et aucune variable PARESIA_* dans cette unité.
+# Redémarrer ou arrêter cette unité remet TOUS les feux au rouge : les commandes en attente de
+#   Remus seront refusées.
+# Pas de dépendance de démarrage envers remus.service (D52) : Remus interroge Castor à la demande
+#   et répond peer_unavailable s'il est absent. Aucune unité n'est activée avant la vérification.
+# Journal : stdout et stderr vont à journald par défaut (systemd.exec(5), StandardOutput=) ;
+#   aucune directive ne les redirige.
+# Suivi des versions
+#   0.1.2  2026-11-07  StateDirectory=paresia-castor, StateDirectoryMode=0711 (métriques sous ProtectSystem=strict).
+#   0.1.1  2026-11-07  Type=notify, NotifyAccess=main, RestartPreventExitStatus=, TimeoutStartSec=.
+#   0.1.0  2026-11-07  Chemin cité : le script d'installation remplace la procédure pas à pas.
+#   0.1.0  2026-11-07  Description : feu de session du relais strfry.
+#   3.0.0-alpha.34  2026-11-06  Première version (D46, D48, D49, D65, D84).
+
+[Unit]
+Description=Paresia : Castor (feu de session du relais strfry)
+
+[Service]
+Type=notify
+User=paresia-castor
+Group=paresia-castor
+# Groupes des sockets que Castor crée (paresia-castor-tunnel : castor.sock ; paresia-castor-etat :
+# castor-state.sock) ; rien d'autre (D49).
+SupplementaryGroups=paresia-castor-tunnel paresia-castor-etat
+Environment=PYTHONPATH=/usr/local/lib/paresia
+ExecStart=/usr/bin/python3 -P -s -B -m server.castor
+Restart=on-failure
+RestartSec=5
+# Type=notify : le démon envoie READY=1 une fois ses sockets liées (sd_notify(3)). NotifyAccess=main
+# n'accepte que le processus principal (systemd.service(5)). 64 (usage), 65 (données) et 78
+# (configuration) sont des erreurs permanentes : aucun redémarrage automatique. Pas de
+# WatchdogSec= (D146). TimeoutStartSec= : la liaison des sockets est immédiate, 30 s bornent l'attente de READY=1.
+NotifyAccess=main
+RestartPreventExitStatus=64 65 78
+TimeoutStartSec=30
+# Arrêt : Castor::arreter() ferme deux serveurs l'un après l'autre ; chacun attend ses fils jusqu'à
+# [castor.transport] delai_s (30 s par défaut) : 2 x 30 = 60 s au pire, plus 30 s de marge (D65).
+# À revoir si delai_s change. systemd.service(5), TimeoutStopSec= : SIGKILL passé ce délai.
+TimeoutStopSec=90
+
+# Sockets /run/paresia-castor/castor.sock et castor-state.sock : un dossier par unité, recréé à
+# chaque démarrage et supprimé à l'arrêt (D48). 0711 : traversable, non listable.
+RuntimeDirectory=paresia-castor
+RuntimeDirectoryMode=0711
+# Dossier d'état /var/lib/paresia-castor, propre au compte de l'unité, pour les métriques (inactives par
+# défaut). systemd.exec(5) : StateDirectory= et les réglages voisins « also exclude the specific
+# directories from the effect of ProtectSystem= » ; le dossier appartient à User= et Group=, n'est pas
+# supprimé à l'arrêt, et reçoit StateDirectoryMode= (défaut 0755) : 0711, traversable, non listable.
+StateDirectory=paresia-castor
+StateDirectoryMode=0711
+# /etc/paresia reste à root (systemd.exec(5)), 0755.
+# « ::ro » exige systemd >= 257 : le retirer sur une cible plus ancienne (procédure, étape 9).
+ConfigurationDirectory=paresia::ro
+ConfigurationDirectoryMode=0755
+UMask=0077
+
+# Isolation (identique à pollux.service)
+LimitCORE=0
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+RestrictAddressFamilies=AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+# MemoryDenyWriteExecute= est volontairement absent : l'unité ne l'active pas faute d'essai réel
+# sur la cible (D84). La raison de pollux.service (bibliothèques de la preuve par signature) ne
+# vaut pas ici : Castor n'utilise que la bibliothèque standard. À activer après un essai réel.
+
+[Install]
+WantedBy=multi-user.target
