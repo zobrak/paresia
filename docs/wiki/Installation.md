@@ -26,11 +26,18 @@ apt install git
 ```
 
 ```
-git clone https://github.com/zobrak/paresia.git paresia
-cd paresia
+git clone https://github.com/zobrak/paresia.git ~/paresia
 ```
 
-Résultat attendu : `cat VERSION` affiche `0.1.19` sur les deux machines.
+```
+cat ~/paresia/VERSION
+```
+
+Résultat attendu (sur les deux machines) :
+
+```
+0.1.19
+```
 
 ## 2. Vérifier
 
@@ -54,7 +61,12 @@ Machine : `backend-admin`, en root.
 bash deploy/backend-admin/installer-backend-admin.sh --alpha-test --session-secours oui
 ```
 
-Résultat attendu : deux lignes `CLE_PUBLIQUE_TUNNEL=…` et `EMPREINTE_CLE_TUNNEL=…`, à copier.
+Résultat attendu : deux lignes à copier.
+
+```
+CLE_PUBLIQUE_TUNNEL=ssh-ed25519 AAAA…
+EMPREINTE_CLE_TUNNEL=SHA256:…
+```
 
 ## 4. Passe 2 : backend-relais
 
@@ -67,7 +79,11 @@ bash deploy/backend-relais/installer-backend-relais.sh --alpha-test --session-se
   --empreinte-cle-tunnel 'EMPREINTE_CLE_TUNNEL'
 ```
 
-Résultat attendu : une ligne `EMPREINTE_HOTE_RELAIS=…`, à transmettre par un autre canal que le tunnel.
+Résultat attendu : une ligne à transmettre par un autre canal que le tunnel.
+
+```
+EMPREINTE_HOTE_RELAIS=SHA256:…
+```
 
 ## 5. Passe 3 : backend-admin, le tunnel
 
@@ -89,7 +105,15 @@ Machine : `backend-admin`.
 systemctl status pollux.service romulus.service paresia-tunnel.service
 ```
 
-Résultat attendu : trois unités `active`. Sur `backend-relais` : `sudo /usr/bin/systemctl status castor.service remus.service`.
+Résultat attendu : trois unités à l'état `active (running)`.
+
+Sur `backend-relais` :
+
+```
+sudo /usr/bin/systemctl status castor.service remus.service
+```
+
+Résultat attendu : deux unités à l'état `active (running)`.
 
 ## Suite
 

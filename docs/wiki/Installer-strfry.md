@@ -37,7 +37,11 @@ git clone https://github.com/zobrak/paresia.git ~/paresia
 cat ~/paresia/VERSION
 ```
 
-Résultat attendu : `0.1.19`.
+Résultat attendu :
+
+```
+0.1.19
+```
 
 ## 2. Installer Docker
 
@@ -53,13 +57,15 @@ sudo apt update
 sudo apt install docker-ce docker-ce-cli containerd.io docker-compose-plugin
 ```
 
-Résultat attendu :
-
 ```
 sudo docker compose version
 ```
 
-affiche `Docker Compose version v5.7.0` ou plus récent.
+Résultat attendu (ou une version plus récente) :
+
+```
+Docker Compose version v5.7.0
+```
 
 ## 3. Télécharger l'image
 
@@ -71,7 +77,7 @@ sudo docker pull z0brak/paresia-yin-strfry:4cd3cf6
 
 Gardez l'étiquette `4cd3cf6` : l'installateur la compare.
 
-Résultat attendu : `Status: Downloaded newer image` ou `Image is up to date`.
+Résultat attendu : la fin de la sortie indique que l'image est téléchargée ou déjà à jour.
 
 ## 4. Préparer les dossiers
 
@@ -92,13 +98,16 @@ cp ~/paresia/server/strfry/journal_legal.py plugins/
 cp ~/paresia/deploy/backend-relais/strfry/strfry.conf strfry.conf
 ```
 
+```
+sudo ls -ld data journal
+```
+
 Résultat attendu :
 
 ```
-ls -ld data journal
+drwxr-xr-x 2 10001 10001 4096 nov.  9 00:12 data
+drwxr-xr-x 2 10001 10001 4096 nov.  9 00:12 journal
 ```
-
-montre le propriétaire `10001` pour les deux dossiers.
 
 ## 5. Écrire `compose.yml`
 
@@ -141,13 +150,15 @@ services:
 EOF
 ```
 
-Résultat attendu :
-
 ```
-grep 7777 compose.yml
+grep ':7777:7777' compose.yml
 ```
 
-montre votre adresse devant `:7777:7777`.
+Résultat attendu (votre adresse devant `:7777:7777`) :
+
+```
+      - "192.0.2.20:7777:7777"
+```
 
 ## 6. Installer `nak`
 
@@ -165,13 +176,21 @@ curl -fLO https://github.com/fiatjaf/nak/releases/download/v0.22.3/nak-v0.22.3-l
 echo "2eb9a16f86c865275983459b2c705d22d5dfbcf527026a279449cbf204d164fe  nak-v0.22.3-linux-amd64" | sha256sum -c -
 ```
 
-Résultat attendu : `Réussi` ou `OK`, selon la langue. Sinon, arrêtez-vous.
+Résultat attendu (`Réussi` au lieu de `OK` si le système est en français). Sinon, arrêtez-vous.
+
+```
+nak-v0.22.3-linux-amd64: OK
+```
 
 ```
 sudo install -m 0755 -o root -g root nak-v0.22.3-linux-amd64 /usr/local/bin/nak
 ```
 
-Résultat attendu : `nak --help` affiche l'aide.
+```
+nak --help
+```
+
+Résultat attendu : l'aide de `nak`.
 
 ## 7. Créer la clé du relais
 
@@ -186,7 +205,12 @@ Machine : `backend-relais`, dans `bash`. Rien n'est enregistré : la clé est se
 SECRET=$(nak key generate); printf 'CLE PRIVEE (a conserver en lieu sur) : %s\n' "$SECRET"; printf 'CLE PUBLIQUE (pour strfry.conf)      : %s\n' "$(nak key public "$SECRET")"; unset SECRET
 ```
 
-Résultat attendu : deux lignes libellées, `CLE PRIVEE` puis `CLE PUBLIQUE`.
+Résultat attendu : deux lignes libellées, chacune suivie de sa valeur (représentée ici par `…`).
+
+```
+CLE PRIVEE (a conserver en lieu sur) : …
+CLE PUBLIQUE (pour strfry.conf)      : …
+```
 
 ## 8. Régler `strfry.conf`
 
@@ -202,13 +226,15 @@ sed -i 's|wss://relay.example.org|wss://VOTRE_DOMAINE|' strfry.conf
 
 Remplacez `VOTRE_DOMAINE` par l'adresse publique.
 
-Résultat attendu :
-
 ```
 grep serviceUrl strfry.conf
 ```
 
-affiche `wss://` suivi de votre adresse.
+Résultat attendu (votre adresse à la place de `VOTRE_DOMAINE`) :
+
+```
+        serviceUrl = "wss://VOTRE_DOMAINE"
+```
 
 Écrivez ensuite la seule ligne « CLE PUBLIQUE » de l'étape 7 dans `relay.info.pubkey` (ligne `pubkey = ""`). N'y mettez jamais la clé privée. Laissez `relay.info.self` vide.
 
@@ -222,13 +248,11 @@ Machine : `backend-relais`, dans `/srv/strfry`.
 sudo docker compose up -d
 ```
 
-Résultat attendu :
-
 ```
 sudo docker ps --filter name=^strfry$
 ```
 
-montre le conteneur `strfry`. Il passe à `healthy` après une minute.
+Résultat attendu : une ligne pour le conteneur `strfry`, dont l'état passe à `healthy` après une minute.
 
 ## 10. Contrôler
 
@@ -238,19 +262,19 @@ Machine : `backend-relais`.
 sudo docker exec strfry wget -qO- http://127.0.0.1:7777/metrics
 ```
 
-Résultat attendu : des métriques en texte.
+Résultat attendu : des métriques au format texte Prometheus.
 
 ```
 sudo ss -ltn 'sport = :7777'
 ```
 
-Résultat attendu : une écoute sur votre adresse, jamais sur `0.0.0.0:7777`.
+Résultat attendu : une ligne d'écoute (`LISTEN`) sur votre adresse et le port 7777, jamais sur `0.0.0.0:7777`.
 
 ```
 curl -s -H 'Accept: application/nostr+json' http://ADRESSE_RELAIS:7777/
 ```
 
-Remplacez `ADRESSE_RELAIS` par l'adresse de l'étape 5. Résultat attendu : un objet JSON dont `name` vaut `Paresia`.
+Remplacez `ADRESSE_RELAIS` par l'adresse de l'étape 5. Résultat attendu : un objet JSON dont le champ `name` vaut `Paresia`.
 
 En cas d'échec : `sudo journalctl -t strfry`.
 

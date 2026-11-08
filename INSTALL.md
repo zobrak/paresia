@@ -31,22 +31,33 @@ Machine : `backend-admin`, en root.
 apt install git
 ```
 
-Résultat attendu : `git --version` affiche `git version 2.47.3`.
+```
+git --version
+```
+
+Résultat attendu :
+
+```
+git version 2.47.3
+```
 
 ## 2. Récupérer le dépôt sur backend-admin
 
 Machine : `backend-admin`, en root.
 
 ```
-git clone https://github.com/zobrak/paresia.git paresia
+git clone https://github.com/zobrak/paresia.git ~/paresia
 ```
 
 ```
-cd paresia
-cat VERSION
+cat ~/paresia/VERSION
 ```
 
-Résultat attendu : `0.1.19`. Le dépôt est dans `~/paresia`.
+Résultat attendu :
+
+```
+0.1.19
+```
 
 ## 3. Installer les paquets de backend-admin
 
@@ -67,15 +78,18 @@ sudo apt install git
 ```
 
 ```
-git clone https://github.com/zobrak/paresia.git paresia
+git clone https://github.com/zobrak/paresia.git ~/paresia
 ```
 
 ```
-cd paresia
-cat VERSION
+cat ~/paresia/VERSION
 ```
 
-Résultat attendu : `0.1.19`, comme sur `backend-admin`.
+Résultat attendu (comme sur `backend-admin`) :
+
+```
+0.1.19
+```
 
 ## 5. Installer les paquets de backend-relais
 
@@ -95,7 +109,7 @@ Machine : `backend-relais`.
 sudo docker ps --filter name=^strfry$
 ```
 
-Résultat attendu : une ligne pour le conteneur `strfry`. Sinon, revenez à la page strfry du wiki avant de continuer.
+Résultat attendu : une ligne pour le conteneur `strfry`, à l'état `Up`. Sinon, revenez à la page strfry du wiki avant de continuer.
 
 ## 7. Vérifier backend-admin
 
@@ -224,13 +238,17 @@ echo 'restrict,command="/usr/local/bin/pollux-session" ssh-ed25519 CLE_PUBLIQUE_
 
 `CLE_PUBLIQUE_ADMIN` est la clé **publique** de l'administrateur ; `COMMENTAIRE` un nom court (1 à 64 caractères : lettres, chiffres, `.`, `_`, `@`, `-`). L'application Paresia-admin affiche cette ligne (menu « Ligne de clé à remettre »).
 
-Résultat attendu :
-
 ```
 ls -l /var/lib/paresia-app/.ssh/authorized_keys
 ```
 
-montre `root root` et les droits `-rw-r--r--`. Un autre propriétaire fait refuser la connexion.
+Résultat attendu :
+
+```
+-rw-r--r-- 1 root root 112 nov.  9 00:12 /var/lib/paresia-app/.ssh/authorized_keys
+```
+
+Un autre propriétaire fait refuser la connexion.
 
 ## Suite
 

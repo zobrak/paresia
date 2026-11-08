@@ -22,13 +22,21 @@ curl -fLO https://github.com/fiatjaf/nak/releases/download/v0.22.3/nak-v0.22.3-l
 echo "2eb9a16f86c865275983459b2c705d22d5dfbcf527026a279449cbf204d164fe  nak-v0.22.3-linux-amd64" | sha256sum -c -
 ```
 
-Résultat attendu : `Réussi` ou `OK`, selon la langue. Sinon, arrêtez-vous.
+Résultat attendu (`Réussi` au lieu de `OK` si le système est en français). Sinon, arrêtez-vous.
+
+```
+nak-v0.22.3-linux-amd64: OK
+```
 
 ```
 install -m 0755 -o root -g root nak-v0.22.3-linux-amd64 /usr/local/bin/nak
 ```
 
-Résultat attendu : `nak --help` affiche l'aide.
+```
+nak --help
+```
+
+Résultat attendu : l'aide de `nak`.
 
 ## Annexe : raisons et réserves
 
