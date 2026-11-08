@@ -15,7 +15,7 @@ Il vous faut :
 - deux machines Debian 13 avec `systemd`. Exemples : `backend-admin` en `192.0.2.10`, `backend-relais` en `192.0.2.20` (RFC 5737) ;
 - `backend-admin` qui joint `backend-relais` en TCP sur le port 22 ;
 - sur chaque machine, un compte ordinaire membre du groupe `sudo`, avec `curl` installé ;
-- `nak` sur les deux machines : sur `backend-relais`, il est installé par la page strfry (ci-dessous), qui crée la clé du relais ; sur `backend-admin` (signataires du bunker), voir `docs/wiki/Installer-nak.md` (non nécessaire aux étapes ci-dessous) ;
+- `nak` sur le poste où vous conservez vos clés privées (création de la clé du relais) et sur `backend-admin` (signataires du bunker), plus sur `backend-relais` : voir `docs/wiki/Installer-nak.md` (non nécessaire aux étapes ci-dessous) ;
 - pour chaque machine, un second terminal SSH (ou la console) ouvert et testé : le script recharge `sshd` ;
 - le conteneur `strfry` déjà en marche sur `backend-relais` (page « Installer le relais strfry » du wiki, `docs/wiki/Installer-strfry.md`), ou, pour un essai du noyau seul, voir l'annexe.
 

@@ -4,6 +4,8 @@ Version du document : 0.1.19 · 2026-11-08.
 
 Suivi, 2026-11-08 : réécrite pas à pas, dépôt récupéré dès le début ; numéro du document inchangé.
 
+Suivi, 2026-11-09 : `nak` n'est plus installé sur `backend-relais` ; la clé du relais se crée sur le poste des clés privées (étape 6) ; étapes renumérotées ; numéro du document inchangé (aucun numéro donné).
+
 Cette page prépare `backend-relais`, de zéro, avant `INSTALL.md`. Elle suit un seul fil : rien d'autre à ouvrir.
 
 Alpha : à essayer sur une machine jetable. Les noms et adresses (`backend-relais`, `relay.example.org`, `192.0.2.20`) sont des exemples génériques (RFC 2606, RFC 5737).
@@ -23,9 +25,9 @@ Toutes les commandes se lancent sur `backend-relais`, avec ce compte.
 
 | Valeur | Où | Exemple du guide | Ce qu'il faut mettre |
 | --- | --- | --- | --- |
-| adresse IP de la machine | `compose.yml` (étape 5) et contrôle `curl` (étape 10) | `192.0.2.20` | l'adresse IP de `backend-relais` joignable par le proxy ; jamais `0.0.0.0` |
-| `relay.auth.serviceUrl` | `strfry.conf`, étape 8 | `wss://relay.example.org` | l'adresse publique exacte du relais, en `wss://` ; sinon l'authentification échoue pour tous |
-| `relay.info.self` | `strfry.conf`, étape 8 | `""` (vide) | la clé publique du relais, créée à l'étape 7 |
+| adresse IP de la machine | `compose.yml` (étape 5) et contrôle `curl` (étape 9) | `192.0.2.20` | l'adresse IP de `backend-relais` joignable par le proxy ; jamais `0.0.0.0` |
+| `relay.auth.serviceUrl` | `strfry.conf`, étape 7 | `wss://relay.example.org` | l'adresse publique exacte du relais, en `wss://` ; sinon l'authentification échoue pour tous |
+| `relay.info.self` | `strfry.conf`, étape 7 | `""` (vide) | la clé publique du relais, créée à l'étape 6 sur le poste de vos clés |
 
 ## 1. Récupérer le dépôt
 
@@ -168,63 +170,17 @@ Résultat attendu (votre adresse devant `:7777:7777`) :
       - "192.0.2.20:7777:7777"
 ```
 
-## 6. Installer `nak`
+## 6. Créer la clé du relais
 
-Machine : `backend-relais`. Version v0.22.3, licence The Unlicense.
+À faire sur le poste où vous conservez vos clés privées, jamais sur cette machine : suivez [Installer nak](Installer-nak.md), puis revenez ici avec la clé publique.
 
-```
-cd ~
-```
+Résultat attendu : vous avez noté la clé publique (la clé privée reste en lieu sûr, sur ce poste).
 
-```
-curl -fLO https://github.com/fiatjaf/nak/releases/download/v0.22.3/nak-v0.22.3-linux-amd64
-```
-
-```
-echo "2eb9a16f86c865275983459b2c705d22d5dfbcf527026a279449cbf204d164fe  nak-v0.22.3-linux-amd64" | sha256sum -c -
-```
-
-Résultat attendu (`Réussi` au lieu de `OK` si le système est en français). Sinon, arrêtez-vous.
-
-```
-nak-v0.22.3-linux-amd64: OK
-```
-
-```
-sudo install -m 0755 -o root -g root nak-v0.22.3-linux-amd64 /usr/local/bin/nak
-```
-
-```
-nak --help
-```
-
-Résultat attendu : l'aide de `nak`.
-
-## 7. Créer la clé du relais
-
-Machine : `backend-relais`, dans `bash`. Rien n'est enregistré : la clé est seulement affichée.
-
-> **Attention.** La commande affiche deux lignes : **la première est la clé privée, la seconde la clé publique**.
-> Rien n'est enregistré : une fois l'écran effacé, la clé privée est perdue.
-> Copiez la **clé privée** en lieu sûr (coffre de mots de passe), jamais dans un fichier de cette machine, un terminal partagé ou une conversation.
-> Mettez la **clé publique**, et elle seule, dans `strfry.conf`.
-
-```bash
-SECRET=$(nak key generate); printf 'CLE PRIVEE (a conserver en lieu sur) : %s\n' "$SECRET"; printf 'CLE PUBLIQUE (pour strfry.conf)      : %s\n' "$(nak key public "$SECRET")"; unset SECRET
-```
-
-Résultat attendu : deux lignes libellées, chacune suivie de sa valeur.
-
-```
-CLE PRIVEE (a conserver en lieu sur) : …
-CLE PUBLIQUE (pour strfry.conf)      : …
-```
-
-## 8. Régler `strfry.conf`
+## 7. Régler `strfry.conf`
 
 Machine : `backend-relais`. Dans `/srv/strfry/strfry.conf`, modifiez ces deux lignes avec votre éditeur :
 
-**À personnaliser : remplacez `VOTRE_DOMAINE` par l'adresse publique du relais, et `CLE_PUBLIQUE` par la valeur de la ligne « CLE PUBLIQUE » de l'étape 7. N'y mettez jamais la clé privée.**
+**À personnaliser : remplacez `VOTRE_DOMAINE` par l'adresse publique du relais, et `CLE_PUBLIQUE` par la clé publique obtenue à l'étape 6. N'y mettez jamais la clé privée.**
 
 ```
         serviceUrl = "wss://VOTRE_DOMAINE"
@@ -246,7 +202,7 @@ Résultat attendu (vos valeurs à la place de `VOTRE_DOMAINE` et `CLE_PUBLIQUE`)
 
 La clé privée sera importée dans le bunker lors de son installation sur `backend-admin`, qui la chiffrera.
 
-## 9. Démarrer
+## 8. Démarrer
 
 Machine : `backend-relais`, dans `/srv/strfry`.
 
@@ -264,7 +220,7 @@ sudo docker ps --filter name=^strfry$
 
 Résultat attendu : une ligne pour le conteneur `strfry`, dont l'état passe à `healthy` après une minute.
 
-## 10. Contrôler
+## 9. Contrôler
 
 Machine : `backend-relais`.
 
@@ -302,8 +258,6 @@ En cas d'échec : `sudo journalctl -t strfry`.
 - **Port.** strfry n'est joignable que par le proxy inverse, qui doit écraser l'en-tête d'adresse du client. Jamais `0.0.0.0`.
 - **Chemins dans l'image.** Programme `/app/strfry`, base `/app/strfry-db`, configuration cherchée dans l'ordre : `--config`, `STRFRY_CONFIG`, `/etc/strfry.conf`, `./strfry.conf`.
 - **`strfry.conf` : à ne pas changer sans raison.** `db`, `relay.port = 7777`, `relay.bind = "0.0.0.0"` (adresse dans le conteneur), `relay.realIpHeader`, `relay.writePolicy.plugin` (doit coïncider avec le montage), `restrictedReadKinds = "4"` et `filterValidation.enabled = false` (compatibilité bitchat). Ne créez jamais d'arbre negentropy (`strfry negentropy add`, `build`).
-- **Annonce NIP-11.** Les champs `relay.info.*` (`name`, `description`, `pubkey`, `self`, `contact`, `icon`, `banner`, `privacy`, `terms`) sont à votre convenance, sauf `self` (étape 8) ; les champs vides sont des valeurs d'installation. `pubkey` est la clé publique de l'administrateur (facultative), distincte de la clé du relais (`self`).
-- **Clé.** La clé privée du relais est une identité du bunker (`[bunkerd] relay_identity`) ; bunkerd n'en garde que la forme chiffrée. Ne collez jamais une clé privée dans un fichier, un terminal partagé ou une conversation ; seule la clé publique se publie. Sur cette machine, rien n'est enregistré : la clé privée n'existe que le temps de la commande et de son affichage.
-- **`nak`.** Il n'est pas fourni par Debian ; il vient de l'amont `fiatjaf/nak` (https://github.com/fiatjaf/nak), v0.22.3, The Unlicense (empreinte et licence vérifiées à l'API GitHub le 2026-11-08). Les commandes de l'étape 6 ne font que télécharger, vérifier et installer ; aucune n'a été essayée.
-- **Création de la clé (étape 7).** La commande n'a pas été essayée. `nak key generate` et `nak key public <clé>` sont attestés par le README de `nak`. L'historique du shell ne contient que la commande, non la clé. La clé passe brièvement en argument de `nak key public` : elle est alors visible dans la liste des processus ; lancez la commande sur une machine sans autre utilisateur.
+- **Annonce NIP-11.** Les champs `relay.info.*` (`name`, `description`, `pubkey`, `self`, `contact`, `icon`, `banner`, `privacy`, `terms`) sont à votre convenance, sauf `self` (étape 7) ; les champs vides sont des valeurs d'installation. `pubkey` est la clé publique de l'administrateur (facultative), distincte de la clé du relais (`self`).
+- **Clé.** La clé privée du relais est une identité du bunker (`[bunkerd] relay_identity`) ; bunkerd n'en garde que la forme chiffrée. Ne collez jamais une clé privée dans un fichier, un terminal partagé ou une conversation ; seule la clé publique se publie. `nak` n'est pas installé sur `backend-relais` : la clé se crée sur le poste de vos clés (page [Installer nak](Installer-nak.md)).
 - **Non établi, à compléter :** présence de `python3` dans l'image publiée (le plugin du journal légal l'exige) ; limites de ressources de la production ; valeur de `ulimits.nofile` si strfry se plaint de `nofiles = 524288` ; forme du fichier `blocklist.txt` du plugin ; essai de ce `compose.yml` tel quel sur une machine.
