@@ -75,11 +75,14 @@ Dossier de travail au choix ; l'exemple utilise `/srv/strfry`. Dans l'image, les
           test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:7777/"]
           interval: 60s
 
-Préparez les dossiers et les droits :
+Préparez les dossiers et les droits **avant le premier démarrage** :
 
-    mkdir -p /srv/strfry/data /srv/strfry/plugins /srv/strfry/journal
-    chown 10001:10001 /srv/strfry/data /srv/strfry/journal
-    cp server/strfry/journal_legal.py /srv/strfry/plugins/
+    cd /srv/strfry
+    mkdir -p data journal plugins
+    chown -R 10001:10001 data journal
+    cp <racine du dépôt Paresia>/server/strfry/journal_legal.py plugins/
+
+Raison : le conteneur tourne sous `10001:10001` sans aucune capacité (`cap_drop: ALL`), donc ce compte doit être propriétaire de `data` et `journal` ; des droits `775` pour un autre propriétaire ne suffisent pas. Sans cela, strfry s'arrête au premier démarrage sur `mdb_env_open: Permission denied` (constaté lors d'un essai réel).
 
 Points **à compléter** :
 
@@ -124,6 +127,7 @@ Où garder la clé :
 ## 6. Démarrer et contrôler
 
     cd /srv/strfry
+    # data et journal doivent déjà appartenir à 10001:10001 (étape 3)
     docker compose up -d
 
 (ou la commande `docker run` équivalente, **à compléter**). Contrôles :
