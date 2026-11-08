@@ -10,37 +10,38 @@ Public : **A** = administrateur, **D** = développeur ou contributeur.
 
 | Document | Une ligne | Public |
 | --- | --- | --- |
-| `../README.md` | présentation, état, feuille de route | A, D |
-| `wiki/Accueil.md` | guide vulgarisé de l'administrateur (sommaire du wiki ; chaque page marque son « à venir ») | A |
-| `architecture.md` | composants, comptes et flux | A, D |
-| `cahier-des-charges.md` | spécification, qui fait foi | D |
-| `decisions.md` | décisions, source, conséquence d'un retour en arrière | D |
-| `../CHANGELOG.md` | historique des versions | A, D |
-| `../SECURITY.md` | modèle de menace (provisoire) et signalement | A, D |
+| [README](../README.md) | présentation, état, feuille de route | A, D |
+| [Accueil du wiki](wiki/Accueil.md) | guide vulgarisé de l'administrateur (sommaire du wiki ; chaque page marque son « à venir ») | A |
+| [Architecture](architecture.md) | composants, comptes et flux | A, D |
+| [Cahier des charges](cahier-des-charges.md) | spécification, qui fait foi | D |
+| [Décisions](decisions.md) | décisions, source, conséquence d'un retour en arrière | D |
+| [CHANGELOG](../CHANGELOG.md) | historique des versions | A, D |
+| [SECURITY](../SECURITY.md) | modèle de menace (provisoire) et signalement | A, D |
 
 ## Pour installer et exploiter
 
 | Document | Une ligne | Public |
 | --- | --- | --- |
-| `prerequis.md` | paquets, versions et modules par machine | A |
-| `exploitation.md` | démarrer, lire les journaux, feu de Castor, tunnel, retours arrière | A |
-| `configuration.md` | configuration en couches, codes d'erreur, emplacements | A, D |
-| `man/` | pages de manuel (liste : `man/README.md`) | A |
-| `installation-journal-legal-acl.md` | procédure pas à pas des scripts `journal-legal-*` | A |
-| `../INSTALL.md` | guide « Installer » : deux machines Debian 13, du paquet au tunnel (alpha), avec la mise à jour d'une installation existante (§ 12) | A |
-| `serveur-web.md` | exigences pour le serveur web (lighttpd) et le proxy (HAProxy) devant l'interface, extrait d'exemple et vérifications (Paresia n'installe ni l'un ni l'autre) | A |
-| `plugins/strfry.md` | greffon du relais strfry : actions livrées (trois fonctions de base) et contrat prévu | A, D |
+| [Prérequis](prerequis.md) | paquets, versions et modules par machine | A |
+| [Installer le relais strfry](wiki/Installer-strfry.md) | préparer le conteneur Docker `strfry` de `backend-relais`, avant l'installation | A |
+| [Exploitation](exploitation.md) | démarrer, lire les journaux, feu de Castor, tunnel, retours arrière | A |
+| [Configuration](configuration.md) | configuration en couches, codes d'erreur, emplacements | A, D |
+| [Pages de manuel](man/README.md) | pages de manuel (liste dans ce fichier) | A |
+| [Journal légal : ACL](installation-journal-legal-acl.md) | procédure pas à pas des scripts `journal-legal-*` | A |
+| [INSTALL](../INSTALL.md) | guide « Installer » : deux machines Debian 13, du paquet au tunnel (alpha), avec la mise à jour d'une installation existante (§ 12) | A |
+| [Serveur web](serveur-web.md) | exigences pour le serveur web (lighttpd) et le proxy (HAProxy) devant l'interface, extrait d'exemple et vérifications (Paresia n'installe ni l'un ni l'autre) | A |
+| [Greffon strfry](plugins/strfry.md) | greffon du relais strfry : actions livrées (trois fonctions de base) et contrat prévu | A, D |
 
 ## Pour développer
 
 | Document | Une ligne | Public |
 | --- | --- | --- |
-| `protocole.md` | messages NDJSON entre démons, `jumeaux/1` | D |
-| `exigences-client.md` | ce que le client doit implémenter, avec source et état côté serveur | D |
-| `conventions.md` | versions, branches, code, documentation, normes, licence | D |
-| `developpement.md` | poste de développement, tests, CI, garde contre les secrets, contenu du dépôt, contrats des briques communes | D |
-| `licences-tierces.md` | licences des dépendances et outils | D |
-| `../CONTRIBUTING.md` | comment contribuer | D |
+| [Protocole](protocole.md) | messages NDJSON entre démons, `jumeaux/1` | D |
+| [Exigences du client](exigences-client.md) | ce que le client doit implémenter, avec source et état côté serveur | D |
+| [Conventions](conventions.md) | versions, branches, code, documentation, normes, licence | D |
+| [Développement](developpement.md) | poste de développement, tests, CI, garde contre les secrets, contenu du dépôt, contrats des briques communes | D |
+| [Licences tierces](licences-tierces.md) | licences des dépendances et outils | D |
+| [CONTRIBUTING](../CONTRIBUTING.md) | comment contribuer | D |
 
 La procédure d'installation de bunkerd n'est pas encore écrite (démon écrit, unité non livrée).
 
