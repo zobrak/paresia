@@ -356,9 +356,21 @@ Résultat attendu :
 -rw-r--r-- 1 root root 112 nov.  9 00:12 /var/lib/paresia-app/.ssh/authorized_keys
 ```
 
-Un autre propriétaire fait refuser la connexion.
+Un autre propriétaire fait refuser la connexion. Ce contrôle ne prouve que le propriétaire et les droits, non la clé ajoutée. Pour la vérifier :
 
-L'installation est terminée quand la ligne est ajoutée et le propriétaire est `root`. Si le propriétaire est autre, la connexion sera refusée : corrigez-le avec `chown root:root` sur ce fichier. Passez à « Suite » ci-dessous.
+```
+ssh-keygen -lf /var/lib/paresia-app/.ssh/authorized_keys
+```
+
+Résultat attendu (une ligne par clé) :
+
+```
+256 SHA256:abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG COMMENTAIRE (ED25519)
+```
+
+Comparez cette empreinte à celle de la clé de l'administrateur, sur son poste : `ssh-keygen -lf <fichier .pub>`. Les deux empreintes doivent être identiques.
+
+La clé est autorisée seulement quand les empreintes coïncident et que le propriétaire du fichier est `root`. Si le propriétaire est autre, la connexion sera refusée : corrigez-le avec `chown root:root` sur ce fichier. Si les empreintes diffèrent, la ligne ajoutée n'est pas la bonne clé : retirez-la du fichier et recommencez l'ajout. Passez à « Suite » ci-dessous.
 
 ## Suite
 
