@@ -2,7 +2,7 @@
 
 Version du document : 0.1.19 · 2026-11-08 · [Accueil](Accueil.md)
 
-Référence : `docs/cahier-des-charges.md` (§ Journal légal, § Administration de bunkerd), `docs/protocole.md` § 5.1 et 5.2, `docs/configuration.md`, `paresia-nisaba(8)`, `nisaba-ctl(1)`, `paresia-bunkerd(8)`.
+Référence : [cahier des charges](../cahier-des-charges.md) (§ Journal légal, § Administration de bunkerd), [protocole](../protocole.md) § 5.1 et 5.2, [configuration](../configuration.md), `paresia-nisaba(8)`, `nisaba-ctl(1)`, `paresia-bunkerd(8)`.
 
 Nisaba et le bunker sont deux greffons yang, avec strfry les premiers greffons d'illustration. Ils tournent sur `backend-admin`.
 

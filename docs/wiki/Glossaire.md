@@ -20,8 +20,8 @@ Version du document : 0.1.19 · 2026-11-08 · [Accueil](Accueil.md)
 | **feu de circulation** | autre nom du feu de Castor : vert, les commandes passent ; rouge ou fermé, elles sont refusées |
 | **fonction** | côté yin, une brique d'un greffon : un script et son manifeste, que Remus charge et appelle ; elle ne s'exécute qu'à la demande |
 | **greffon** | module enfiché sur le noyau : strfry (yin), Nisaba et bunker (yang) sont les premiers. Il ne livre pas le produit qu'il administre : il déclare avec quelles versions il fonctionne |
-| **HAProxy** | proxy et répartiteur de charge, installé par l'administrateur, devant le serveur d'administration (`docs/serveur-web.md`) |
-| **lighttpd** | serveur web léger qui sert les pages de l'interface web ; installé par l'administrateur (`docs/serveur-web.md`) |
+| **HAProxy** | proxy et répartiteur de charge, installé par l'administrateur, devant le serveur d'administration ([Serveur web](../serveur-web.md)) |
+| **lighttpd** | serveur web léger qui sert les pages de l'interface web ; installé par l'administrateur ([Serveur web](../serveur-web.md)) |
 | **identité (bunker)** | clé Nostr chiffrée (`ncryptsec`) avec ses relais et clients autorisés |
 | **jeton** | valeur aléatoire émise à l'ouverture d'une session de présence, portée par chaque commande |
 | **journal légal** | journal des événements publiés sur le relais, conservé de façon probante |

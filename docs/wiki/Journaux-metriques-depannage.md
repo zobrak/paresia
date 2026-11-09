@@ -2,7 +2,7 @@
 
 Version du document : 0.1.16 · 2026-11-08 · [Accueil](Accueil.md)
 
-Référence : `docs/exploitation.md` (guide d'exploitation), rubrique DIAGNOSTICS de chaque page de manuel, `docs/protocole.md` § 9 (codes d'erreur).
+Référence : [exploitation](../exploitation.md) (guide d'exploitation), rubrique DIAGNOSTICS de chaque page de manuel, [protocole](../protocole.md) § 9 (codes d'erreur).
 
 ## Les journaux
 

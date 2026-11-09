@@ -2,7 +2,7 @@
 
 Version du document : 0.1.19 · 2026-11-08 · [Accueil](Accueil.md)
 
-Référence, avec la source de chaque ligne : `docs/prerequis.md`. Cette page en donne le sens.
+Référence, avec la source de chaque ligne : [Prérequis](../prerequis.md). Cette page en donne le sens.
 
 ## Machines
 
@@ -30,13 +30,13 @@ Le cloisonnement exige **deux machines distinctes** (physiques, virtuelles ou co
 - `acl` (`setfacl`, `getfacl`), `openssh-client` (dont `ssh-keygen` et `ssh-keyscan`), `curl`, `rsync` ; le script d'installation contrôle aussi Debian 13, Python 3.11 et `sshd` ;
 - pour le journal légal (Nisaba) : `ots` (OpenTimestamps), `chattr` et `lsattr` (paquet `e2fsprogs`) ;
 - pour le bunker : l'exécutable `nak` (signature Nostr) ; `python3-qrcode` facultatif (code QR de la page de déverrouillage) ;
-- lighttpd (frontal HTTP vers Romulus) : requis, mais **installé et configuré par vous** ; Paresia n'en documente que les exigences : `docs/serveur-web.md`.
+- lighttpd (frontal HTTP vers Romulus) : requis, mais **installé et configuré par vous** ; Paresia n'en documente que les exigences : [Serveur web](../serveur-web.md).
 
 ## backend-relais
 
 - OpenSSH (`sshd`), nftables, `sudo` **1.9.10 au moins** (expressions régulières d'arguments dans le fichier sudoers généré ; Debian 13 fournit 1.9.16), `visudo` ;
 - Docker, pour le conteneur strfry ; conseil, non une obligation : sur Debian 13, `apt install extrepo`, `extrepo enable docker-ce`, `apt update`, puis `apt install docker-ce docker-ce-cli containerd.io docker-compose-plugin` ;
-- l'image strfry **n'est pas l'image d'origine** : elle contient `python3`, requis par le plugin d'écriture du journal légal. L'image publique du projet est `z0brak/paresia-yin-strfry:4cd3cf6`. Ses modifications exactes sont **non établies** dans le dépôt (voir `docs/prerequis.md`, § 5) ; ne pas supposer que l'image d'origine suffit ;
+- l'image strfry **n'est pas l'image d'origine** : elle contient `python3`, requis par le plugin d'écriture du journal légal. L'image publique du projet est `z0brak/paresia-yin-strfry:4cd3cf6`. Ses modifications exactes sont **non établies** dans le dépôt (voir [Prérequis](../prerequis.md), § 5) ; ne pas supposer que l'image d'origine suffit ;
 - `rrsync` côté relais pour la copie en lecture seule du journal légal.
 
 ## Poste client
@@ -52,4 +52,4 @@ Les outils de développement (git, pytest, outils d'analyse…) servent à const
 ## À venir
 
 - Version minimale de systemd côté relais : **non établie**.
-- Liste complète de paquets par machine : les paquets de base sont dans `INSTALL.md`, § 2 ; les autres figurent dans `docs/prerequis.md`.
+- Liste complète de paquets par machine : les paquets de base sont dans [INSTALL.md](../../INSTALL.md), étapes [3](../../INSTALL.md#3-sur-yang--installer-les-paquets) et [5](../../INSTALL.md#5-sur-yin--installer-les-paquets) ; les autres figurent dans [Prérequis](../prerequis.md).

@@ -94,6 +94,18 @@ L'arborescence peut évoluer ; tout changement met ce fichier à jour. L'emballa
 - Toute option, variable de configuration ou code d'erreur ajouté est documenté dans la même modification.
 - **Fichiers livrés** : un fichier livré (code, unités, configuration, procédures, documentation, pages de manuel, catalogues) ne cite ni identifiant de tâche, ni lot, ni rôle d'agent, ni fiche, ni identifiant d'avis (D101). Les décisions `D<n>` de `docs/decisions.md` restent citables.
 - Chaque document porte un public, un objet et, s'il est long, un sommaire.
+- **Principes de rédaction des documents destinés aux lecteurs** (installation, wiki, guides ; décision de l'utilisateur, 2026-11-09). Les documents de référence ou d'historique (cahier des charges, décisions, protocole, CHANGELOG, pages de manuel) gardent leur forme ; pour eux, seuls les liens et les noms yin et yang en texte courant s'appliquent.
+  - Un parcours lisible de haut en bas, un seul par sujet, avec sommaire et hiérarchie de titres.
+  - Les prérequis sont annoncés avant d'être servis.
+  - Les machines sont nommées yin et yang.
+  - Chaque commande est copiable telle quelle, avec le `cd` nécessaire en tête du bloc ; jamais de gabarit du type `<machine>`.
+  - **À personnaliser** précède toute valeur à remplacer ; les valeurs sont explicites.
+  - Un fichier de configuration est présenté avec son contenu ou les lignes à changer, et l'explication de chaque réglage ; ni `sed` ni `cat` pour le modifier.
+  - Chaque commande est suivie d'un résultat attendu concret, avec les versions exactes.
+  - Chaque étape dit en une phrase ce qui vient d'être fait et ce qui suit.
+  - Vulgarisation : les notions sont introduites avant d'être utilisées, sans jargon pour un néophyte.
+  - Pas d'interdiction au nom de règles internes : une mise en garde didactique explique le risque.
+  - Tout renvoi à une page, une annexe ou une étape est un lien cliquable (chemin relatif ou ancre telle que GitHub la génère) ; seuls les chemins d'une commande ou d'un fichier système restent en code.
 
 ## Normes et usages de référence
 

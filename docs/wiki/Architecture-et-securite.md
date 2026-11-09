@@ -2,7 +2,7 @@
 
 Version du document : 0.1.19 · 2026-11-08 · [Accueil](Accueil.md)
 
-Référence technique : `docs/architecture.md`, `docs/cahier-des-charges.md`, `SECURITY.md`.
+Référence technique : [architecture](../architecture.md), [cahier des charges](../cahier-des-charges.md), [SECURITY](../../SECURITY.md).
 
 ## Vue d'ensemble
 
@@ -38,7 +38,7 @@ Ce que cela change pour vous :
 - **L'identité du service est toujours vérifiée.** Pour chaque service, la configuration donne le socket **et** le numéro d'utilisateur (uid) du compte attendu en face. Un socket sans uid est refusé au démarrage : Romulus ne parle jamais à un processus dont il n'a pas vérifié l'identité (`SO_PEERCRED`).
 - **Un service peut être facultatif.** C'est le cas du journal légal (Nisaba) : sans sa section, ses actions répondent « non disponible » (501).
 
-Référence : page de manuel `paresia-romulus(8)`, `docs/developpement.md`, § 6.3.
+Référence : page de manuel `paresia-romulus(8)`, [développement](../developpement.md), § 6.3.
 
 ## Les pages des greffons dans l'application
 
@@ -50,7 +50,7 @@ Ce que cela change pour vous :
 - **Un greffon défaillant ne bloque rien.** Index absent, texte invalide, script muet : le greffon ou la page est écarté et signalé dans la zone de diagnostic, les pages du noyau restent utilisables. Tout est borné dans le temps (10 secondes par fichier, 30 secondes pour l'ensemble).
 - **Les textes d'un greffon ne remplacent jamais ceux de l'application** : chaque clé de texte d'un greffon porte son nom, et une collision fait refuser le greffon.
 
-Référence : page de manuel `paresia-admin(1)`, `docs/developpement.md`, § 6.4.
+Référence : page de manuel `paresia-admin(1)`, [développement](../developpement.md), § 6.4.
 
 ## Le tunnel SSH
 
@@ -89,10 +89,10 @@ Autrement dit : même si quelqu'un parvenait à parler à Remus, il ne ferait ri
 
 ## Limites connues
 
-Elles sont décrites honnêtement dans `SECURITY.md` (modèle de menace provisoire). Par exemple : le plugin d'écriture de strfry ne valide pas l'adresse de connexion qu'il reçoit. Votre reverse proxy DOIT donc écraser l'en-tête d'adresse du client, et le port de strfry ne doit être publié que vers ce proxy.
+Elles sont décrites honnêtement dans [SECURITY](../../SECURITY.md) (modèle de menace provisoire). Par exemple : le plugin d'écriture de strfry ne valide pas l'adresse de connexion qu'il reçoit. Votre reverse proxy DOIT donc écraser l'en-tête d'adresse du client, et le port de strfry ne doit être publié que vers ce proxy.
 
 ## À venir
 
-- Modèle de menace complet (`SECURITY.md`, provisoire).
+- Modèle de menace complet ([SECURITY](../../SECURITY.md), provisoire).
 - Chiffrement TLS du tronçon pare-feu vers `backend-admin` (prévu « plus tard » au cahier).
 - Privilèges par fonction sans `sudo` (socket systemd par fonction), avant l'ouverture des greffons aux tiers, après la 1.0.

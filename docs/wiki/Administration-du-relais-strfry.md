@@ -4,7 +4,7 @@ Version du document : 0.1.19 · 2026-11-08 · [Accueil](Accueil.md)
 
 **En une phrase.** Paresia, sur un strfry existant, lit son état, ses arbres negentropy (index de synchronisation) et peut le redémarrer, par le greffon de base ; elle ne l'installe jamais et ne modifie jamais ni le conteneur ni son image.
 
-Référence : `docs/cahier-des-charges.md` (§ Remus et Castor sur backend-relais), `docs/protocole.md` § 5, `deploy/backend-relais/strfry/strfry.conf`, `deploy/backend-relais/isolation-remus.md`, `paresia-remus(8)`.
+Référence : [cahier des charges](../cahier-des-charges.md) (§ Remus et Castor sur backend-relais), [protocole](../protocole.md) § 5, [strfry.conf livré](../../deploy/backend-relais/strfry/strfry.conf), [isolation de Remus](../../deploy/backend-relais/isolation-remus.md), `paresia-remus(8)`.
 
 strfry est le premier greffon yin : le relais Nostr que Paresia administre. Cette page distingue ce qui est **livré** de ce qui est **prévu**.
 
@@ -19,7 +19,7 @@ Le principe des greffons : un greffon **ne livre pas le produit** qu'il administ
 ## Ce qui est livré
 
 - Le **greffon strfry de base** (côté Remus, `paresia-yin-strfry`) : trois fonctions, posées par le script d'installation du relais dans `/usr/local/lib/paresia/remus/fonctions` (voir ci-dessous).
-- Remus : socle, chargement des fonctions, exécuteur de commandes et de scripts, flux d'événements sur le fil, générateur de sudoers, comptes, règle nftables, unités systemd, isolation (voir `isolation-remus.md`).
+- Remus : socle, chargement des fonctions, exécuteur de commandes et de scripts, flux d'événements sur le fil, générateur de sudoers, comptes, règle nftables, unités systemd, isolation (voir [isolation de Remus](../../deploy/backend-relais/isolation-remus.md)).
 - Un **`strfry.conf` complet**, toutes les valeurs écrites explicitement. Points d'attention pour les administrateurs de relais :
   - `relay.auth.restrictedReadKinds = "4"` : seuls les messages privés classiques (type 4) exigent une connexion authentifiée pour être lus ; le réglage d'origine de strfry l'exigerait aussi pour les messages privés emballés (type 1059), ce qui bloquerait l'application **bitchat**, qui ne sait pas s'authentifier ;
   - `restrictReadToInvolvedPubkey = true` ;

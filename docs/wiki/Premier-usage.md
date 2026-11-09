@@ -2,7 +2,7 @@
 
 Version du document : 0.1.19 · 2026-11-08 · [Accueil](Accueil.md)
 
-Référence : `docs/exploitation.md`, `deploy/essai-presence.md`, pages de manuel `paresia-admin(1)`, `paresia-pollux(8)`, `paresia-castor(8)`, `nisaba-ctl(1)`.
+Référence : [exploitation](../exploitation.md), [essai de présence](../../deploy/essai-presence.md), pages de manuel `paresia-admin(1)`, `paresia-pollux(8)`, `paresia-castor(8)`, `nisaba-ctl(1)`.
 
 Suivi, 2026-11-09 : chemin le plus court placé en tête, description de l'interface séparée ; numéro du document inchangé.
 
@@ -10,7 +10,7 @@ Cette page décrit ce que vous pouvez faire **aujourd'hui**, état alpha. L'appl
 
 ## Le chemin le plus court vers un premier résultat
 
-Prérequis : l'installation de [`INSTALL.md`](../../INSTALL.md) est terminée (étapes 1 à 15), et votre poste a PyQt6 avec QtWebEngine, un agent SSH actif qui détient votre clé, et `openssh-client`.
+Prérequis : l'installation de [INSTALL.md](../../INSTALL.md) est terminée (étapes [1](../../INSTALL.md#1-sur-yang--installer-git) à [15](../../INSTALL.md#15-sur-yang--autoriser-la-clé-dun-administrateur)), et votre poste a PyQt6 avec QtWebEngine, un agent SSH actif qui détient votre clé, et `openssh-client` ; l'installation du client est décrite dans [Installer le client](Installer-client.md).
 
 1. Sur yang, contrôlez que les démons tournent : `systemctl status pollux.service romulus.service paresia-tunnel.service` doit montrer trois unités `active`.
 2. Sur yin, contrôlez de même : `sudo /usr/bin/systemctl status castor.service remus.service` doit montrer deux unités `active`.
@@ -61,7 +61,7 @@ L'application officielle (Paresia-admin) ouvre la session : `ssh -T app@backend-
 
 La fenêtre a un menu : « Ouvrir l'administration », « Fermer l'administration », « Ligne de clé à remettre » (la ligne à faire ajouter au fichier des clés autorisées du serveur, affichée dans un champ en lecture seule) et « Quitter ». Un indicateur montre trois états : fermée (gris), ouverte (vert), perdue (rouge). Si la session est perdue, la fenêtre vous propose de la rouvrir ; elle ne le fait jamais seule. La fenêtre ne navigue que vers l'adresse de votre serveur ; toute autre adresse est refusée avec un message. Une fois la session ouverte, elle affiche les pages du noyau (voir [Les pages du noyau](#les-pages-du-noyau)) et celles que les greffons installés déclarent (aucun greffon livré n'en apporte pour l'instant). Le poste client doit avoir un agent SSH actif (`SSH_AUTH_SOCK`) qui détient votre clé, et l'option `ssh_keygen` de la configuration du client doit désigner l'outil `ssh-keygen`.
 
-En attendant, la procédure `deploy/essai-presence.md` fait un essai réel de la présence avec un **client de banc** : elle ouvre une session, obtient un jeton et vérifie l'enchaînement Pollux, tunnel, Castor. Lisez-la entièrement avant de la lancer ; elle avertit avant chaque étape risquée.
+En attendant, la procédure [essai de présence](../../deploy/essai-presence.md) fait un essai réel de la présence avec un **client de banc** : elle ouvre une session, obtient un jeton et vérifie l'enchaînement Pollux, tunnel, Castor. Lisez-la entièrement avant de la lancer ; elle avertit avant chaque étape risquée.
 
 Avant la première session, il faut que votre **clé publique d'administrateur** figure dans le fichier des clés autorisées du compte `app` (`/var/lib/paresia-app/.ssh/authorized_keys`, propriété de root, dans l'exemple de configuration). Une gestion des utilisateurs, où Romulus tient ce fichier à votre place, est prévue (voir ci-dessous).
 

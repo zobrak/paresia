@@ -24,6 +24,7 @@ Public : **A** = administrateur, **D** = développeur ou contributeur.
 | --- | --- | --- |
 | [Prérequis](prerequis.md) | paquets, versions et modules par machine | A |
 | [Installer le relais strfry](wiki/Installer-strfry.md) | préparer le conteneur Docker `strfry` de `backend-relais`, avant l'installation | A |
+| [Installer le client](wiki/Installer-client.md) | installer le client Paresia-admin sur le poste de l'administrateur | A |
 | [Installer `nak`](wiki/Installer-nak.md) | installer `nak` sur le poste des clés privées (création d'une clé) et sur `backend-admin` (bunker) | A |
 | [Exploitation](exploitation.md) | démarrer, lire les journaux, feu de Castor, tunnel, retours arrière | A |
 | [Configuration](configuration.md) | configuration en couches, codes d'erreur, emplacements | A, D |

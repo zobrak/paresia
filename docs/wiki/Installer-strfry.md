@@ -6,7 +6,7 @@ Suivi, 2026-11-08 : réécrite pas à pas, dépôt récupéré dès le début ; 
 
 Suivi, 2026-11-09 : `nak` n'est plus installé sur yin ; la clé du relais se crée sur le poste des clés privées (étape 6) ; étapes renumérotées ; numéro du document inchangé (aucun numéro donné).
 
-Cette page prépare **yin** (la machine du relais, `backend-relais` dans les noms de scripts et de dossiers), de zéro, avant `INSTALL.md`. Elle suit un seul fil : rien d'autre à ouvrir.
+Cette page prépare **yin** (la machine du relais, `backend-relais` dans les noms de scripts et de dossiers), de zéro, avant [INSTALL.md](../../INSTALL.md). Elle suit un seul fil : rien d'autre à ouvrir.
 
 Alpha : à essayer sur une machine jetable. Les noms et adresses (`yin`, `relay.example.org`, `192.0.2.20`) sont des exemples génériques (RFC 2606, RFC 5737).
 
@@ -312,7 +312,7 @@ publishing to ws://192.0.2.20:7777... success.
 
 ## Suite
 
-Yin est prêt pour le relais. Passez à `INSTALL.md`, étape 6 « Sur yin : contrôler que strfry tourne », puis suivez la suite : le dépôt est déjà récupéré sur cette machine.
+Yin est prêt pour le relais. Passez à [INSTALL.md, étape 6 « Sur yin : installer et vérifier strfry »](../../INSTALL.md#6-sur-yin--installer-et-vérifier-strfry), puis suivez la suite : le dépôt est déjà récupéré sur cette machine.
 
 ## Si vous n'utilisez pas notre image
 
@@ -325,7 +325,7 @@ Cette section décrit ce que Paresia attend d'un conteneur strfry que vous avez 
 | Le conteneur s'appelle `strfry`. | Les fonctions de Remus lancent `docker exec strfry …` et `docker restart strfry`, seules commandes `sudo` autorisées ; l'installateur cherche ce nom. | `deploy/backend-relais/etc/sudoers.d/paresia-remus` ; étape « produit » de `installer-backend-relais.sh` |
 | L'étiquette de l'image se termine par `4cd3cf6` (exemple : `mon-depot/strfry:4cd3cf6`). | L'installateur compare l'étiquette à la version déclarée par le greffon (`4cd3cf6`, l'identifiant court d'un commit de strfry) et s'arrête sinon (code 78). Pour ne pas poser cette condition, ajoutez `--sauter produit` aux commandes de yin : le contrôle est alors à votre charge. | `strfry_etat.toml`, section `[produit]` ; installateur |
 | Le programme est `/app/strfry` dans le conteneur et comprend les sous-commandes `info` et `negentropy list`. | Ce sont les deux commandes lancées par les fonctions « état » et « arbres de synchronisation ». Les versions de strfry autres que le commit `4cd3cf6` ne sont pas vérifiées par le code : à essayer chez vous. | `strfry_etat`, `strfry_arbres` |
-| `python3` est installé, à `/usr/bin/python3`. | Le plugin du journal légal est un script Python dont la première ligne est `#!/usr/bin/python3`. Il n'emploie que la bibliothèque standard (`json`, `os`, `re`, `time`…) et aucun sous-processus. Version minimale : le code ne la contrôle pas ; `docs/prerequis.md` indique que le plugin reste exécutable par Python 3.9 et plus, et l'image publiée a été relevée avec `Python 3.14.10`. | `server/strfry/journal_legal.py` |
+| `python3` est installé, à `/usr/bin/python3`. | Le plugin du journal légal est un script Python dont la première ligne est `#!/usr/bin/python3`. Il n'emploie que la bibliothèque standard (`json`, `os`, `re`, `time`…) et aucun sous-processus. Version minimale : le code ne la contrôle pas ; [Prérequis](../prerequis.md) indique que le plugin reste exécutable par Python 3.9 et plus, et l'image publiée a été relevée avec `Python 3.14.10`. | `server/strfry/journal_legal.py` |
 | Le compte qui fait tourner le conteneur peut lire `/etc/strfry.conf` et `/app/plugins/journal_legal.py` (exécutable), écrire dans `/app/strfry-db` et dans `/app/journal`. | Sans cela, strfry s'arrête sur `Permission denied`. Le guide emploie `10001:10001` ; Paresia ne contrôle pas ce numéro. | guide, étapes 4 et 5 |
 | La configuration est lue en `/etc/strfry.conf` (montée en lecture seule) et le plugin à `/app/plugins/journal_legal.py`. | `relay.writePolicy.plugin` doit désigner le chemin réel du plugin dans le conteneur. | `deploy/backend-relais/strfry/strfry.conf` |
 

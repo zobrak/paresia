@@ -17,7 +17,8 @@ Les mots techniques sont expliqués dans le [glossaire](Glossaire.md).
 | [Prérequis](Prerequis.md) | Quelles machines, quels logiciels, quels comptes |
 | [Installer le relais strfry](Installer-strfry.md) | Préparer le conteneur Docker `strfry` de `backend-relais`, avant l'installation |
 | [Installer `nak`](Installer-nak.md) | Sur le poste de vos clés privées : installer `nak` et créer une clé ; aussi sur `backend-admin` pour le bunker |
-| [Installation](Installation.md) | Principe de l'installation semi-automatique, options et codes de sortie des scripts (le parcours pas à pas est `INSTALL.md`) |
+| [Installation](Installation.md) | Principe de l'installation semi-automatique, options et codes de sortie des scripts (le parcours pas à pas est [INSTALL.md](../../INSTALL.md)) |
+| [Installer le client](Installer-client.md) | Installer le client Paresia-admin sur le poste de l'administrateur |
 | [Premier usage](Premier-usage.md) | Que vérifier juste après l'installation, ce qui est utilisable aujourd'hui |
 | [Administrer le relais strfry](Administration-du-relais-strfry.md) | Ce que Paresia fera (et ne fera pas) sur un relais strfry |
 | [Nisaba et le bunker](Nisaba-et-bunker.md) | Journal légal, signatures à distance (NIP-46), identités |
@@ -30,18 +31,18 @@ Les mots techniques sont expliqués dans le [glossaire](Glossaire.md).
 
 Ce wiki vulgarise ; la référence précise est dans le dépôt :
 
-- cahier des charges (fait foi) : `docs/cahier-des-charges.md` ;
-- protocole entre démons : `docs/protocole.md` ;
-- configuration : `docs/configuration.md` ;
-- guide d'exploitation : `docs/exploitation.md` ;
-- pages de manuel : `docs/man/` (lecture : `man -l docs/man/paresia-castor.8`) ;
-- décisions et retours en arrière : `docs/decisions.md`.
+- cahier des charges (fait foi) : [cahier des charges](../cahier-des-charges.md) ;
+- protocole entre démons : [protocole](../protocole.md) ;
+- configuration : [configuration](../configuration.md) ;
+- guide d'exploitation : [exploitation](../exploitation.md) ;
+- pages de manuel : [dossier `docs/man/`](../man/) (lecture : `man -l docs/man/paresia-castor.8`) ;
+- décisions et retours en arrière : [décisions](../decisions.md).
 
 ## État du projet
 
 Paresia est en version alpha (voir le fichier `VERSION` du dépôt). Les démons côté serveur sont en grande partie écrits ; le client Paresia-admin a une fenêtre qui ouvre la session de présence, avec les pages d'état, de journal d'activité et de catalogue du noyau (pas encore de pages d'administration du relais) ; les scripts d'installation et de mise à jour sont écrits et essayés en alpha (le guide pas à pas est `INSTALL.md`, à la racine du dépôt) ; un greffon strfry de base livre trois fonctions ; bunkerd et Nisaba sont écrits, mais leur unité et leur installation ne sont pas encore livrées. Alpha : pas en production, à essayer sur des machines jetables. Chaque page dit précisément ce qui est utilisable aujourd'hui.
 
-**Feuille de route.** Version 0.1 (actuelle) : preuve de concept (noyaux serveur et client, client Qt parlant à l'API, pages servies par un lighttpd que vous configurez selon `docs/serveur-web.md`, démonstration de la présence, de l'état et du journal d'activité de Paresia, greffon strfry de base). Ses limites sont dans le `README.md`, section « Limites connues ». Version 0.2 : administration complète du relais, avec journaux et bunker, **à venir**.
+**Feuille de route.** Version 0.1 (actuelle) : preuve de concept (noyaux serveur et client, client Qt parlant à l'API, pages servies par un lighttpd que vous configurez selon [Serveur web](../serveur-web.md), démonstration de la présence, de l'état et du journal d'activité de Paresia, greffon strfry de base). Ses limites sont dans le [README](../../README.md), section « Limites connues ». Version 0.2 : administration complète du relais, avec journaux et bunker, **à venir**.
 
 **Ce que Paresia n'installe pas.** lighttpd (serveur web) et HAProxy (proxy et répartiteur de charge) ne sont pas installés par Paresia, qui en documente seulement les exigences (voir [Installation](Installation.md) et [Prérequis](Prerequis.md)).
 

@@ -2,7 +2,7 @@
 
 Version du document : 0.1.16 · 2026-11-08 · [Accueil](Accueil.md)
 
-Référence complète : `docs/configuration.md`, `paresia.conf(5)`, exemple intégral `server/conf/paresia.conf` (côté relais : `server/conf/paresia-relais.conf`).
+Référence complète : [configuration](../configuration.md), `paresia.conf(5)`, exemple intégral `server/conf/paresia.conf` (côté relais : `server/conf/paresia-relais.conf`).
 
 ## Principe : des couches
 
@@ -89,4 +89,4 @@ Les messages passent par des catalogues `i18n/<langue>.json` (`fr-FR` par défau
 - Rechargement à chaud : non livré.
 - Unités de bunkerd et de Nisaba (donc leur dossier d'état, nécessaire pour activer leurs métriques) : non livrées.
 - Emplacement définitif du fichier des clés autorisées : dépend de la gestion des utilisateurs (non fixé).
-- Configuration de lighttpd : non livrée par Paresia ; ses exigences et un extrait d'exemple sont dans `docs/serveur-web.md`.
+- Configuration de lighttpd : non livrée par Paresia ; ses exigences et un extrait d'exemple sont dans [Serveur web](../serveur-web.md).

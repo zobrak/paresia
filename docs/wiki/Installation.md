@@ -2,7 +2,7 @@
 
 Version du document : 0.1.19 · 2026-11-08 · [Accueil](Accueil.md)
 
-Suivi, 2026-11-09 : la page ne contient plus de parcours numéroté ; le seul parcours est `INSTALL.md`. Numéro du document inchangé.
+Suivi, 2026-11-09 : la page ne contient plus de parcours numéroté ; le seul parcours est [INSTALL.md](../../INSTALL.md). Numéro du document inchangé.
 
 Alpha : pas en production, à essayer sur des machines jetables.
 
@@ -18,7 +18,7 @@ Elle consiste en cinq temps :
 4. relancer le script de yang pour poser le tunnel ;
 5. vérifier, activer au démarrage, puis autoriser la clé d'un administrateur.
 
-**Le parcours complet, avec les commandes et les résultats attendus, est dans [`INSTALL.md`](../../INSTALL.md), à la racine du dépôt.** C'est le seul parcours : suivez-le de haut en bas.
+**Le parcours complet, avec les commandes et les résultats attendus, est dans [INSTALL.md](../../INSTALL.md), à la racine du dépôt.** C'est le seul parcours : suivez-le de haut en bas.
 
 **Yang** est la machine d'administration, non exposée (`backend-admin` dans les noms de scripts et de dossiers). **Yin** est la machine du relais, exposée (`backend-relais`). Chaque machine a besoin d'une valeur produite par l'autre : l'installation alterne entre elles.
 
@@ -45,7 +45,7 @@ Ce que chaque machine installe : côté yang, Pollux, `pollux-session`, Romulus 
 
 Le tunnel demande un échange de clés dans cet ordre : yang génère la clé du tunnel (la clé privée y reste) ; yin reçoit adresse, clé publique et empreinte, puis affiche l'empreinte de sa clé d'hôte ; yang compare cette empreinte à `ssh-keyscan`. L'empreinte passe par un second canal, pas par le tunnel qu'elle protège.
 
-Deux machines, deux règles, voulues par le mainteneur (voir [`docs/decisions.md`](../decisions.md)) :
+Deux machines, deux règles, voulues par le mainteneur (voir [décisions](../decisions.md)) :
 
 - yang : root, sans `sudo` installé (une porte de moins). Tout autre compte est refusé (code 77).
 - yin : aucun shell root ; compte ordinaire avec `sudo` (1.9.10 au moins) limité aux commandes nécessaires, par chemin absolu. Root est refusé (code 77).
@@ -74,7 +74,7 @@ Temporaire, retiré après validation :
 | `--stockage-actif` | `oui` | `non` désactive les sauvegardes (retour arrière impossible : à éviter) |
 | `--sauter <étape>` | aucune | `produit` (yin : contrôle de l'image strfry), `fonctions` (yin), `sudoers`, `nftables`, `isolation_remus`, `www-data` |
 | `--activer` | non | active les unités au démarrage, après vérification (le tunnel, tiré par `pollux` et `romulus`, n'est jamais activé pour lui-même) |
-| `--mise-a-jour` | non | met à jour une installation existante (voir `INSTALL.md`, annexe A) |
+| `--mise-a-jour` | non | met à jour une installation existante (voir [INSTALL.md, annexe A](../../INSTALL.md#annexe-a--mettre-à-jour-une-installation-existante)) |
 | `--retour-arriere --jeu <nom> --confirme` | | retour arrière |
 
 Propres à yin : `--repertoire-tunnel` (défaut `/var/lib/paresia-tunnel`, jamais sous `/home`), `--profil`, `--port-essai`, `--acces-tunnel-sans-nftables`. Propre à yang : `--repertoire-app` (défaut `/var/lib/paresia-app`).
@@ -87,14 +87,14 @@ Selon `sysexits.h` : 0 succès ; 64 usage ; 65 valeur invalide ; 66 catalogue il
 
 - Des comptes système sans mot de passe ni répertoire sous `/home` (yin : `paresia-castor`, `chef`, `tunnel` ; yang : `app`, `paresia-romulus`, `paresia-pollux`, `paresia-tunnel`). Leurs uid et gid sont choisis par le système dans la plage de `login.defs(5)` et reportés dans la configuration. Un compte conforme est repris ; un compte non conforme est refusé (code 78).
 - Le code sous `/usr/local/lib/paresia`, la configuration sous `/etc/paresia/` (`paresia.conf`, `conf.d/`).
-- Sur yang, les pages de l'interface sous `/usr/local/share/paresia/web/` (propriété de root), avec sous `greffons/` les pages des greffons et un `index.json`. Le script ne sert pas ces fichiers : à vous de les faire servir sous `/admin/` (`docs/serveur-web.md`).
+- Sur yang, les pages de l'interface sous `/usr/local/share/paresia/web/` (propriété de root), avec sous `greffons/` les pages des greffons et un `index.json`. Le script ne sert pas ces fichiers : à vous de les faire servir sous `/admin/` ([Serveur web](../serveur-web.md)).
 - Les unités systemd (`pollux`, `romulus`, `paresia-tunnel` ; `castor`, `remus`, `paresia-nftables`).
 - Sur yin, `/etc/sudoers.d/paresia-remus` (généré) et la table nftables `paresia_relais`.
 
 ## Annexe G : réserves
 
 - Les unités et l'installation de bunkerd et de Nisaba ne sont pas livrées. Procédure de migration depuis les anciens scripts `journal-legal-*` : non livrée.
-- Paresia n'installe ni lighttpd ni HAProxy ; elle en documente les exigences (`docs/serveur-web.md`, avec un extrait pour lighttpd).
+- Paresia n'installe ni lighttpd ni HAProxy ; elle en documente les exigences ([Serveur web](../serveur-web.md), avec un extrait pour lighttpd).
 - Mode Docker rootless tout-en-un : après la 1.0.
-- Essai de bout en bout de la présence : `deploy/essai-presence.md`.
-- Références : pages de manuel `installer-backend-admin(8)` et `installer-backend-relais(8)`, `docs/prerequis.md`. Lisez `--aide` de la version que vous avez.
+- Essai de bout en bout de la présence : [essai de présence](../../deploy/essai-presence.md).
+- Références : pages de manuel `installer-backend-admin(8)` et `installer-backend-relais(8)`, [Prérequis](../prerequis.md). Lisez `--aide` de la version que vous avez.

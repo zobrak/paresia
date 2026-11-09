@@ -2,7 +2,7 @@
 
 Version du document : 0.1.16 · 2026-11-08 · [Accueil](Accueil.md)
 
-Référence : `paresia-sauvegarde(8)`, `docs/exploitation.md` § 6, `docs/decisions.md`.
+Référence : `paresia-sauvegarde(8)`, [exploitation](../exploitation.md) § 6, [décisions](../decisions.md).
 
 ## Règle d'or
 
@@ -95,7 +95,7 @@ Un retour à la main, sans le script, exige le dossier du code précédent avec 
 
 ## Retour arrière d'une décision de conception
 
-`docs/decisions.md` indique, pour chaque décision, ce qu'il faudrait défaire. Un retour en arrière de cette nature est une décision du mainteneur.
+[décisions](../decisions.md) indique, pour chaque décision, ce qu'il faudrait défaire. Un retour en arrière de cette nature est une décision du mainteneur.
 
 ## Sauvegarder vos données
 

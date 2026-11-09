@@ -13,9 +13,9 @@
 ## Pour décider d'essayer
 
 - **Ce qu'il faut** : deux machines Debian 13 (une pour l'administration, une pour le relais), un accès SSH entre elles, et une clé SSH tenue par un agent SSH sur votre poste.
-- **Ce que vous pouvez voir aujourd'hui** : l'installation des deux côtés, le tunnel, et l'ouverture d'une session de présence prouvée par votre clé (voir `INSTALL.md`, puis `docs/wiki/Premier-usage.md`). C'est une démonstration du principe.
+- **Ce que vous pouvez voir aujourd'hui** : l'installation des deux côtés, le tunnel, et l'ouverture d'une session de présence prouvée par votre clé (voir [INSTALL.md](INSTALL.md), puis [Premier usage](docs/wiki/Premier-usage.md)). C'est une démonstration du principe.
 - **Ce que vous ne pouvez pas faire encore** : administrer un relais strfry, un bunker ou un journal légal depuis le client. Les seules actions réelles sur le relais sont les trois du greffon de base (état, arbres negentropy, redémarrage), sans page dédiée dans le client.
-- **Prévoyez** de partir de machines jetables et de lire `SECURITY.md` avant d'exposer quoi que ce soit.
+- **Prévoyez** de partir de machines jetables et de lire [SECURITY](SECURITY.md) avant d'exposer quoi que ce soit.
 
 ## Limites connues (v0.1)
 
@@ -24,11 +24,11 @@
 - **Administration du relais, journaux, bunker** : prévues en v0.2. Aujourd'hui, le greffon strfry de base ne fait que trois choses (état, arbres negentropy en lecture seule, redémarrage du conteneur) et aucun greffon n'apporte de page au client ; depuis la page « Catalogue », une action avec paramètres ne se lance pas.
 - **Journal légal** : la consultation (recherche, export) n'est pas livrée ; les actions `legal/*` répondent encore 501 `not_available`. L'état et la vérification passent par `nisaba/state/*`.
 - **Services sans unité systemd** : bunkerd et Nisaba n'ont pas d'unité ni d'installation livrées.
-- **Serveur web et proxy** : à votre charge (`docs/serveur-web.md`) ; leurs exigences ne sont pas toutes éprouvées (états « établi », « déduit » et « non vérifié » dans ce document).
+- **Serveur web et proxy** : à votre charge ([Serveur web](docs/serveur-web.md)) ; leurs exigences ne sont pas toutes éprouvées (états « établi », « déduit » et « non vérifié » dans ce document).
 
 ## Ce que c'est
 
-- **Un noyau en deux couples de jumeaux**, un couple par machine, reliés par un tunnel SSH (liaison chiffrée entre les deux machines) : côté yang (administration) Romulus et Pollux, côté yin (service administré) Remus et Castor. Les démons (programmes de fond) ne font que transporter : commandes d'un côté, présence de l'autre (protocole `jumeaux/1`, le « langage » commun des démons ; voir `docs/wiki/Glossaire.md`).
+- **Un noyau en deux couples de jumeaux**, un couple par machine, reliés par un tunnel SSH (liaison chiffrée entre les deux machines) : côté yang (administration) Romulus et Pollux, côté yin (service administré) Remus et Castor. Les démons (programmes de fond) ne font que transporter : commandes d'un côté, présence de l'autre (protocole `jumeaux/1`, le « langage » commun des démons ; voir le [Glossaire](docs/wiki/Glossaire.md)).
 - **Un noyau étranger aux produits.** Il ne connaît ni strfry (le relais Nostr), ni Nisaba (journal légal), ni le bunker (signature à distance, NIP-46). Les **greffons** (modules enfichés) déclarent leur compatibilité avec un produit installé à part et ne le livrent pas. Remus reste « bête » : ses capacités viennent des greffons.
 - **Un client en deux parties** : un noyau Qt et une interface web, chaque greffon apportant ses propres pages.
 - **Deux produits, un numéro de version** : Paresia-server (démons et configurations) et Paresia-admin (client).
@@ -47,7 +47,7 @@ Les administrateurs qui hébergent eux-mêmes leurs services, en particulier les
 - **Client** : noyau Qt écrit (configuration, session de présence, fenêtre QtWebEngine en profil privé, cookie du jeton, indicateur d'état, socle des pages web, chargement des pages déclarées par les greffons, pages du noyau : état, journaux, catalogue). Aucun greffon ne livre encore de page d'administration.
 - **Pas encore là** : les autres fonctions du greffon strfry, les pages d'administration des greffons, unités systemd et installation de Nisaba et de bunkerd.
 
-Le détail des modifications est dans `CHANGELOG.md`.
+Le détail des modifications est dans le [CHANGELOG](CHANGELOG.md).
 
 ## Développement assisté par IA
 
@@ -55,7 +55,7 @@ Paresia est dirigé par un mainteneur humain, qui en fixe l'orientation, les exi
 
 Le code passe par une suite de tests automatisés et une intégration continue. Malgré ce soin, il peut contenir des erreurs, y compris de sécurité. Il n'a fait l'objet d'aucun audit de sécurité externe.
 
-Paresia est fourni sans garantie (AGPL-3.0-or-later). Lisez le code, testez avant de l'exposer, et signalez tout problème selon `SECURITY.md`.
+Paresia est fourni sans garantie (AGPL-3.0-or-later). Lisez le code, testez avant de l'exposer, et signalez tout problème selon [SECURITY](SECURITY.md).
 
 ## Feuille de route
 
@@ -65,29 +65,29 @@ Paresia est fourni sans garantie (AGPL-3.0-or-later). Lisez le code, testez avan
 
 ## Documentation
 
-- Index de tout : `docs/README.md`
-- Guide de l'administrateur (wiki) : `docs/wiki/Accueil.md`
-- Spécification, qui fait foi : `docs/cahier-des-charges.md`
-- Architecture : `docs/architecture.md` ; protocole : `docs/protocole.md`
-- Pages de manuel : `docs/man/` ; exploitation : `docs/exploitation.md` ; configuration : `docs/configuration.md`
-- Décisions : `docs/decisions.md` ; historique : `CHANGELOG.md`
+- Index de tout : [docs/README.md](docs/README.md)
+- Guide de l'administrateur (wiki) : [Accueil](docs/wiki/Accueil.md)
+- Spécification, qui fait foi : [cahier des charges](docs/cahier-des-charges.md)
+- Architecture : [architecture](docs/architecture.md) ; protocole : [protocole](docs/protocole.md)
+- Pages de manuel : [docs/man/](docs/man/) ; exploitation : [exploitation](docs/exploitation.md) ; configuration : [configuration](docs/configuration.md)
+- Décisions : [décisions](docs/decisions.md) ; historique : [CHANGELOG](CHANGELOG.md)
 
 ## Installation
 
-Guide « Installer » : `INSTALL.md` (deux machines Debian 13, scripts essayés en alpha). Mise à jour : `INSTALL.md`, § 12. Poste de développement : `docs/developpement.md`, § 3. Prérequis : `docs/prerequis.md`. Serveur web et proxy (à votre charge) : `docs/serveur-web.md`.
+Guide « Installer » : [INSTALL.md](INSTALL.md) (deux machines Debian 13, scripts essayés en alpha). Mise à jour : [INSTALL.md, annexe A](INSTALL.md#annexe-a--mettre-à-jour-une-installation-existante). Poste de développement : [développement](docs/developpement.md), § 3. Prérequis : [Prérequis](docs/prerequis.md). Serveur web et proxy (à votre charge) : [Serveur web](docs/serveur-web.md).
 
 ## Sécurité
 
-Modèle de menace provisoire et signalement des vulnérabilités (pas de ticket public) : `SECURITY.md`.
+Modèle de menace provisoire et signalement des vulnérabilités (pas de ticket public) : [SECURITY](SECURITY.md).
 
 ## Contribuer
 
-Voir `CONTRIBUTING.md`. Tout apport est publié sous AGPL-3.0-or-later.
+Voir [CONTRIBUTING](CONTRIBUTING.md). Tout apport est publié sous AGPL-3.0-or-later.
 
 ## Versions
 
-Le numéro est dans `VERSION` (Semantic Versioning 2.0.0, `0.MINEUR.CORRECTIF` jusqu'à la 1.0.0). Journal : `CHANGELOG.md` (Keep a Changelog 1.1.0).
+Le numéro est dans `VERSION` (Semantic Versioning 2.0.0, `0.MINEUR.CORRECTIF` jusqu'à la 1.0.0). Journal : [CHANGELOG](CHANGELOG.md) (Keep a Changelog 1.1.0).
 
 ## Licence
 
-GNU Affero General Public License, version 3 ou ultérieure (SPDX `AGPL-3.0-or-later`). Texte : `LICENSE`. Dépendances : `docs/licences-tierces.md`.
+GNU Affero General Public License, version 3 ou ultérieure (SPDX `AGPL-3.0-or-later`). Texte : [LICENSE](LICENSE). Dépendances : [licences tierces](docs/licences-tierces.md).
