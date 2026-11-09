@@ -165,38 +165,41 @@ touch ~/.config/paresia/paresia-admin.conf
 
 Ouvrez `~/.config/paresia/paresia-admin.conf` avec votre éditeur de texte (par exemple `nano ~/.config/paresia/paresia-admin.conf`, installé par `sudo apt install nano` s'il manque) et collez ce contenu. **À personnaliser : `url`, `hote_ssh`, `cle_publique` et `dossier_i18n`, selon le tableau [À personnaliser](#à-personnaliser) ; les autres valeurs sont celles de l'installation par défaut.**
 
+Chaque réglage est précédé d'une ligne de commentaire (elle commence par `#`) qui dit à quoi il sert. Le réglage `ouverture_s` a une valeur par défaut : il est commenté. Pour le changer, retirez le `#` au début de sa ligne et modifiez la valeur. Les autres réglages n'ont pas de valeur par défaut : ils restent actifs, sinon l'application refuserait le fichier.
+
 ```
 [admin.connexion]
+# L'adresse HTTPS du serveur web de yang, sans identifiant, sans chemin ni "/" final.
+# L'application ne navigue que vers cette adresse.
 url = https://bunker.example.org
+# L'adresse de yang, pour la connexion SSH.
 hote_ssh = 192.0.2.10
+# Le compte de yang auquel on se connecte ; "app" est celui que l'installation crée.
 compte_ssh = app
+# Le chemin du programme ssh de votre poste (chemin absolu obligatoire).
 ssh = /usr/bin/ssh
 
 [admin.cle]
+# Le chemin de votre clé publique (étape 3), en chemin complet : le "~" n'est pas remplacé.
 cle_publique = /home/utilisateur/.ssh/paresia-admin.pub
+# La commande que yang impose à votre clé ; elle sert à construire la ligne de l'étape 7.
+# Ne la changez pas.
 commande_forcee = /usr/local/bin/pollux-session
+# Le chemin du programme ssh-keygen, qui signe le défi.
 ssh_keygen = /usr/bin/ssh-keygen
 
 [admin.presence]
-ouverture_s = 90
+# Le temps total accordé à l'ouverture de la session, en secondes (valeur par défaut : 90).
+# ouverture_s = 90
 
 [admin.interface]
+# La langue des textes affichés.
 langue = fr-FR
+# Le dossier des catalogues de textes : c'est le dossier "i18n" du dépôt de l'étape 2 (chemin complet).
 dossier_i18n = /home/utilisateur/paresia/i18n
 ```
 
-Ce que signifie chaque réglage :
-
-- `url` : l'adresse HTTPS du serveur web de yang, sans identifiant, sans chemin ni fin en `/`. L'application ne navigue que vers cette adresse.
-- `hote_ssh` : l'adresse de yang, pour la connexion SSH.
-- `compte_ssh` : le compte de yang auquel on se connecte ; `app` est celui que l'installation crée.
-- `ssh` : le chemin du programme `ssh` de votre poste. Chemin absolu obligatoire.
-- `cle_publique` : le chemin de votre clé **publique** (étape 3). Chemin absolu : le `~` n'est pas remplacé, écrivez le chemin complet.
-- `commande_forcee` : la commande que yang impose à votre clé ; elle sert à construire la ligne de l'étape 7. Ne la changez pas.
-- `ssh_keygen` : le chemin du programme `ssh-keygen`, qui signe le défi.
-- `ouverture_s` : le temps total accordé à l'ouverture de la session, en secondes (90 par défaut).
-- `langue` : la langue des textes affichés, `fr-FR`.
-- `dossier_i18n` : le dossier des catalogues de textes ; c'est le dossier `i18n` du dépôt de l'étape 2. Chemin absolu.
+Le détail de chaque réglage est dans les commentaires du fichier ; retenez seulement que les chemins sont absolus, et que `commande_forcee` ne se change pas.
 
 Pour contrôler les chemins des deux programmes :
 
