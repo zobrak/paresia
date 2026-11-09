@@ -17,20 +17,20 @@ La configuration se compose de couches ; **la dernière qui définit une option 
 
 Conséquences pratiques :
 
-- vos réglages locaux vont dans un fichier de `conf.d/`, par exemple `/etc/paresia/conf.d/50-site.conf` : ne modifiez pas le fichier de base ;
+- vos réglages locaux vont dans un fichier de `conf.d/`, par exemple `/etc/paresia/conf.d/50-site.conf` : le fichier de base est celui que livre l'installation, et une mise à jour le remplace ou le compare, ce qui effacerait ou compliquerait vos changements ;
 - **les démons n'ont pas de couche utilisateur** : un fichier du répertoire personnel d'un utilisateur ne peut pas changer un démon, même avec des variables d'environnement forgées ; l'environnement d'un démon est fixé par son unité systemd ;
 - `pollux-session` ne lit aucune variable d'environnement.
 
 ## Format
 
-Fichier INI, sans interpolation. Une section par composant et par domaine : `[<composant>.<domaine>]`. Exemple de réglage local :
+Fichier INI (un format texte en sections `[nom]` contenant des lignes `option = valeur`), sans interpolation (une valeur est lue telle quelle, sans substitution). Une section par composant et par domaine : `[<composant>.<domaine>]`. Exemple de réglage local :
 
 ```ini
 [romulus.http]
 max_body = 131072
 ```
 
-Variable d'environnement correspondante : `PARESIA_<COMPOSANT>_<DOMAINE>_<CLE>` en majuscules, par exemple `PARESIA_POLLUX_SESSIONS_TIMEOUT_S`. La section `[DEFAULT]` est interdite.
+Ce réglage fixe à 131072 octets la taille maximale d'un corps de requête HTTP de Romulus. Variable d'environnement correspondante : `PARESIA_<COMPOSANT>_<DOMAINE>_<CLE>` en majuscules, par exemple `PARESIA_POLLUX_SESSIONS_TIMEOUT_S`. La section `[DEFAULT]` est interdite.
 
 ## Sections par composant
 
@@ -69,13 +69,16 @@ Chaque composant ne lit que ses sections. Les chemins, comptes et uid n'ont **au
 
 **Aucune unité ne se recharge à chaud** : tout changement de configuration exige un redémarrage du démon concerné, avec les conséquences expliquées dans [Dépannage](Journaux-metriques-depannage.md) (redémarrer Pollux ou Romulus ferme toutes les sessions de présence, redémarrer Castor remet tous les feux au rouge).
 
-**Validez avant de redémarrer** : Pollux, Romulus, Castor, Remus, Nisaba et bunkerd acceptent `--check`. L'option lit la configuration comme au démarrage, puis sort avec le code 0 sans ouvrir de socket ni de fichier ; une configuration invalide sort avec le code 78. Exemple, avec le compte de l'unité et le même environnement :
+**Validez avant de redémarrer** : Pollux, Romulus, Castor, Remus, Nisaba et bunkerd acceptent `--check`. L'option lit la configuration comme au démarrage, puis sort avec le code 0 sans ouvrir de socket ni de fichier ; une configuration invalide sort avec le code 78. Exemple pour Castor, à lancer avec le compte de l'unité et le même environnement (**À personnaliser** : remplacez `castor` par le démon que vous avez modifié) :
 
 ```
 python3 -P -s -B -m server.castor --check
 ```
 
-Les codes de sortie suivent `sysexits.h` : 64 usage, 65 données illisibles, 70 erreur interne, 71 erreur du système, 78 configuration (voir `paresia-castor(8)`). L'unité ne relance pas un démon après 64, 65 ou 78.
+Résultat attendu : aucune sortie d'erreur et un code de sortie 0 (`echo $?` affiche `0`) ; avec une valeur invalide, le code est 78 et le démon nomme la section et l'option en cause. La suite : si le code est 0, redémarrez le démon (`systemctl restart castor.service`), puis contrôlez-le avec `systemctl status castor.service`.
+
+Les codes de sortie suivent `sysexits.h` : 64 usage, 65 données illisibles, 70 erreur interne, 71 erreur du système, 78 configuration (voir `paresia-castor(8)`). L'unité ne relance pas un démon après 64, 65 ou 78 : relancer à l'identique une configuration fautive n'aurait aucun effet utile.
+
 ## Contrôles de sécurité sur les fichiers
 
 Un fichier de configuration n'est accepté que s'il est un fichier régulier (pas un lien symbolique), appartenant à root ou à l'utilisateur courant, sans écriture pour le groupe ni les autres, de 1 Mio au plus (64 fichiers au plus par dossier). Sinon, le démon refuse de démarrer avec un code stable (`config_unsafe_permissions`, `config_unreadable`, `config_too_large`…). **Jamais de secret** dans ces fichiers ni dans les variables `PARESIA_*` : les secrets sont des fichiers.

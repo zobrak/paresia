@@ -2,15 +2,15 @@
 
 Version du document : 0.1.19 · 2026-11-08.
 
-Le relais strfry est un greffon livré avec Paresia (trois fonctions de base aujourd'hui) : la paire `paresia-yin-strfry` (côté Remus, qui exécute les fonctions) et `paresia-yang-strfry` (côté Romulus, qui aiguille le domaine `relay` vers Remus). Les deux sont versionnées ensemble. Le noyau ignore tout de ce domaine : il le transporte (`docs/protocole.md`, § 5).
+Le relais strfry est un greffon livré avec Paresia (trois fonctions de base aujourd'hui) : la paire `paresia-yin-strfry` (côté Remus, qui exécute les fonctions) et `paresia-yang-strfry` (côté Romulus, qui aiguille le domaine `relay` vers Remus). Les deux sont versionnées ensemble. Le noyau ignore tout de ce domaine : il le transporte ([protocole](../protocole.md), § 5). Yin est la machine du relais (`backend-relais` dans les noms de scripts et de dossiers) ; yang est la machine d'administration (`backend-admin`).
 
 ## État
 
-Le greffon de base livre trois fonctions, sous `deploy/backend-relais/usr/local/lib/paresia/remus/fonctions/` : `relay/state/status` (la base répond et est lisible), `relay/sync/trees` (arbres negentropy, lecture seule) et `relay/container/restart` (redémarrage du conteneur). Les autres actions du tableau ci-dessous sont le contrat prévu ; chacune deviendra un manifeste de fonction chargé par Remus. Toute action `relay/…` absente du catalogue de Remus reçoit `unknown_action` de Remus (`not_available`, 501, par HTTP). Les paramètres de chaque action seront fixés avec la fonction qui l'implémente. Le détail des trois fonctions livrées est dans `docs/wiki/Administration-du-relais-strfry.md` et `paresia-remus(8)`.
+Le greffon de base livre trois fonctions, sous `deploy/backend-relais/usr/local/lib/paresia/remus/fonctions/` : `relay/state/status` (la base répond et est lisible), `relay/sync/trees` (arbres negentropy, lecture seule) et `relay/container/restart` (redémarrage du conteneur). Les autres actions du tableau ci-dessous sont le contrat prévu ; chacune deviendra un manifeste de fonction chargé par Remus. Toute action `relay/…` absente du catalogue de Remus reçoit `unknown_action` de Remus (`not_available`, 501, par HTTP). Les paramètres de chaque action seront fixés avec la fonction qui l'implémente. Le détail des trois fonctions livrées est dans [Administrer le relais strfry](../wiki/Administration-du-relais-strfry.md) et dans `paresia-remus(8)`.
 
 ## Comment l'enficher
 
-- Côté Remus : `domaine = relay` dans `[remus.plugins]` (`docs/configuration.md`) ; le catalogue publié par `relay/catalog/list` et décrit par `relay/catalog/describe` est celui des fonctions chargées.
+- Côté Remus : `domaine = relay` dans `[remus.plugins]` ([configuration](../configuration.md)) ; le catalogue publié par `relay/catalog/list` et décrit par `relay/catalog/describe` est celui des fonctions chargées.
 - Côté Romulus : la déclaration `paresia-yang-strfry.toml` (domaine `relay`, `catalogue = "pair"`, destination Remus) ; les actions du tableau y sont déclarées, les deux actions de catalogue sont transmises à Remus.
 
 ## Actions du domaine `relay`
@@ -53,4 +53,4 @@ Les actions livrées sont marquées « livrée » dans la colonne État ; toutes
 | `moderation/mute-list` | (63) | prévue |
 | `moderation/publish-mute-list` | (63) | prévue |
 
-`moderation/mute-list` et `moderation/publish-mute-list` partagent le numéro 63 ; `moderation/ban`, `moderation/unban` et `moderation/ban-import` partagent le numéro 61. Le suivi en direct (`state/follow`) est un flux (`docs/protocole.md`, § 4.3).
+`moderation/mute-list` et `moderation/publish-mute-list` partagent le numéro 63 ; `moderation/ban`, `moderation/unban` et `moderation/ban-import` partagent le numéro 61. Le suivi en direct (`state/follow`) est un flux ([protocole](../protocole.md), § 4.3).

@@ -34,7 +34,7 @@ sudo install -m 0755 -o root -g root nak-v0.22.3-linux-amd64 /usr/local/bin/nak
 nak --help
 ```
 
-Résultat attendu : l'aide de `nak`.
+Résultat attendu : l'aide de `nak`. `nak` est un petit outil en ligne de commande pour Nostr ; l'étape suivante l'explique avant de l'employer. La suite : comprendre les formats de clés.
 
 ## 2. Comprendre les formats de clés
 
@@ -55,9 +55,9 @@ Hex et `npub` : la même clé publique écrite autrement. Hex et `nsec` : la mê
 
 Machine : le poste de vos clés privées, dans `bash`. Rien n'est enregistré : les valeurs sont seulement affichées.
 
-> **Attention.**
+> **Bon à savoir.**
 > Rien n'est enregistré : une fois l'écran effacé, le `ncryptsec` est perdu si vous ne l'avez pas copié.
-> La clé privée en clair n'est jamais affichée.
+> La clé privée en clair n'est jamais affichée, pour qu'elle ne reste pas dans l'historique du terminal.
 > Conservez le `ncryptsec` et la phrase de passe **séparément** : la phrase, longue, dans un coffre de mots de passe.
 > La ligne `CLE PUBLIQUE HEX` va dans `relay.info.self` ; le `NPUB` se partage.
 
@@ -83,7 +83,9 @@ Pour la clé d'un relais, retournez à [Installer le relais strfry](Installer-st
 
 Yang (la machine d'administration, `backend-admin` dans les noms de scripts et de dossiers) a aussi besoin de `nak` : le bunker (NIP-46) l'utilise, au chemin `/usr/local/bin/nak`. Machine : yang, en root. Version v0.22.3.
 
-Reprenez les trois commandes de l'étape 1 (`curl -fLO`, contrôle `sha256sum -c`, puis `install -m 0755 -o root -g root nak-v0.22.3-linux-amd64 /usr/local/bin/nak`, sans `sudo`). `curl` s'installe au besoin par `apt install curl`. Ne générez aucune clé sur cette machine.
+Reprenez les trois commandes de l'étape 1 (`curl -fLO`, contrôle `sha256sum -c`, puis `install -m 0755 -o root -g root nak-v0.22.3-linux-amd64 /usr/local/bin/nak`, sans `sudo`). `curl` s'installe au besoin par `apt install curl`. Cette machine n'a pas besoin de clé privée : en créer une ici multiplierait les endroits où un secret peut fuir.
+
+Résultat attendu : `nak --help` affiche l'aide de `nak`, comme à l'étape 1. Ensuite, retournez à votre parcours : [INSTALL.md](../../INSTALL.md).
 
 ## Annexe : raisons et réserves
 

@@ -8,6 +8,10 @@ Ce wiki est le guide de l'administrateur de Paresia. Il s'adresse à ceux qui h�
 
 Les mots techniques sont expliqués dans le [glossaire](Glossaire.md).
 
+## Par où commencer
+
+Pour installer : lisez [Qu'est-ce que Paresia ?](Qu-est-ce-que-Paresia.md), puis [Prérequis](Prerequis.md), puis [Installer le relais strfry](Installer-strfry.md), puis suivez [INSTALL.md](../../INSTALL.md) de haut en bas. Après l'installation, [Premier usage](Premier-usage.md) vous montre ce que vous pouvez vérifier. Les autres pages se consultent selon le besoin.
+
 ## Sommaire
 
 | Page | Pour répondre à la question |

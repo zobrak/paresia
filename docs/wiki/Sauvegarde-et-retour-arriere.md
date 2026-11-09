@@ -58,7 +58,9 @@ cd ~/paresia
 bash deploy/backend-relais/installer-backend-relais.sh --retour-arriere --jeu AAAAMMJJ-HHMMSS --confirme
 ```
 
-Il arrête les unités posées, restaure dans l'ordre inverse de la pose, contrôle `sshd -t` (puis `reload ssh`, avec session de secours) et `visudo -c`, et supprime **seulement** les comptes et groupes créés par cette installation (jamais le contenu de leurs dossiers). Le nom du jeu est affiché au début de l'installation. `--jeu` et `--confirme` sont tous deux obligatoires : sans eux, le script refuse.
+Le script arrête les unités posées, restaure dans l'ordre inverse de la pose, contrôle `sshd -t` (puis `reload ssh`, avec session de secours) et `visudo -c`, et supprime **seulement** les comptes et groupes créés par cette installation (jamais le contenu de leurs dossiers). Le nom du jeu est affiché au début de l'installation. `--jeu` et `--confirme` sont tous deux obligatoires : sans eux, le script refuse, pour qu'un retour arrière ne se déclenche jamais par inadvertance.
+
+Résultat attendu : le script affiche ses étapes, sans erreur, et se termine en code 0 (`echo $?` affiche `0`). Un code 74 signale une sauvegarde en échec, un code 78 un état différent de l'attendu ; la liste complète est dans [Installation](Installation.md#annexe-e--codes-de-sortie). La suite : contrôlez les unités avec `systemctl status` (voir [Premier usage](Premier-usage.md)).
 
 Limites à connaître :
 
@@ -67,7 +69,7 @@ Limites à connaître :
 
 ## Retour arrière manuel d'un fichier
 
-Pour une unité ou un fichier précis, l'outil restaure un chemin d'un jeu (`restaurer --jeu <nom> <chemin>`), puis `systemctl daemon-reload`. Avant d'arrêter une unité, relisez l'effet d'un arrêt (voir [Dépannage](Journaux-metriques-depannage.md)).
+Pour une unité (le fichier qui décrit un service systemd) ou un fichier précis, l'outil restaure un chemin d'un jeu (`restaurer --jeu <nom> <chemin>`, où `<nom>` est un nom de la liste ci-dessus), puis `systemctl daemon-reload` fait relire les unités à systemd. Arrêter une unité interrompt le service qu'elle porte : avant de le faire, relisez l'effet d'un arrêt dans le [dépannage](Journaux-metriques-depannage.md). La syntaxe complète est dans la page de manuel `paresia-sauvegarde(8)`.
 
 ## Retour à une version du code
 
@@ -85,11 +87,11 @@ cd ~/paresia
 bash deploy/backend-relais/installer-backend-relais.sh --retour-arriere --jeu AAAAMMJJ-HHMMSS --confirme
 ```
 
-Sur un jeu de mise à jour, le script arrête les seules unités de Paresia, restaure le code, le fichier `VERSION`, les unités et la configuration (y compris les fichiers `.paresia-nouveau`), recharge systemd, reprend les unités qui étaient actives et contrôle la version. Il ne supprime aucun compte.
+Résultat attendu : le script se termine en code 0 après avoir contrôlé la version restaurée. Sur un jeu de mise à jour, le script arrête les seules unités de Paresia, restaure le code, le fichier `VERSION`, les unités et la configuration (y compris les fichiers `.paresia-nouveau`), recharge systemd, reprend les unités qui étaient actives et contrôle la version. Il ne supprime aucun compte.
 
 Si le script a échoué en cours de mise à jour (une vérification après l'arrêt des unités), il a **déjà** fait ce retour arrière tout seul et s'est terminé en code 78 avec le nom du jeu.
 
-**Exception importante : migration de données.** Certains démons migrent leurs propres données quand ils redémarrent. Si le journal d'un démon montre `state_migrated`, le script ne restaure rien : il arrête les unités redémarrées et vous donne la marche à suivre. Un retour est alors manuel : restaurez la sauvegarde propre que le démon a faite avant de migrer, puis revenez au code précédent. Ne relancez pas l'ancien code sur des données migrées.
+**Exception importante : migration de données.** Certains démons migrent leurs propres données quand ils redémarrent. Si le journal d'un démon montre `state_migrated`, le script ne restaure rien : il arrête les unités redémarrées et vous donne la marche à suivre. Un retour est alors manuel : restaurez la sauvegarde propre que le démon a faite avant de migrer, puis revenez au code précédent. Relancer l'ancien code sur des données déjà migrées est risqué : il ne comprend pas leur nouvelle forme et peut les refuser ou les abîmer.
 
 Un retour à la main, sans le script, exige le dossier du code précédent avec son fichier `VERSION` à côté de `server/` (sans lui, les démons sortent en 70).
 
@@ -106,7 +108,7 @@ L'outil des procédures ne sauvegarde **pas** vos données d'exploitation. À sa
 - le journal légal et ses sceaux (`MANIFEST`, `seals/`, preuves `.ots`) : le journal est une donnée probante ;
 - la configuration `/etc/paresia/`.
 
-Testez la restauration. Une sauvegarde jamais restaurée n'est pas une sauvegarde.
+Testez la restauration sur une machine jetable : une sauvegarde dont on ne sait pas si elle se relit peut décevoir au pire moment.
 
 ## À venir
 

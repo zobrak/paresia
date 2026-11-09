@@ -13,13 +13,13 @@ Référence, avec la source de chaque ligne : [Prérequis](../prerequis.md). Cet
 | pare-feu et reverse proxy | HAProxy et lighttpd devant `backend-admin` | recommandé ; hors dépôt, à votre charge |
 | poste client | l'application Paresia-admin et un agent SSH | oui pour l'usage quotidien |
 
-Le cloisonnement exige **deux machines distinctes** (physiques, virtuelles ou conteneurs séparés). Un seul tunnel TCP 22 doit pouvoir aller de `backend-admin` vers `backend-relais`.
+Yin et yang sont les deux côtés de l'installation : yin héberge le relais, yang héberge l'administration. Le cloisonnement exige **deux machines distinctes** (physiques, virtuelles ou conteneurs séparés). Un seul tunnel TCP 22 doit pouvoir aller de `backend-admin` vers `backend-relais`.
 
 ## Système
 
 - **Debian 13** est le système cible ; la CI le vérifie.
 - **Python 3.11 au moins** (3.13 sur Debian 13) : tous les démons n'emploient que la bibliothèque standard de Python, sauf mentions ci-dessous.
-- **systemd 257 ou plus** conseillé sur `backend-admin` (Debian 13 livre la 257). Sous 257, le script d'installation ne refuse pas : il retire de l'unité l'option `::ro`, qu'il ne comprend pas.
+- **systemd 257 ou plus** conseillé sur `backend-admin` (Debian 13 livre la 257). Sous 257, le script d'installation ne refuse pas : il retire de l'unité l'option `::ro`, que cette version de systemd ne comprend pas. Pour connaître votre version : `systemctl --version` ; la première ligne donne `systemd 257 (…)` sur Debian 13.
 - **Compte d'exécution** : sur `backend-admin`, vous travaillez en root et vous n'installez pas `sudo`. Sur `backend-relais`, il n'y a pas de shell root : vous utilisez un compte ordinaire avec `sudo`, limité aux commandes nécessaires, par chemins absolus.
 
 ## backend-admin
@@ -36,7 +36,7 @@ Le cloisonnement exige **deux machines distinctes** (physiques, virtuelles ou co
 
 - OpenSSH (`sshd`), nftables, `sudo` **1.9.10 au moins** (expressions régulières d'arguments dans le fichier sudoers généré ; Debian 13 fournit 1.9.16), `visudo` ;
 - Docker, pour le conteneur strfry ; conseil, non une obligation : sur Debian 13, `apt install extrepo`, `extrepo enable docker-ce`, `apt update`, puis `apt install docker-ce docker-ce-cli containerd.io docker-compose-plugin` ;
-- l'image strfry **n'est pas l'image d'origine** : elle contient `python3`, requis par le plugin d'écriture du journal légal. L'image publique du projet est `z0brak/paresia-yin-strfry:4cd3cf6`. Ses modifications exactes sont **non établies** dans le dépôt (voir [Prérequis](../prerequis.md), § 5) ; ne pas supposer que l'image d'origine suffit ;
+- l'image strfry **n'est pas l'image d'origine** : elle contient `python3`, requis par le plugin d'écriture du journal légal. L'image publique du projet est `z0brak/paresia-yin-strfry:4cd3cf6`. Ses modifications exactes sont **non établies** dans le dépôt (voir [Prérequis](../prerequis.md), § 5)  ; l'image d'origine, sans `python3`, ne pourrait pas lancer le plugin du journal légal, et strfry n'écrirait plus ce journal ;
 - `rrsync` côté relais pour la copie en lecture seule du journal légal.
 
 ## Poste client

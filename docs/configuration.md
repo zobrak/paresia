@@ -2,8 +2,9 @@
 
 Version du document : 0.1.19 · 2026-11-08 · public : administrateur, développeur
 Rôle : décrit la configuration en couches (sections par composant, fichier explicite, exemple
-unique). Complète `docs/protocole.md` § 9 et `docs/conventions.md`. L'exemple complet est
-`server/conf/paresia.conf`. Module : `server/commun/config.py` (bibliothèque standard).
+unique). Complète le [protocole](protocole.md), § 9, et les [conventions](conventions.md). Pour un parcours
+vulgarisé, voir la page [Configuration](wiki/Configuration.md) du wiki. L'exemple complet est
+[`server/conf/paresia.conf`](../server/conf/paresia.conf). Module : `server/commun/config.py` (bibliothèque standard).
 
 ## Couches et ordre de priorité
 
@@ -51,7 +52,7 @@ Les options de Castor et de Remus, leurs défauts et leurs commentaires sont dan
 
 ### Export binaire de Romulus (`romulus.http`)
 
-Options de type `limite` (1 à 16777216), toutes deux facultatives ; défauts et commentaires dans `server/conf/paresia.conf`. Livraison de l'archive : `docs/protocole.md`, § 6.1.
+Options de type `limite` (1 à 16777216), toutes deux facultatives ; défauts et commentaires dans `server/conf/paresia.conf`. Livraison de l'archive : [protocole](protocole.md), § 6.1.
 
 | Option | Défaut | Rôle | Variable |
 | --- | --- | --- | --- |
@@ -90,9 +91,9 @@ Valeurs d'illustration dans `server/conf/paresia.conf` (chemins, uid) : à adapt
 | | `flux_max_simultanes` | 8 | flux HTTP de suivi en direct ouverts en même temps (1 à 1024) ; excédent refusé avant tout octet de flux par 503 `command_busy` ; plafond global, non par session (plafond par session : après la 1.0) |
 | | `max_line` | 1048576 | longueur maximale d'une ligne |
 
-Variables : `PARESIA_ROMULUS_BUNKER_<CLE>` et `PARESIA_ROMULUS_RELAY_<CLE>` (ex. `PARESIA_ROMULUS_RELAY_FLUX_MAX_SIMULTANES`). Format du flux : `docs/protocole.md`, § 6.
+Variables : `PARESIA_ROMULUS_BUNKER_<CLE>` et `PARESIA_ROMULUS_RELAY_<CLE>` (ex. `PARESIA_ROMULUS_RELAY_FLUX_MAX_SIMULTANES`). Format du flux : [protocole](protocole.md), § 6.
 
-**Ces sections viennent des déclarations de services.** Romulus ne les connaît pas en dur : chaque section de service, ses options, leurs types, défauts et bornes sont décrits par une déclaration `paresia-yang-<nom>.toml` (format : `docs/developpement.md`, § 6.3). Les tableaux ci-dessus décrivent les quatre déclarations livrées ; sans la déclaration correspondante, la section est refusée (78, `config_unknown_section`). Une déclaration locale peut ajouter un service (nouvelle section), jamais en remplacer un.
+**Ces sections viennent des déclarations de services.** Romulus ne les connaît pas en dur : chaque section de service, ses options, leurs types, défauts et bornes sont décrits par une déclaration `paresia-yang-<nom>.toml` (format : [développement](developpement.md), § 6.3). Les tableaux ci-dessus décrivent les quatre déclarations livrées ; sans la déclaration correspondante, la section est refusée (78, `config_unknown_section`). Une déclaration locale peut ajouter un service (nouvelle section), jamais en remplacer un.
 
 | Section | Option | Type, défaut | Rôle | Variable |
 | --- | --- | --- | --- | --- |
@@ -113,7 +114,7 @@ Les deux dossiers (et leurs ancêtres) et les fichiers appartiennent à root, sa
 
 ### Nisaba (`nisaba.*`)
 
-Processus annexe du journal légal de backend-admin (`python3 -P -s -B -m server.nisaba`). Seules `duree` et `limite` ont un défaut dans le code ; toute autre option est obligatoire (absente : `config_missing`, démarrage refusé). Valeurs d'illustration et commentaires : `server/conf/paresia.conf`. Les horaires sont en UTC, au format strict `HH:MM`. Protocole et CLI : `docs/protocole.md`, § 5.2.
+Processus annexe du journal légal de yang (`python3 -P -s -B -m server.nisaba`). Seules `duree` et `limite` ont un défaut dans le code ; toute autre option est obligatoire (absente : `config_missing`, démarrage refusé). Valeurs d'illustration et commentaires : `server/conf/paresia.conf`. Les horaires sont en UTC, au format strict `HH:MM`. Protocole et CLI : [protocole](protocole.md), § 5.2.
 
 | Section | Options (défaut) | Rôle |
 | --- | --- | --- |
@@ -122,7 +123,7 @@ Processus annexe du journal légal de backend-admin (`python3 -P -s -B -m server
 | `[nisaba.journal]` | `dossier`, `compte_acl`, `lsattr`, `chattr` | copie du journal légal ; compte de Romulus, lecteur par ACL (droit hérité : la consultation du journal est confiée à Nisaba et Romulus ne s'en sert pas aujourd'hui) ; outils lancés par argv, sans interpréteur de commandes |
 | `[nisaba.horaire]` | `scellement`, `purge` ; `copie_s` (60), `conservation_jours` (365, de 1 à 36500), `arret_s` (30) | planification interne ; une journée D est supprimée à D + 366 jours |
 | `[nisaba.etat]` | `dossier` ; `historique` (20, plafonné à 40) | dossier d'état (même chemin que le `StateDirectory=` de l'unité) ; échecs conservés par tâche |
-| `[nisaba.source]` | `source`, `cle_ssh`, `rsync`, `ssh` ; `connexion_s` (20), `rsync_s` (50) | copie depuis backend-relais (`utilisateur@hôte:/`, rsync par ssh, clé dédiée jamais lue ni copiée par Nisaba) |
+| `[nisaba.source]` | `source`, `cle_ssh`, `rsync`, `ssh` ; `connexion_s` (20), `rsync_s` (50) | copie depuis yin (`utilisateur@hôte:/`, rsync par ssh, clé dédiée jamais lue ni copiée par Nisaba) |
 | `[nisaba.ots]` | `ots` ; `attente_max_jours` (3), `delai_s` (120) | client OpenTimestamps ; seule l'empreinte de la ligne du registre part sur Internet ; preuve incomplète après `attente_max_jours` : `ECHEC_HORODATAGE` |
 | `[nisaba.droits]` | `chattr`, `setfacl`, `getfacl`, `compte` | modes, ACL et attributs ; `compte` DOIT être le même que `[nisaba.journal] compte_acl` : une divergence est refusée au démarrage par `config_invalid` (domaine `droits`, clé `compte`) |
 
@@ -154,7 +155,7 @@ Module Python de la bibliothèque standard, exécuté dans le conteneur strfry (
 
 ### Preuve de possession de la clé SSH (`pollux.signature`, `pollux-session.auth`)
 
-Valeurs d'illustration et commentaires : `server/conf/paresia.conf`. Protocole : `docs/protocole.md`, § 4.1.
+Valeurs d'illustration et commentaires : `server/conf/paresia.conf`. Protocole : [protocole](protocole.md), § 4.1.
 
 | Section | Option | Défaut | Rôle |
 | --- | --- | --- | --- |
@@ -176,11 +177,11 @@ Valeurs d'illustration et commentaires : `server/conf/paresia.conf`. Protocole :
 | `log_n` | 20 | plafond du paramètre `log_n` (scrypt, NIP-49) d'un secret chiffré, de 1 à 20 (1 Gio de mémoire, RFC 7914) ; au-dessus, le secret est refusé (`log_n_too_high`) avant tout calcul ; une valeur supérieure à 20 est refusée au démarrage (`config_invalid`) | `PARESIA_BUNKERD_SIGNATURE_LOG_N` |
 
 - Les déchiffrements sont sérialisés (un seul à la fois) et une passphrase refusée est suivie d'une pause de 2 s : mémoire bornée à un scrypt, au plus un essai toutes les 2 s. Une erreur de format du secret chiffré est rendue `bad_passphrase`.
-- La multiplication du générateur par un scalaire secret est confiée à `cryptography` (`ec.derive_private_key`), qui suit l'échelle de Montgomery à temps constant d'OpenSSL pour secp256k1 : le paquet `libssl3t64` 3.5.7-1~deb13u3 ou plus est requis (`docs/prerequis.md`). Les opérations modulaires sur entiers Python (étape de l'arithmétique, passage du secret par un entier) restent hors garantie de temps constant : résidu admis, seul Romulus peut provoquer le calcul (socket locale à accès restreint).
+- La multiplication du générateur par un scalaire secret est confiée à `cryptography` (`ec.derive_private_key`), qui suit l'échelle de Montgomery à temps constant d'OpenSSL pour secp256k1 : le paquet `libssl3t64` 3.5.7-1~deb13u3 ou plus est requis ([prérequis](prerequis.md)). Les opérations modulaires sur entiers Python (étape de l'arithmétique, passage du secret par un entier) restent hors garantie de temps constant : résidu admis, seul Romulus peut provoquer le calcul (socket locale à accès restreint).
 
 ### Sauvegardes de procédure (`sauvegarde.stockage`)
 
-Outil `python3 -P -m server.sauvegarde` (page `docs/man/paresia-sauvegarde.8`). Exemple dans `server/conf/paresia.conf` et `server/conf/paresia-relais.conf`.
+Outil `python3 -P -m server.sauvegarde` (page de manuel [`paresia-sauvegarde.8`](man/paresia-sauvegarde.8)). Exemple dans `server/conf/paresia.conf` et `server/conf/paresia-relais.conf`.
 
 | Option | Défaut | Rôle | Variable |
 | --- | --- | --- | --- |
@@ -227,7 +228,7 @@ Romulus tient un journal d'activité (qui a demandé quoi, avec quel résultat ;
 | | `regroupements_simultanes` | 64 | regroupements ouverts au plus (1 à 1024) |
 | `[romulus.noyau]` | `dossier_etat` | `/var/lib` | racine des dossiers d'état des démons dont `kernel/state/metrics` lit les métriques |
 
-Variables : `PARESIA_ROMULUS_ACTIVITE_<CLE>` et `PARESIA_ROMULUS_NOYAU_DOSSIER_ETAT`. Le journal d'activité est un journal d'exploitation circulaire : à `taille_max`, les plus anciennes entrées disparaissent ; il n'est pas sauvegardé par les procédures (`docs/wiki/Sauvegarde-et-retour-arriere.md`). Les métriques restent désactivées par défaut ; une configuration d'exemple de démonstration qui les active est livrée sous `deploy/backend-admin/etc/paresia/exemples/`, non posée par l'installation.
+Variables : `PARESIA_ROMULUS_ACTIVITE_<CLE>` et `PARESIA_ROMULUS_NOYAU_DOSSIER_ETAT`. Le journal d'activité est un journal d'exploitation circulaire : à `taille_max`, les plus anciennes entrées disparaissent ; il n'est pas sauvegardé par les procédures ([Sauvegarde et retour arrière](wiki/Sauvegarde-et-retour-arriere.md)). Les métriques restent désactivées par défaut ; une configuration d'exemple de démonstration qui les active est livrée sous `deploy/backend-admin/etc/paresia/exemples/`, non posée par l'installation.
 
 ### Journal et métriques du socle commun (`[journal]`, `[metriques]`)
 
@@ -256,7 +257,7 @@ Section de Remus (`server/remus/__init__.py`, `SCHEMA_PLUGINS`), présente dans 
 | `domaine` | texte, facultatif ; exemple livré : `relay` | domaine des actions servi par Remus (un seul en 1.0) : minuscules, chiffres et `_`, 32 caractères au plus, ni `presence` ni `castor` ; **sans lui, aucune fonction n'est chargée** | `PARESIA_REMUS_PLUGINS_DOMAINE` |
 | `cible` | texte, `principale` | nom sous lequel Remus se présente dans le catalogue | `PARESIA_REMUS_PLUGINS_CIBLE` |
 
-Les deux dossiers appartiennent à root, sans écriture pour le groupe ni les autres. Une valeur invalide de `domaine` ou de `cible` fait refuser la configuration (78, `config_invalid`). Format des fonctions : `docs/developpement.md`, § 6.2 ; manuel : `paresia-remus(8)`.
+Les deux dossiers appartiennent à root, sans écriture pour le groupe ni les autres. Une valeur invalide de `domaine` ou de `cible` fait refuser la configuration (78, `config_invalid`). Format des fonctions : [développement](developpement.md), § 6.2 ; manuel : `paresia-remus(8)`.
 
 ## Référence des options des démons
 
@@ -303,7 +304,7 @@ Source : les schémas de configuration de chaque démon (`server/<démon>/__init
 | | `max_body` | 65536 | corps maximal en octets ; au-delà `body_too_large` |
 | | `max_headers`, `max_header_bytes` | 100, 16384 | nombre d'en-têtes et taille cumulée maximaux de la requête |
 | | `max_connexions` | 64 | connexions HTTP simultanées (1 à 1024) ; l'excédent est fermé sans réponse |
-| | `client_ip_header` | obligatoire | en-tête d'adresse que le mandataire de confiance DOIT poser (valeur du fichier livré : `X-Paresia-Client-IP`, voir `docs/serveur-web.md`) |
+| | `client_ip_header` | obligatoire | en-tête d'adresse que le mandataire de confiance DOIT poser (valeur du fichier livré : `X-Paresia-Client-IP`, voir [serveur web](serveur-web.md)) |
 | | `fallback_ip` | obligatoire | adresse journalisée quand l'en-tête est absent, multiple ou invalide |
 | | `export_max_octets`, `export_max_simultanes` | 8388608, 2 | voir « Export binaire de Romulus » |
 
@@ -399,7 +400,7 @@ clé et le nom de base du fichier.
 ## Unités systemd
 
 Unités livrées : `deploy/backend-admin/etc/systemd/system/pollux.service` et
-`romulus.service` (procédure : `deploy/backend-admin/installation-pollux-romulus.md`).
+`romulus.service` (procédure : [installation de Pollux et Romulus](../deploy/backend-admin/installation-pollux-romulus.md)).
 
 - `ConfigurationDirectory=paresia::ro` et `ConfigurationDirectoryMode=0755` : `/etc/paresia`
   reste à root, lisible et non inscriptible par le compte du service (`systemd.exec(5)` exclut cette
@@ -418,7 +419,7 @@ Unités livrées : `deploy/backend-admin/etc/systemd/system/pollux.service` et
 - Environnement limité à `PYTHONPATH` ; aucun argument de configuration, aucune variable `PARESIA_*`.
 - Fichiers de configuration appartenant à root et non inscriptibles par le compte du service.
 
-Unités de backend-relais et du tunnel : `deploy/backend-relais/etc/systemd/system/castor.service` (`TimeoutStopSec=90`) et `remus.service` (`TimeoutStopSec=150`, `KillMode=mixed` pour que l'arrêt n'interrompe pas une opération en cours avant `stop_s`), `deploy/backend-admin/etc/systemd/system/paresia-tunnel.service` (compte `paresia-tunnel`). Un `RuntimeDirectory=` par unité de relais (`paresia-castor`, `paresia-remus`) ; le tunnel n'en a pas : ses dossiers sont créés par `deploy/backend-admin/etc/tmpfiles.d/paresia-tunnel.conf` (`tmpfiles.d(5)`, appliqué avant le démarrage, puis au démarrage du système) : `/run/paresia-tunnel` en `root:root` 0711, `romulus` en `paresia-tunnel:paresia-romulus` 0710, `pollux` en `paresia-tunnel:paresia-pollux` 0710, sans ACL ; l'unité ouvre en écriture ces deux sous-dossiers seulement (`ReadWritePaths=`). Raison : systemd v257 réapplique `RuntimeDirectoryMode` avant chaque commande, ce qui remettait le masque ACL à `---`. stdout et stderr vont à journald. L'isolation de Remus suit à la lettre le tableau de `deploy/backend-relais/isolation-remus.md`. Procédure (étapes 9 à 14, retour arrière sûr) : `deploy/backend-relais/installation-relais.md`. L'installation et le démarrage du tunnel : `deploy/installation-tunnel.md`.
+Unités de yin et du tunnel : `deploy/backend-relais/etc/systemd/system/castor.service` (`TimeoutStopSec=90`) et `remus.service` (`TimeoutStopSec=150`, `KillMode=mixed` pour que l'arrêt n'interrompe pas une opération en cours avant `stop_s`), `deploy/backend-admin/etc/systemd/system/paresia-tunnel.service` (compte `paresia-tunnel`). Un `RuntimeDirectory=` par unité de relais (`paresia-castor`, `paresia-remus`) ; le tunnel n'en a pas : ses dossiers sont créés par `deploy/backend-admin/etc/tmpfiles.d/paresia-tunnel.conf` (`tmpfiles.d(5)`, appliqué avant le démarrage, puis au démarrage du système) : `/run/paresia-tunnel` en `root:root` 0711, `romulus` en `paresia-tunnel:paresia-romulus` 0710, `pollux` en `paresia-tunnel:paresia-pollux` 0710, sans ACL ; l'unité ouvre en écriture ces deux sous-dossiers seulement (`ReadWritePaths=`). Raison : systemd v257 réapplique `RuntimeDirectoryMode` avant chaque commande, ce qui remettait le masque ACL à `---`. stdout et stderr vont à journald. L'isolation de Remus suit à la lettre le tableau de [`isolation-remus.md`](../deploy/backend-relais/isolation-remus.md). Procédure (étapes 9 à 14, retour arrière sûr) : [installation du relais](../deploy/backend-relais/installation-relais.md). L'installation et le démarrage du tunnel : [installation du tunnel](../deploy/installation-tunnel.md).
 
 ## Emplacements
 
@@ -430,4 +431,4 @@ Unités de backend-relais et du tunnel : `deploy/backend-relais/etc/systemd/syst
 
 ## Mode de déploiement
 
-Cette configuration vaut pour le mode distribué (`paresia-yin` et `paresia-yang` sur des machines séparées, livré en 1.0). La configuration du mode Docker rootless tout-en-un, après la 1.0, n'est pas établie. Historique des modifications : `CHANGELOG.md`.
+Cette configuration vaut pour le mode distribué (`paresia-yin` et `paresia-yang` sur des machines séparées, livré en 1.0). La configuration du mode Docker rootless tout-en-un, après la 1.0, n'est pas établie. Historique des modifications : [CHANGELOG](../CHANGELOG.md).

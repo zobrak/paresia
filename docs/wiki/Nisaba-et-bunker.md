@@ -38,13 +38,13 @@ python3 -m server.nisaba.ctl acl check    # contrôle des modes et ACL
 python3 -m server.nisaba.ctl acl apply    # rétablit les modes et ACL conformes
 ```
 
-Codes de sortie : 0 succès, 1 échec, 2 usage, 3 Nisaba injoignable. `verify` se termine par `RÉSULTAT : registre intègre (<n> journées)` ou par le nombre d'erreurs.
+Codes de sortie : 0 succès, 1 échec, 2 usage, 3 Nisaba injoignable. Résultat attendu de `verify` : la dernière ligne est `RÉSULTAT : registre intègre (<n> journées)`, où `<n>` est le nombre de journées scellées, ou le nombre d'erreurs trouvées. Ces commandes se lancent sur yang (`backend-admin`), en root, depuis le dossier du code ; la suite : si une ligne `ECHEC_…` apparaît, voir le [dépannage](Journaux-metriques-depannage.md).
 
 Les échecs sont écrits dans journald avec un code stable en tête de ligne : `ECHEC_COPIE`, `ECHEC_ACL`, `ECHEC_SCELLEMENT`, `ECHEC_HORODATAGE`, `ECHEC_PURGE`.
 
 ### Anciens scripts
 
-Nisaba reprend les fonctions des anciens scripts `journal-legal-pull`, `-seal`, `-acl` et `-purge`. Si vous utilisez encore ces scripts, **arrêtez leurs minuteries avant de démarrer Nisaba**.
+Nisaba reprend les fonctions des anciens scripts `journal-legal-pull`, `-seal`, `-acl` et `-purge`. Si vous utilisez encore ces scripts, arrêtez leurs minuteries (les tâches que systemd lance à intervalle régulier) avant de démarrer Nisaba : deux outils qui copient, scellent ou purgent le même journal en même temps risqueraient de se gêner.
 
 ## Le bunker (bunkerd)
 

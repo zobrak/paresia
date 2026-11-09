@@ -15,6 +15,8 @@ journalctl -u castor.service -p warning -b         # avertissements et erreurs d
 journalctl -u castor.service --since '1 hour ago'
 ```
 
+Résultat attendu pour la première commande : jusqu'à 50 lignes, chacune un objet JSON avec les champs `ts`, `level`, `component` et `event` ; pour la troisième, rien si le démon n'a émis aucun avertissement. La suite : repérez l'événement qui vous intéresse parmi ceux décrits plus bas.
+
 Le tunnel écrit du texte (celui de `ssh`), non du JSON. Sur `backend-relais`, le journal de `sshd` est celui de l'unité `ssh`. Nisaba écrit en plus des lignes `ECHEC_COPIE`, `ECHEC_ACL`, `ECHEC_SCELLEMENT`, `ECHEC_HORODATAGE`, `ECHEC_PURGE`.
 
 Événements à connaître : `startup_failed` (le démon n'a pas démarré ; regardez `cause`, `section` et `option`) et `service_failed` (échec après la mise en service), `peer_unavailable` (le pair est absent), `peer_refused` (une identité non autorisée a tenté une connexion). Pour Remus : `plugins_loaded` (fin du chargement des fonctions, avec leur nombre), `plugin_rejected` (une fonction locale défectueuse est ignorée) et `plugin_skipped` (une fonction écartée parce qu'une condition de chargement n'est pas remplie, par exemple un binaire absent). Pour tous les démons, `cause` vaut `os_error` (avec `errno` numérique, par exemple 98 pour une socket déjà utilisée), `data_unreadable`, `internal_error` ou un code de configuration.
@@ -59,7 +61,7 @@ L'unité relance un démon après 5 s en cas d'échec (sauf codes 64, 65 et 78, 
 3. Droits des dossiers : `/run/paresia-tunnel` en `root:root` 0711 ; `romulus` en `paresia-tunnel:paresia-romulus` 0710 ; `pollux` en `paresia-tunnel:paresia-pollux` 0710. Écart : `systemd-tmpfiles --create /etc/tmpfiles.d/paresia-tunnel.conf`.
 4. Sur `backend-relais` : `journalctl -u ssh -n 30` doit montrer `Accepted publickey for tunnel from <adresse de backend-admin>`.
 5. Remus et Castor écoutent-ils ? `systemctl status remus.service castor.service`.
-6. Une erreur d'empreinte ? **Ne désactivez jamais la vérification** ; contrôlez l'empreinte par un second canal.
+6. Une erreur d'empreinte ? Désactiver la vérification supprimerait la seule preuve que vous parlez à la bonne machine, et un intrus pourrait s'y substituer : contrôlez plutôt l'empreinte par un second canal (téléphone, message distinct du tunnel).
 7. L'adresse du relais a-t-elle changé ? Elle est dans `/etc/paresia/tunnel/ssh_config.d/10-relais.conf`.
 
 **Que se passe-t-il si je redémarre un démon ?**
@@ -72,14 +74,20 @@ L'unité relance un démon après 5 s en cas d'échec (sauf codes 64, 65 et 78, 
 | `paresia-tunnel` | coupe Pollux et Romulus de leurs jumeaux du relais |
 
 **Puis-je redémarrer sshd pour appliquer un changement ?**
-Non. Une configuration invalide refuserait même vos nouvelles connexions. Faites `sshd -t`, puis `systemctl reload ssh` avec une session de secours déjà ouverte et testée.
+Mieux vaut l'éviter : un redémarrage avec une configuration invalide ferait refuser même vos nouvelles connexions, et vous seriez enfermé dehors. Contrôlez avec `sshd -t` (aucune sortie : la configuration est valide), puis `systemctl reload ssh` avec une session de secours déjà ouverte et testée.
 
 **Une commande d'administration répond 404, 501…**
 `404 unknown_action` : l'action n'existe pas dans la liste fermée ou n'est pas routée (les domaines `presence` et `castor` ne le sont pas par HTTP ; du domaine `nisaba`, seules `state/status` et `state/verify` le sont). `501 not_available` : l'action est prévue mais pas encore livrée (c'est le cas du domaine `legal`).
 
-## À ne jamais faire
+## Gestes risqués et pourquoi
 
-Redémarrer sshd ; toucher à strfry à la main ; éditer `/etc/sudoers.d/paresia-remus` ; copier ou afficher une clé privée ; supprimer une socket de `/run/paresia-*` ; ajouter un compte au groupe d'un dossier de socket du tunnel ; laisser l'accès du compte `tunnel` ouvert sans la règle nftables `paresia_relais`.
+- Redémarrer sshd : voir la question ci-dessus, vous pourriez vous enfermer dehors.
+- Toucher à strfry à la main : Paresia suppose l'état qu'elle a posé, et un changement manuel crée un écart qu'elle refuse ensuite d'écraser.
+- Éditer `/etc/sudoers.d/paresia-remus` : le fichier est généré, la prochaine installation le refuserait ; une erreur de syntaxe peut aussi bloquer `sudo`.
+- Copier ou afficher une clé privée : toute copie est une fuite possible ; elle peut rester dans un historique ou un journal.
+- Supprimer une socket de `/run/paresia-*` : le démon qui l'a créée ne la recrée qu'à son redémarrage, et ses clients sont coupés.
+- Ajouter un compte au groupe d'un dossier de socket du tunnel : ce compte pourrait alors parler au démon, ce que le cloisonnement veut éviter.
+- Laisser l'accès du compte `tunnel` ouvert sans la règle nftables `paresia_relais` : la règle limite ce compte à ce dont il a besoin.
 
 ## À venir
 

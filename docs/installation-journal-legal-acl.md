@@ -2,9 +2,10 @@
 
 Version du document : 0.1.16 · 2026-11-08 · public : administrateur.
 
-Procédure à exécuter **par vous seul, sur backend-admin, en root, une étape à la fois**.
-Ne passez à l'étape suivante qu'après avoir lu le
-résultat de la précédente. Les commandes destructives sont précédées d'un
+Procédure à exécuter **par vous seul, sur yang (`backend-admin` dans les noms de scripts et de dossiers), en root, une étape à la fois**.
+Lisez le résultat de chaque étape avant de passer à la suivante : une étape qui a échoué
+sans que vous le voyiez fausserait les suivantes. Pour l'installation complète de yang, voir
+[INSTALL.md](../INSTALL.md). Les commandes destructives sont précédées d'un
 **Avertissement** ; les autres sont en lecture seule ou réversibles.
 
 Objet : le compte `paresia-romulus` (Romulus) doit lire le journal légal **en lecture
@@ -46,7 +47,7 @@ getent passwd paresia-romulus
 
 Si une commande manque : `apt install acl e2fsprogs util-linux` (paquets Debian).
 Si `getent` ne renvoie rien, le compte n'existe pas. Le script `installer-backend-admin.sh`
-le crée (voir `docs/man/installer-backend-admin.8`) ; la procédure de bunkerd n'est pas
+le crée (voir [`installer-backend-admin.8`](man/installer-backend-admin.8)) ; la procédure de bunkerd n'est pas
 encore écrite. Hors de ce script, la forme usuelle est la suivante (compte système verrouillé,
 sans shell de connexion, sans mot de passe, sans dossier personnel) :
 
@@ -108,7 +109,7 @@ grep -n '^SOURCE=\|^SSH_KEY=\|^ACL_USER=' /usr/local/sbin/journal-legal-pull.sh 
 
 Éditez **les deux scripts** (`pull` et `seal`) avec votre éditeur pour remplacer :
 
-- `SOURCE` : `journalpull@192.0.2.200:/` par la vraie adresse de backend-relais (reprenez la valeur de vos scripts sauvegardés à l'étape 2) ;
+- `SOURCE` : `journalpull@192.0.2.200:/` par la vraie adresse de yin (reprenez la valeur de vos scripts sauvegardés à l'étape 2) ;
 - `SSH_KEY` : `/root/.ssh/journal_legal_pull` par le chemin de la clé **actuellement en place** (même valeur que dans vos scripts sauvegardés). Vous conservez ainsi le nom de fichier existant en ne modifiant que la variable. Variante : renommer le fichier de clé en `/root/.ssh/journal_legal_pull` ; elle n'est pas recommandée (la clé peut être référencée ailleurs, par exemple dans `/root/.ssh/config`) ;
 - `ACL_USER` : laissez `paresia-romulus` (D21).
 

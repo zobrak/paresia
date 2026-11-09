@@ -2,13 +2,13 @@
 
 Version du document : 0.1.19 · 2026-11-08 · public : développeur du client.
 
-Ce document recense ce que le client **Paresia-admin** (application de bureau) doit implémenter, à mesure que les interfaces du serveur sont fusionnées. Il ne spécifie rien de neuf : chaque exigence renvoie à sa source. Le cahier des charges (`docs/cahier-des-charges.md`) fait foi ; `docs/protocole.md` détaille les messages. Les mots DOIT et DEVRAIT s'entendent au sens des RFC 2119 et RFC 8174.
+Ce document recense ce que le client **Paresia-admin** (application de bureau) doit implémenter, à mesure que les interfaces du serveur sont fusionnées. Il ne spécifie rien de neuf : chaque exigence renvoie à sa source. Le [cahier des charges](cahier-des-charges.md) fait foi ; le [protocole](protocole.md) détaille les messages. Les mots DOIT et DEVRAIT s'entendent au sens des RFC 2119 et RFC 8174.
 
 ## 1. Lecture
 
 - **État côté serveur** : `fusionné` (code livré) ; `prévu` (décidé ou spécifié, pas encore livré).
 - **Tenue** : ce document est mis à jour à chaque fusion qui change une interface vue par le client.
-- **Sources** : fichiers de `server/` et de `admin/`, `docs/`, décisions (`docs/decisions.md`).
+- **Sources** : fichiers de `server/` et de `admin/`, `docs/`, décisions ([décisions](decisions.md)).
 
 ## 2. Session de présence, ping et jeton
 
@@ -141,4 +141,4 @@ Liste fermée : `docs/protocole.md` § 5. Les actions sont routées par Romulus 
 
 ## 10. Historique
 
-Voir `CHANGELOG.md`.
+Voir le [CHANGELOG](../CHANGELOG.md).

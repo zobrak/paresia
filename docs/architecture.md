@@ -2,20 +2,22 @@
 
 Version du document : 0.1.19 · 2026-11-08. Public : administrateur, développeur.
 
-Renvoi. La source de référence est `docs/cahier-des-charges.md` : § « Architecture », § « Session de présence », § « Romulus », § « Remus et Castor » et § « Réseau, lighttpd et tunnel SSH ». En cas d'écart, le cahier fait foi. Les messages sont décrits dans `docs/protocole.md`.
+Renvoi. La source de référence est le [cahier des charges](cahier-des-charges.md) : § « Architecture », § « Session de présence », § « Romulus », § « Remus et Castor » et § « Réseau, lighttpd et tunnel SSH ». En cas d'écart, le cahier fait foi. Les messages sont décrits dans le [protocole](protocole.md). Version vulgarisée : [Architecture et sécurité](wiki/Architecture-et-securite.md).
 
 ## Machines
 
+Yang est la machine d'administration (`backend-admin` dans les noms de scripts et de dossiers) ; yin est la machine du relais (`backend-relais`).
+
 | Machine | Rôle |
 | --- | --- |
-| `backend-admin` | Romulus, Pollux, `pollux-session`, bunkerd, Nisaba (journal légal ; ses scripts `journal-legal-*` d'origine subsistent), lighttpd, tunnel SSH sortant |
-| `backend-relais` | Remus, Castor, relais strfry, comptes `chef` et `tunnel` |
+| yang | Romulus, Pollux, `pollux-session`, bunkerd, Nisaba (journal légal ; ses scripts `journal-legal-*` d'origine subsistent), lighttpd, tunnel SSH sortant |
+| yin | Remus, Castor, relais strfry, comptes `chef` et `tunnel` |
 | `pare-feu` | HAProxy (hors dépôt) ; filtrage par source |
 | `poste client` | Paresia-admin (application de bureau), agent SSH (indépendant du client), `rbw` |
 
 ## Modes de déploiement (D151, qui révise D68)
 
-- **Distribué (livré en 1.0)** : `paresia-yin` (Remus, Castor) sur `backend-relais` et `paresia-yang` (Romulus, Pollux) sur `backend-admin`, installés chacun par un script sur des machines séparées, avec des recommandations de pare-feu et de reverse proxy ; c'est le mode idéal, au vrai cloisonnement.
+- **Distribué (livré en 1.0)** : `paresia-yin` (Remus, Castor) sur yin et `paresia-yang` (Romulus, Pollux) sur yang, installés chacun par un script sur des machines séparées, avec des recommandations de pare-feu et de reverse proxy ; c'est le mode idéal, au vrai cloisonnement.
 - **Docker rootless tout-en-un (après la 1.0)** : pare-feu, reverse proxy, yin, yang et greffons dans un ensemble utilisable tout de suite.
 - Le lien yin–yang reste le **tunnel SSH** dans les deux modes. Les démons sont les mêmes.
 
@@ -23,13 +25,13 @@ Renvoi. La source de référence est `docs/cahier-des-charges.md` : § « Archit
 
 | Composant | Machine | Rôle | Cahier |
 | --- | --- | --- | --- |
-| Romulus | backend-admin | point de contact ; émet et vérifie les jetons ; aiguille vers bunkerd, Nisaba (journal légal) ou Remus | § Romulus |
-| Pollux | backend-admin | carrefour et feu de circulation de la présence ; relaie les jetons et les pings | § Session de présence |
-| `pollux-session` | backend-admin, compte `app` | commande forcée SSH ; relais entre la session SSH et Pollux | § Session de présence |
-| bunkerd | backend-admin | bunker NIP-46 ; socket d'administration réservée à Romulus | § Administration de bunkerd |
-| journal légal | backend-admin | tenu par Nisaba, qui assure aussi sa consultation ; Romulus ne fait que router (état et vérification livrés, recherche et export à faire) | § Journal légal |
-| Remus | backend-relais | exécute les opérations du relais, uniquement feu vert | § Remus et Castor |
-| Castor | backend-relais | un feu par session de présence ; n'écoute que Pollux | § Remus et Castor |
+| Romulus | yang | point de contact ; émet et vérifie les jetons ; aiguille vers bunkerd, Nisaba (journal légal) ou Remus | § Romulus |
+| Pollux | yang | carrefour et feu de circulation de la présence ; relaie les jetons et les pings | § Session de présence |
+| `pollux-session` | yang, compte `app` | commande forcée SSH ; relais entre la session SSH et Pollux | § Session de présence |
+| bunkerd | yang | bunker NIP-46 ; socket d'administration réservée à Romulus | § Administration de bunkerd |
+| journal légal | yang | tenu par Nisaba, qui assure aussi sa consultation ; Romulus ne fait que router (état et vérification livrés, recherche et export à faire) | § Journal légal |
+| Remus | yin | exécute les opérations du relais, uniquement feu vert | § Remus et Castor |
+| Castor | yin | un feu par session de présence ; n'écoute que Pollux | § Remus et Castor |
 | Paresia-admin | poste client | application de bureau : session de présence, fenêtre web | § Application de bureau |
 
 ## Socle commun des démons (`server/commun/`)
@@ -50,18 +52,18 @@ Renvoi. La source de référence est `docs/cahier-des-charges.md` : § « Archit
 
 ## Comptes et emplacements
 
-- Compte système de Romulus sur backend-admin : `paresia-romulus`.
-- Compte `app` sur backend-admin : sans mot de passe, sans `sudo`, réservé à `pollux-session` ; répertoire `/var/lib/paresia-app` (root, 0755), qui porte `.ssh/authorized_keys`.
-- Compte `tunnel` sur backend-relais : redirections de sockets Unix seulement, sans shell ; répertoire `/var/lib/paresia-tunnel` par défaut (paramètre `REPERTOIRE_TUNNEL`).
+- Compte système de Romulus sur yang : `paresia-romulus`.
+- Compte `app` sur yang : sans mot de passe, sans `sudo`, réservé à `pollux-session` ; répertoire `/var/lib/paresia-app` (root, 0755), qui porte `.ssh/authorized_keys`.
+- Compte `tunnel` sur yin : redirections de sockets Unix seulement, sans shell ; répertoire `/var/lib/paresia-tunnel` par défaut (paramètre `REPERTOIRE_TUNNEL`).
 - Aucun compte système n'a de répertoire sous `/home` (FHS 3.0). Les autres comptes système (`paresia-romulus`, `paresia-castor`, `chef`, etc.) ont `/nonexistent`, qui ne doit jamais exister (`adduser(8)` : « This directory should never exist on any Debian system »). Chaque `useradd` porte `--home-dir` et `--no-create-home`.
 - Code serveur sous `/usr/local/lib/paresia` ; ce qui varie sous `/var`.
 
 ## Flux
 
-- **Présence** : l'application ouvre une session SSH vers `app@backend-admin` ; `pollux-session` relaie vers Pollux ; Pollux demande un jeton à Romulus ; le jeton revient à l'application par la session SSH.
-- **Administration** : le navigateur passe par HAProxy, puis lighttpd, puis Romulus, qui contrôle le jeton et aiguille. HAProxy et lighttpd sont installés par l'administrateur (exigences : `docs/serveur-web.md`).
-- **Relais** : un seul tunnel SSH relie backend-admin à backend-relais et porte les deux paires de jumeaux, chacune sur sa socket, dans un dossier propre à son démon (propriétaire, groupe et mode posés par `tmpfiles.d`). Remus n'exécute une commande que si le feu de Castor est vert pour la session.
-- **Liaisons internes** : sockets Unix, contrôle de l'appelant par `SO_PEERCRED`, messages NDJSON (`docs/protocole.md`, § 1 à 3).
+- **Présence** : l'application ouvre une session SSH vers le compte `app` de yang ; `pollux-session` relaie vers Pollux ; Pollux demande un jeton à Romulus ; le jeton revient à l'application par la session SSH.
+- **Administration** : le navigateur passe par HAProxy, puis lighttpd, puis Romulus, qui contrôle le jeton et aiguille. HAProxy et lighttpd sont installés par l'administrateur (exigences : [serveur web](serveur-web.md)).
+- **Relais** : un seul tunnel SSH relie yang à yin et porte les deux paires de jumeaux, chacune sur sa socket, dans un dossier propre à son démon (propriétaire, groupe et mode posés par `tmpfiles.d`). Remus n'exécute une commande que si le feu de Castor est vert pour la session.
+- **Liaisons internes** : sockets Unix, contrôle de l'appelant par `SO_PEERCRED`, messages NDJSON ([protocole](protocole.md), § 1 à 3).
 
 ## Normes utiles
 

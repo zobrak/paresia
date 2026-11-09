@@ -2,7 +2,7 @@
 
 Version du document : 0.1.19 · 2026-11-08. Public : développeur, contributeur.
 
-Ce document regroupe ce qui sert au développement : poste de travail, tests, intégration continue, garde contre les secrets, contenu du dépôt et contrats des briques communes. Le README en donne la version courte. Les règles de contribution sont dans `CONTRIBUTING.md` ; les conventions de code, de versions et de documentation dans `docs/conventions.md`.
+Ce document regroupe ce qui sert au développement : poste de travail, tests, intégration continue, garde contre les secrets, contenu du dépôt et contrats des briques communes. Le README en donne la version courte. Les règles de contribution sont dans [CONTRIBUTING.md](../CONTRIBUTING.md) ; les conventions de code, de versions et de documentation dans [conventions](conventions.md).
 
 ## Sommaire
 
@@ -10,12 +10,12 @@ Ce document regroupe ce qui sert au développement : poste de travail, tests, in
 
 ## 1. Vue d'ensemble
 
-Paresia est un noyau d'administration à distance en Python (bibliothèque standard d'abord) : deux couples de démons (Romulus et Remus, Pollux et Castor) reliés par un tunnel SSH, des greffons (bunkerd, Nisaba, strfry) et un client Paresia-admin. Les composants et leurs flux sont décrits dans `docs/architecture.md` ; la spécification qui fait foi est `docs/cahier-des-charges.md`.
+Paresia est un noyau d'administration à distance en Python (bibliothèque standard d'abord) : deux couples de démons (Romulus et Remus, Pollux et Castor) reliés par un tunnel SSH, des greffons (bunkerd, Nisaba, strfry) et un client Paresia-admin. Les composants et leurs flux sont décrits dans [architecture](architecture.md) ; la spécification qui fait foi est le [cahier des charges](cahier-des-charges.md).
 
 ## 2. Branches
 
 - `main` : branche des versions publiées, gérée par le mainteneur.
-- Une branche de développement reçoit les modifications, sans avance rapide ; la contribution passe par une demande de fusion (`CONTRIBUTING.md`, § 2).
+- Une branche de développement reçoit les modifications, sans avance rapide ; la contribution passe par une demande de fusion ([CONTRIBUTING.md](../CONTRIBUTING.md#2-proposer-une-modification)).
 
 ## 3. Poste de développement (Debian 13)
 
@@ -28,13 +28,13 @@ Paresia est un noyau d'administration à distance en Python (bibliothèque stand
 Étapes :
 
 1. Cloner le dépôt et se placer à sa racine.
-2. Installer les paquets de test listés dans `docs/prerequis.md`, § 6 (dont `python3-cryptography`, et PyQt6 pour les tests du client, qui sont sautés en son absence).
+2. Installer les paquets de test listés dans [prérequis](prerequis.md#6-développement-et-ci-hors-prérequis-dexploitation), § 6 (dont `python3-cryptography`, et PyQt6 pour les tests du client, qui sont sautés en son absence).
 3. Lancer la suite : `python3 -m pytest -q`. Le dossier temporaire des tests est propre à chaque exécution (`conftest.py`, § 5) et placé sous `.pytest_cache/` (`pytest.ini`), car `/tmp` peut être monté `noexec`.
 4. Avant chaque commit, lancer la recherche de secrets (§ 5.1).
 
 ## 4. Style et contributions
 
-Les règles de style, de tests, de commits et de documentation sont dans `CONTRIBUTING.md` et `docs/conventions.md`. Toute option, variable de configuration ou code d'erreur ajouté est documenté dans la même demande de fusion (page de manuel mdoc, document concerné, `CHANGELOG.md`).
+Les règles de style, de tests, de commits et de documentation sont dans [CONTRIBUTING.md](../CONTRIBUTING.md) et [conventions](conventions.md). Toute option, variable de configuration ou code d'erreur ajouté est documenté dans la même demande de fusion (page de manuel mdoc, document concerné, [CHANGELOG.md](../CHANGELOG.md)).
 
 ## 5. Tests et intégration continue
 
@@ -90,7 +90,7 @@ Tests : `tests/test_scan_secrets.py` et `tests/test_garde_installation.py`. Les 
 
 ### 5.2 Banc d'essai CI (job `banc`)
 
-La CI compte deux jobs : `verifications` (secrets puis `pytest`, § 5) et `banc`. Le job `banc` s'exécute sur `ubuntu-latest` avec Docker, sans montage de l'hôte, et réalise le test d'intégration avec un sshd réel exigé par `docs/protocole.md`, § 8.
+La CI compte deux jobs : `verifications` (secrets puis `pytest`, § 5) et `banc`. Le job `banc` s'exécute sur `ubuntu-latest` avec Docker, sans montage de l'hôte, et réalise le test d'intégration avec un sshd réel exigé par le [protocole](protocole.md), § 8.
 
 - **Montage** : deux conteneurs Debian 13 (systemd 257, OpenSSH 10.0) sur un réseau Docker dédié aux adresses RFC 5737, `backend-admin` (sshd, Pollux, Romulus, tunnel) et `backend-relais` (sshd, Castor, Remus). Les unités et la configuration livrées sont utilisées sans adaptation ; les images sont décrites par `tests/banc/admin.containerfile` et `tests/banc/relais.containerfile`.
 - **Orchestration** : `python3 -m banc.orchestrateur` (`PYTHONPATH=tests`), avec les sous-commandes `construire`, `demarrer`, `scenario`, `journal` et `arreter`, enchaînées par le workflow. Le journal et l'arrêt s'exécutent même après un échec. Le module n'appelle aucun moteur à l'import ni pour `--aide`. Il refuse d'exporter un journal où une donnée sensible est détectée (`tests/banc/journal.py`).
@@ -117,7 +117,7 @@ La CI compte deux jobs : `verifications` (secrets puis `pytest`, § 5) et `banc`
 | `server/strfry/` | plugin `writePolicy` du journal légal en Python |
 | `deploy/` | procédures, unités systemd, `strfry.conf` livré, nftables, sudoers, déclarations de services (`backend-admin/`, `backend-relais/`) |
 | `server/pollux/session.py`, `server/bin/pollux-session` | commande forcée SSH `pollux-session` du compte `app` |
-| `server/conf/` | `paresia.conf` : exemple unique de backend-admin (D33, `docs/configuration.md`) ; `paresia-relais.conf` : exemple de backend-relais (D45) |
+| `server/conf/` | `paresia.conf` : exemple unique de yang (D33, [configuration](configuration.md)) ; `paresia-relais.conf` : exemple de yin (D45) |
 | `i18n/` | catalogues `fr-FR.json` et `en-US.json` (codes d'erreur, messages des outils, clés d'interface `ui_*` de l'application, D58, D109) |
 | `docs/` | cahier des charges, protocole, conventions, architecture, décisions, index (`README.md`), `man/` (pages de manuel), `wiki/` (guide de l'administrateur) |
 | `tools/hooks/` | recherche de secrets et garde « installation privée » (`scan_secrets.py`), crochet `pre-commit` (§ 5.1) |
@@ -152,7 +152,7 @@ Fichiers racine : `README.md`, `CONTRIBUTING.md`, `CHANGELOG.md`, `SECURITY.md` 
 
 ### 6.2 Fonctions enfichables : catalogue, chargeur et manifeste (D148, D154)
 
-Socle : `server/commun/catalogue.py` (descripteurs, introspection, noms Varlink), `plugins.py` (chargeur), `sortie.py` (contrat de sortie), `privileges.py` (commandes privilégiées neutres). **Remus les utilise** (`server/remus/fonctions.py`, `Executeur.lancer_script` pour la voie « script ») ; aucun autre démon ne le fait encore. Romulus, lui, n'utilise pas ce chargeur : il lit des déclarations de services (§ 6.3). Protocole : `docs/protocole.md`, § 5.5.
+Socle : `server/commun/catalogue.py` (descripteurs, introspection, noms Varlink), `plugins.py` (chargeur), `sortie.py` (contrat de sortie), `privileges.py` (commandes privilégiées neutres). **Remus les utilise** (`server/remus/fonctions.py`, `Executeur.lancer_script` pour la voie « script ») ; aucun autre démon ne le fait encore. Romulus, lui, n'utilise pas ce chargeur : il lit des déclarations de services (§ 6.3). Protocole : [protocole](protocole.md), § 5.5.
 
 **Liste des actions du noyau.** Il n'existe plus de liste d'actions écrite à la main dans `server/commun/jumeaux.py` : `server/commun/noyau.py` décrit les actions de `presence/*` et de `castor/*` par des descripteurs (paramètres, bornes, erreurs), et l'ensemble `ACTIONS` de `jumeaux.py` en est calculé. Les actions des greffons n'y figurent pas : chaque démon admet celles de son catalogue. Les tableaux d'actions de `docs/protocole.md` sont contrôlés contre leur source (le catalogue du noyau pour `presence` et `castor`, les déclarations livrées pour les greffons), non générés. Un test de neutralité (`tests/test_noyau_neutre.py`) vérifie qu'aucun nom de greffon (strfry, bunker, Nisaba, journal légal) n'apparaît dans le code du noyau (`server/commun`, `romulus`, `remus`, `pollux`, `castor`) et qu'il n'y charge aucun mécanisme de greffon propre à un langage (`importlib`, `__import__`, points d'entrée, `pluggy`, `stevedore`, `yapsy`) ; toute exception se justifie dans le test, une ligne par entrée.
 
@@ -250,7 +250,7 @@ Un greffon peut apporter des pages d'administration. Le client (`admin/web/greff
 
 **Défaillances.** Un index absent, illisible ou invalide, un greffon, un catalogue ou une page refusés ne gênent jamais les pages du noyau. Chaque refus est signalé dans la zone de diagnostic par un code constant (`absent`, `type`, `taille`, `json`, `delai`, `index_invalide`, `descripteur_invalide`, `nom_invalide`, `nom_en_double`, `page_invalide`, `catalogue_indisponible`, `catalogue_invalide`, `cle_hors_prefixe`, `cle_en_collision`, `page_en_collision`, `script_introuvable`, `delai_depasse`, `non_enregistree`, `delai_total`), sans recopier de valeur reçue.
 
-**Confiance.** Un script de greffon a les mêmes droits que le noyau de la page : il partage l'objet global `Paresia`. Installer un greffon, c'est installer du code d'administration. Exigences côté client : `docs/exigences-client.md`, § 6. Tests : `tests/test_admin_web_greffons.py`.
+**Confiance.** Un script de greffon a les mêmes droits que le noyau de la page : il partage l'objet global `Paresia`. Installer un greffon, c'est installer du code d'administration. Exigences côté client : [exigences du client](exigences-client.md), § 6. Tests : `tests/test_admin_web_greffons.py`.
 
 ### 6.5 Pose des pages et de l'index à l'installation
 
@@ -266,7 +266,7 @@ Tests : `tests/test_romulus_pages.py`, `tests/test_romulus_services.py`, `tests/
 
 ## 7. État
 
-Ce qui est livré, ce qui ne l'est pas et la feuille de route : `README.md`, § « État réel » et § « Feuille de route ».
+Ce qui est livré, ce qui ne l'est pas et la feuille de route : [README](../README.md), § « État réel » et § « Feuille de route ».
 ## 8. Historique
 
-Le journal des versions est dans `CHANGELOG.md`. Les décisions et leurs conséquences d'un retour en arrière sont dans `docs/decisions.md`.
+Le journal des versions est dans [CHANGELOG.md](../CHANGELOG.md). Les décisions et leurs conséquences d'un retour en arrière sont dans [décisions](decisions.md).

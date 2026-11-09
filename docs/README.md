@@ -2,7 +2,7 @@
 
 Version du document : 0.1.19 · 2026-11-08.
 
-Index des documents du projet. Le README, à la racine, est le premier contact ; les détails sont ici. Tout est versionné avec le code. Le wiki est écrit dans `docs/wiki/` ; sa publication sur le wiki du dépôt n'est qu'une copie de ces fichiers.
+Index des documents du projet. Le README, à la racine, est le premier contact ; les détails sont ici. Tout est versionné avec le code. Le wiki est écrit dans [`docs/wiki/`](wiki/Accueil.md) ; sa publication sur le wiki du dépôt n'est qu'une copie de ces fichiers.
 
 Public : **A** = administrateur, **D** = développeur ou contributeur.
 
@@ -23,9 +23,9 @@ Public : **A** = administrateur, **D** = développeur ou contributeur.
 | Document | Une ligne | Public |
 | --- | --- | --- |
 | [Prérequis](prerequis.md) | paquets, versions et modules par machine | A |
-| [Installer le relais strfry](wiki/Installer-strfry.md) | préparer le conteneur Docker `strfry` de `backend-relais`, avant l'installation | A |
+| [Installer le relais strfry](wiki/Installer-strfry.md) | préparer le conteneur Docker `strfry` de yin, avant l'installation | A |
 | [Installer le client](wiki/Installer-client.md) | installer le client Paresia-admin sur le poste de l'administrateur | A |
-| [Installer `nak`](wiki/Installer-nak.md) | installer `nak` sur le poste des clés privées (création d'une clé) et sur `backend-admin` (bunker) | A |
+| [Installer `nak`](wiki/Installer-nak.md) | installer `nak` sur le poste des clés privées (création d'une clé) et sur yang (bunker) | A |
 | [Exploitation](exploitation.md) | démarrer, lire les journaux, feu de Castor, tunnel, retours arrière | A |
 | [Configuration](configuration.md) | configuration en couches, codes d'erreur, emplacements | A, D |
 | [Pages de manuel](man/README.md) | pages de manuel (liste dans ce fichier) | A |
@@ -50,5 +50,5 @@ La procédure d'installation de bunkerd n'est pas encore écrite (démon écrit,
 ## Règles de documentation
 
 - Chaque document porte le numéro de `VERSION` au moment de sa modification, un public (A administrateur, D développeur) et un objet.
-- Les normes citées sont listées dans `conventions.md`, § « Normes et usages de référence ».
+- Les normes citées sont listées dans [`conventions.md`](conventions.md#normes-et-usages-de-référence), § « Normes et usages de référence ».
 - Les dates sont au format ISO 8601.

@@ -2,11 +2,11 @@
 
 Version du document : 0.1.19 · 2026-11-08. Version provisoire : le modèle de menace complet reste à rédiger.
 
-Paresia est développé avec l'aide d'outils d'IA et n'a fait l'objet d'aucun audit de sécurité externe : il peut contenir des erreurs, y compris de sécurité. Voir le `README.md`, section « Développement assisté par IA ».
+Paresia est développé avec l'aide d'outils d'IA et n'a fait l'objet d'aucun audit de sécurité externe : il peut contenir des erreurs, y compris de sécurité. Voir le [README](README.md), section « Développement assisté par IA ».
 
 ## Signaler une vulnérabilité
 
-Ne pas ouvrir de ticket public. Écrire au mainteneur (paresia@zobrak.net).
+Un ticket public exposerait la faille à tous avant qu'un correctif existe : écrivez plutôt au mainteneur (paresia@zobrak.net).
 
 Versions prises en charge : à définir avant la publication (projet en alpha : seule la dernière version est suivie). Un fichier `security.txt` conforme à la RFC 9116 est prévu à la publication.
 
@@ -24,7 +24,7 @@ Versions prises en charge : à définir avant la publication (projet en alpha : 
 
 ## Principes
 
-Robinet fermé par défaut, présence prouvée par clé SSH, jeton par session, liste fermée d'opérations, aucun secret dans les journaux ni en argument de commande. Détail : `docs/cahier-des-charges.md`.
+Robinet fermé par défaut, présence prouvée par clé SSH, jeton par session, liste fermée d'opérations, aucun secret dans les journaux ni en argument de commande. Détail : [cahier des charges](docs/cahier-des-charges.md).
 
 ## Risques résiduels
 
@@ -34,7 +34,7 @@ Robinet fermé par défaut, présence prouvée par clé SSH, jeton par session, 
 Parades décidées :
 
 - (a) le compte `app` ne sert qu'à `pollux-session` : aucun autre service, cron ni shell utile ;
-- (c) preuve par signature, en place côté serveur et côté client : à l'ouverture de session, défi aléatoire à usage unique signé sur le poste client avec la clé de l'administrateur (format SSHSIG, espace de noms `paresia-presence`), vérifié par Pollux avec la clé publique figurant dans `authorized_keys` ; un seul essai par connexion, aucune cause de refus révélée au client (`docs/protocole.md`, § 4.1).
+- (c) preuve par signature, en place côté serveur et côté client : à l'ouverture de session, défi aléatoire à usage unique signé sur le poste client avec la clé de l'administrateur (format SSHSIG, espace de noms `paresia-presence`), vérifié par Pollux avec la clé publique figurant dans `authorized_keys` ; un seul essai par connexion, aucune cause de refus révélée au client ([protocole](docs/protocole.md), § 4.1).
 
 Le nom de l'administrateur n'est une preuve d'identité qu'avec (c), donc seulement quand le client signe le défi : Paresia-admin le fait (`ssh-keygen -Y sign`, clé privée dans l'agent SSH ; `paresia-admin(1)`). Le fichier des clés autorisées DOIT appartenir à root et n'être modifiable ni par le compte `app`, ni par le groupe, ni par les autres ; son emplacement définitif et sa tenue par Romulus restent à concevoir.
 

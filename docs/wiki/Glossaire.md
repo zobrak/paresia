@@ -53,4 +53,10 @@ Version du document : 0.1.19 · 2026-11-08 · [Accueil](Accueil.md)
 | **sudoers** | règles de `sudo` ; celles de Remus sont générées |
 | **tunnel (SSH)** | liaison SSH permanente entre `backend-admin` et `backend-relais` portant les deux couples de jumeaux |
 | **unité systemd** | description d'un service pour systemd |
+| **jeu de sauvegarde** | copie datée (`AAAAMMJJ-HHMMSS`) des fichiers qu'un script va modifier, avec l'empreinte de chacun ; sert au retour arrière ([Sauvegarde et retour arrière](Sauvegarde-et-retour-arriere.md)) |
+| **journald** | le service de journaux de systemd, où les démons écrivent ; `journalctl` le lit |
+| **kind** | numéro qui indique le type d'un message Nostr (4 : message privé classique, 1059 : message privé emballé…) |
+| **negentropy** | méthode qui permet à deux relais de comparer leurs messages sans tout se renvoyer ; un *arbre* negentropy en est l'index |
+| **reverse proxy** | serveur placé devant un autre, qui reçoit les connexions des clients et les lui transmet (ici HAProxy et lighttpd) |
+| **résultat attendu** | dans les guides, ce que la commande précédente doit afficher ; un écart signale un problème à diagnostiquer avant de continuer |
 | **yin / yang** | les deux côtés : yin = relais (Remus, Castor), yang = administration (Romulus, Pollux) |

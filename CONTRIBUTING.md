@@ -17,31 +17,31 @@ Mots normatifs (DOIT, DEVRAIT, PEUT) : sens des RFC 2119 et RFC 8174.
 
 ## 1. Signaler un bogue
 
-Avant d'ouvrir un ticket, vérifiez qu'il n'existe pas déjà, et lisez le `CHANGELOG.md` et `SECURITY.md` (changements récents, limites connues). La liste des travaux prévus est tenue par le mainteneur ; en cas de doute, demandez dans le ticket.
+Avant d'ouvrir un ticket, vérifiez qu'il n'existe pas déjà, et lisez le [CHANGELOG.md](CHANGELOG.md) et [SECURITY.md](SECURITY.md) (changements récents, limites connues). La liste des travaux prévus est tenue par le mainteneur ; en cas de doute, demandez dans le ticket.
 
 Un ticket DEVRAIT contenir :
 
 - la version (fichier `VERSION`) et le commit, si vous travaillez sur le dépôt ;
 - le système (Paresia vise Debian 13) et le composant concerné ;
 - les étapes pour reproduire, le résultat obtenu et le résultat attendu ;
-- les lignes de journal utiles, après retrait de tout secret et de toute donnée personnelle (§ 5).
+- les lignes de journal utiles, après retrait de tout secret et de toute donnée personnelle ([§ 5](#5-données-personnelles-et-secrets)).
 
-Une faille de sécurité ne se signale pas par un ticket public : voir le § 4.
+Une faille de sécurité ne se signale pas par un ticket public : voir le [§ 4](#4-sécurité).
 
 ## 2. Proposer une modification
 
-Pour une modification importante (nouvelle fonctionnalité, changement d'interface ou de protocole), ouvrez d'abord un ticket afin d'en discuter avec le mainteneur. Le périmètre du projet est fixé par `docs/cahier-des-charges.md` ; une idée hors de ce périmètre peut être différée.
+Pour une modification importante (nouvelle fonctionnalité, changement d'interface ou de protocole), ouvrez d'abord un ticket afin d'en discuter avec le mainteneur. Le périmètre du projet est fixé par le [cahier des charges](docs/cahier-des-charges.md) ; une idée hors de ce périmètre peut être différée.
 
 ### Branches et demandes de fusion
 
-- `main` est la branche des versions publiées ; elle est gérée par le mainteneur. N'y proposez rien directement.
+- `main` est la branche des versions publiées ; elle est gérée par le mainteneur, qui ne fusionne pas de proposition directe sur elle.
 - Dupliquez le dépôt (fork), créez une branche par sujet, puis ouvrez une demande de fusion (pull request) vers la branche de développement indiquée par le mainteneur dans le ticket ou la description du dépôt.
-- Une demande de fusion traite un seul sujet. Ne réécrivez pas l'historique d'une branche déjà publiée.
+- Une demande de fusion traite un seul sujet. Réécrire l'historique d'une branche déjà publiée ferait perdre le fil de la relecture à ceux qui l'ont déjà lue : ajoutez plutôt des commits.
 
 ### Commits
 
 - Des commits atomiques, avec un message en français : une première ligne courte, à l'impératif (par exemple « Ajoute la vérification du jeton à Romulus »), puis, si utile, un corps qui explique le pourquoi.
-- Avant chaque commit, lancez `python3 tools/hooks/scan_secrets.py --staged` : il refuse un secret ou une référence à une installation privée dans les fichiers indexés. Le crochet `tools/hooks/pre-commit` (activé par `git config core.hooksPath tools/hooks`) appelle le même outil en mode strict, qui exige en plus un fichier local de motifs privés tenu par le mainteneur. Sans ce fichier, désactivez le mode strict par `git config paresia.gardeStricte false` : le crochet applique alors les secrets et les motifs génériques seuls (voir `docs/developpement.md`, § 5.1).
+- Avant chaque commit, lancez `python3 tools/hooks/scan_secrets.py --staged` : il refuse un secret ou une référence à une installation privée dans les fichiers indexés. Le crochet `tools/hooks/pre-commit` (activé par `git config core.hooksPath tools/hooks`) appelle le même outil en mode strict, qui exige en plus un fichier local de motifs privés tenu par le mainteneur. Sans ce fichier, désactivez le mode strict par `git config paresia.gardeStricte false` : le crochet applique alors les secrets et les motifs génériques seuls (voir [développement](docs/developpement.md), § 5.1).
 
 ### Tests
 
@@ -51,34 +51,34 @@ Pour une modification importante (nouvelle fonctionnalité, changement d'interfa
 
 ### Style
 
-- Python 3.13 (Debian 13), bibliothèque standard d'abord ; sinon paquet Debian 13 ; sinon dépendance épinglée, sous licence compatible avec AGPL-3.0-or-later et mentionnée dans `docs/licences-tierces.md`. Aucune dépendance ni outil requis ne DOIT être propriétaire.
-- Identifiants de code (fonctions, variables, classes) en français, comme dans le code existant ; noms de démons, de composants et de fichiers en minuscules (`docs/conventions.md`, § Code).
+- Python 3.13 (Debian 13), bibliothèque standard d'abord ; sinon paquet Debian 13 ; sinon dépendance épinglée, sous licence compatible avec AGPL-3.0-or-later et mentionnée dans [licences tierces](docs/licences-tierces.md). Aucune dépendance ni outil requis ne DOIT être propriétaire.
+- Identifiants de code (fonctions, variables, classes) en français, comme dans le code existant ; noms de démons, de composants et de fichiers en minuscules ([conventions](docs/conventions.md), § Code).
 - Commentaires, messages de commit, tickets et documentation en français.
 - Chaque fichier source porte l'en-tête `SPDX-License-Identifier: AGPL-3.0-or-later`.
-- Aucune valeur propre à une machine en dur (chemins, hôtes, ports) : fichier de configuration, puis variables d'environnement (`docs/configuration.md`).
+- Aucune valeur propre à une machine en dur (chemins, hôtes, ports) : fichier de configuration, puis variables d'environnement ([configuration](docs/configuration.md)).
 - Aucun texte affiché en dur : les messages passent par les catalogues `i18n/<langue>.json`. Les démons renvoient des codes d'erreur stables. Tout texte reçu de l'extérieur est nettoyé des caractères de contrôle avant affichage.
 - Refus par défaut ; entrées validées par liste blanche ; comparaisons de jetons en temps constant ; aucun secret en argument de commande ni dans un journal.
 - Exemples et documentation : noms génériques (`backend-admin`, `backend-relais`, `pare-feu`, `poste client`), adresses de la RFC 5737 (ou RFC 3849), domaines de la RFC 2606 (`bunker.example.org`).
 
 ### Documentation
 
-Toute option, variable de configuration, code d'erreur, commande ou démon ajouté ou modifié DOIT être documenté dans la même demande de fusion : page de manuel au format mdoc dans `docs/man/` (sections 1, 5 et 8), document concerné de `docs/`, et entrée dans `CHANGELOG.md` (Keep a Changelog 1.1.0, dates ISO 8601). Les normes à citer sont listées dans `docs/conventions.md`, § Normes et usages de référence. Le mainteneur ajuste `VERSION` ; ne la modifiez pas, sauf demande.
+Toute option, variable de configuration, code d'erreur, commande ou démon ajouté ou modifié DOIT être documenté dans la même demande de fusion : page de manuel au format mdoc dans [`docs/man/`](docs/man/README.md) (sections 1, 5 et 8), document concerné de [`docs/`](docs/README.md), et entrée dans [CHANGELOG.md](CHANGELOG.md) (Keep a Changelog 1.1.0, dates ISO 8601). Les normes à citer sont listées dans [conventions](docs/conventions.md#normes-et-usages-de-référence). Le mainteneur ajuste `VERSION`, pour que la numérotation reste cohérente d'une contribution à l'autre : laissez-la telle quelle, sauf demande.
 
 ## 3. Licence et origine des contributions
 
-Paresia est publié sous AGPL-3.0-or-later (fichier `LICENSE`). En soumettant une contribution, vous déclarez :
+Paresia est publié sous AGPL-3.0-or-later (fichier [LICENSE](LICENSE)). En soumettant une contribution, vous déclarez :
 
 - en être l'auteur, ou avoir le droit de la soumettre ;
 - l'accepter sous AGPL-3.0-or-later ;
 - ne reprendre aucun code ni contenu dont la licence serait incompatible. Indiquez la source et la licence de tout élément tiers.
 
-Une contribution reste de la responsabilité de son auteur, qu'elle ait été écrite avec ou sans outil d'IA : vous répondez de ce que vous soumettez, de son exactitude et de sa licence. Paresia lui-même est développé avec l'aide d'outils d'IA (voir le `README.md`, section « Développement assisté par IA »).
+Une contribution reste de la responsabilité de son auteur, qu'elle ait été écrite avec ou sans outil d'IA : vous répondez de ce que vous soumettez, de son exactitude et de sa licence. Paresia lui-même est développé avec l'aide d'outils d'IA (voir le [README](README.md), section « Développement assisté par IA »).
 
-Les dépendances et leurs licences sont recensées dans `docs/licences-tierces.md`.
+Les dépendances et leurs licences sont recensées dans [licences tierces](docs/licences-tierces.md).
 
 ## 4. Sécurité
 
-Ne signalez jamais une vulnérabilité par un ticket, une demande de fusion ou une discussion publics. Suivez la procédure de `SECURITY.md`, qui décrit aussi le modèle de menace.
+Un ticket, une demande de fusion ou une discussion publics exposeraient la vulnérabilité à tous avant qu'un correctif existe : suivez plutôt la procédure de [SECURITY.md](SECURITY.md), qui décrit aussi le modèle de menace.
 
 ## 5. Données personnelles et secrets
 
@@ -93,10 +93,10 @@ Remplacez ces éléments par des valeurs d'exemple. Si un secret a été publié
 
 | Sujet | Document |
 | --- | --- |
-| Périmètre et architecture | `docs/cahier-des-charges.md` |
-| Protocole entre composants | `docs/protocole.md` |
-| Conventions de code, de tests et de documentation | `docs/conventions.md` |
-| Configuration | `docs/configuration.md` |
-| Outillage de développement | `docs/developpement.md` |
-| Décisions de conception | `docs/decisions.md` |
-| Index de la documentation | `docs/README.md` |
+| Périmètre et architecture | [cahier des charges](docs/cahier-des-charges.md) |
+| Protocole entre composants | [protocole](docs/protocole.md) |
+| Conventions de code, de tests et de documentation | [conventions](docs/conventions.md) |
+| Configuration | [configuration](docs/configuration.md) |
+| Outillage de développement | [développement](docs/developpement.md) |
+| Décisions de conception | [décisions](docs/decisions.md) |
+| Index de la documentation | [docs/README.md](docs/README.md) |

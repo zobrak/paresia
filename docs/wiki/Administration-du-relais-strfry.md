@@ -6,13 +6,13 @@ Version du document : 0.1.19 · 2026-11-08 · [Accueil](Accueil.md)
 
 Référence : [cahier des charges](../cahier-des-charges.md) (§ Remus et Castor sur backend-relais), [protocole](../protocole.md) § 5, [strfry.conf livré](../../deploy/backend-relais/strfry/strfry.conf), [isolation de Remus](../../deploy/backend-relais/isolation-remus.md), `paresia-remus(8)`.
 
-strfry est le premier greffon yin : le relais Nostr que Paresia administre. Cette page distingue ce qui est **livré** de ce qui est **prévu**.
+strfry est le premier greffon de yin : le relais Nostr (le serveur qui reçoit et redistribue les messages Nostr) que Paresia administre. Un *kind* est le numéro qui indique le type d'un message Nostr (par exemple 4 pour un message privé classique) ; un arbre *negentropy* est un index qui permet à deux relais de comparer leurs messages sans tout se renvoyer. Cette page distingue ce qui est **livré** de ce qui est **prévu**. Les autres termes sont dans le [glossaire](Glossaire.md).
 
 ## Le rôle de Remus
 
 Remus **ne sait rien faire par lui-même**. Ce sont les greffons qui lui apportent ses capacités, sous forme de **fonctions** : chacune est une brique (un script et son manifeste), et Remus aiguille chaque requête vers la fonction qui la déclare. Il charge les fonctions au démarrage, depuis deux dossiers (`/usr/local/lib/paresia/remus/fonctions` pour celles qui sont livrées, `/etc/paresia/remus/plugins.d` pour les vôtres), et ne sert que les actions qu'elles déclarent : toute autre action est refusée.
 
-Une fonction qui agit sur strfry le fait sous le compte `chef`, avec un `sudo` limité aux seules commandes `docker` qu'elle déclare : un fichier sudoers **généré** à partir des manifestes (`/etc/sudoers.d/paresia-remus`) liste chaque commande et ses arguments exacts. Ne le modifiez pas à la main. Remus n'écoute que Romulus (par le tunnel) et refuse toute commande dont la session n'a pas le feu vert de Castor ; seules les deux actions qui décrivent le catalogue des fonctions (liste et description, en lecture seule) répondent sans attendre le feu.
+Une fonction qui agit sur strfry le fait sous le compte `chef`, avec un `sudo` limité aux seules commandes `docker` qu'elle déclare : un fichier sudoers **généré** à partir des manifestes (`/etc/sudoers.d/paresia-remus`) liste chaque commande et ses arguments exacts. Une modification à la main serait écrasée ou refusée à la prochaine installation, et une faute de syntaxe peut bloquer `sudo` : laissez le générateur le produire. Remus n'écoute que Romulus (par le tunnel) et refuse toute commande dont la session n'a pas le feu vert de Castor ; seules les deux actions qui décrivent le catalogue des fonctions (liste et description, en lecture seule) répondent sans attendre le feu.
 
 Le principe des greffons : un greffon **ne livre pas le produit** qu'il administre. Il déclare avec quelles versions il fonctionne ; Paresia reste étranger au produit installé. Le greffon officiel de strfry sera livré clé en main (configuration qui fonctionne, procédure d'installation soignée), découpé en briques : celles qui **lisent** seront installées par défaut, celles qui **modifient** seulement à votre demande (exception de la version de base : le redémarrage du conteneur est posé par défaut).
 
@@ -41,7 +41,7 @@ Le principe des greffons : un greffon **ne livre pas le produit** qu'il administ
 
 Ces fonctions agissent sous le compte `chef`, avec exactement trois commandes `sudo` (`docker exec strfry /app/strfry info`, `docker exec strfry /app/strfry negentropy list`, `docker restart strfry`) inscrites dans le fichier sudoers généré. Elles supposent un conteneur Docker nommé `strfry` : **le script d'installation du relais vérifie, avant toute modification, que l'image de ce conteneur correspond à la version que le greffon déclare** (l'étiquette de l'image doit être `4cd3cf6` ; l'étape se saute avec `--sauter produit`) et s'arrête sinon. Le script ne crée, ne démarre ni ne modifie ce conteneur.
 
-Prudence : **redémarrer le conteneur interrompt le relais** pour ses clients le temps du redémarrage ; la page du catalogue de l'application demande une confirmation avant de lancer une action.
+Prudence : **redémarrer le conteneur interrompt le relais** pour ses clients le temps du redémarrage ; la page du catalogue de l'application demande une confirmation avant de lancer une action. Résultat attendu après `relay/state/status` : la version de la base (`db_version`) ; après `relay/container/restart` : « succès », puis un conteneur `strfry` de nouveau `healthy` (`sudo docker ps --filter name=^strfry$`, voir [Installer strfry](Installer-strfry.md#8-démarrer)). La suite : [Premier usage](Premier-usage.md) montre où lancer ces actions.
 
 ## Ce qui est prévu (contrat, non livré)
 

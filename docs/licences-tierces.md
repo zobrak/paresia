@@ -6,7 +6,7 @@ Projet : AGPL-3.0-or-later (`LICENSE`, décision D30). Ce document liste ce qui 
 
 Critère : Paresia (AGPL-3.0-or-later) doit pouvoir utiliser chaque dépendance, c'est-à-dire que la licence de la dépendance doit être compatible avec la redistribution de l'ensemble sous AGPL-3.0-or-later. Une licence permissive (MIT, BSD, Apache-2.0, PSF…) est admise si elle est compatible ; ce n'est pas un critère en soi. Seule une dépendance propriétaire ou incompatible est écartée.
 
-Principe (`docs/conventions.md`) : aucune dépendance propriétaire ; une exception n'est possible qu'en cas d'impasse, par décision du mainteneur, inscrite au registre. Les outils de développement ne sont pas des dépendances de Paresia : ni distribués, ni requis pour l'installer ou l'exécuter ; leur licence n'appelle ni exception ni alternative.
+Principe ([conventions](conventions.md#dépendances-et-outils)) : aucune dépendance propriétaire ; une exception n'est possible qu'en cas d'impasse, par décision du mainteneur, inscrite au registre. Les outils de développement ne sont pas des dépendances de Paresia : ni distribués, ni requis pour l'installer ou l'exécuter ; leur licence n'appelle ni exception ni alternative.
 
 ## Méthode et sources
 
@@ -42,7 +42,7 @@ La licence d'un paquet Debian est celle que déclare le fichier `/usr/share/doc/
 | `rbw` (client de coffre, non fourni par Debian) | non vérifié | non vérifié | non vérifié |
 | lighttpd, HAProxy, Docker | non vérifié | non vérifié | non vérifié |
 
-Les prérequis par machine (paquets, versions, images) sont dans `docs/prerequis.md`.
+Les prérequis par machine (paquets, versions, images) sont dans [prérequis](prerequis.md).
 
 **Aucune dépendance propriétaire ni incompatible n'est constatée.** Les cas non vérifiés ci-dessus (Qt, `rbw`, lighttpd, HAProxy, Docker, `pytest`) doivent l'être avant la publication.
 
@@ -67,7 +67,7 @@ Les prérequis par machine (paquets, versions, images) sont dans `docs/prerequis
 
 ## Autres outils cités par la spécification
 
-Un agent SSH, indépendant du client, est requis sur le poste de l'administrateur (`docs/prerequis.md`) ; sa licence dépend du produit choisi et n'est pas inventoriée ici.
+Un agent SSH, indépendant du client, est requis sur le poste de l'administrateur ([prérequis](prerequis.md)) ; sa licence dépend du produit choisi et n'est pas inventoriée ici.
 
 ## Code issu d'une version antérieure
 
