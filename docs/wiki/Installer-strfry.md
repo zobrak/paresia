@@ -4,6 +4,8 @@ Version du document : 0.1.19 · 2026-11-08.
 
 Suivi, 2026-11-08 : réécrite pas à pas, dépôt récupéré dès le début ; numéro du document inchangé.
 
+Suivi, 2026-11-09 : section « Ce que le frontal doit faire pour le relais » ajoutée, avec renvoi à la page HAProxy ; numéro du document inchangé (aucun numéro donné).
+
 Suivi, 2026-11-09 : `nak` n'est plus installé sur yin ; la clé du relais se crée sur le poste des clés privées (étape 6) ; étapes renumérotées ; numéro du document inchangé (aucun numéro donné).
 
 Cette page prépare **yin** (la machine du relais, `backend-relais` dans les noms de scripts et de dossiers), de zéro, avant [INSTALL.md](../../INSTALL.md). Elle suit un seul fil : rien d'autre à ouvrir.
@@ -309,6 +311,14 @@ ws://192.0.2.20:7777... ok.
 {"kind":1,...}
 publishing to ws://192.0.2.20:7777... success.
 ```
+
+## Ce que le frontal doit faire pour le relais
+
+Si un proxy HAProxy se trouve devant le relais, trois points le concernent (le détail du frontal est dans [Régler HAProxy pour Paresia](Installer-haproxy.md)) :
+
+- **`timeout tunnel` long** dans la section du relais (valable dans `defaults`, `listen` et `backend`, pas dans `frontend`, selon le [manuel de HAProxy 3.0](https://docs.haproxy.org/3.0/configuration.html)) : une connexion WebSocket reste ouverte longtemps ; une fois la connexion passée en WebSocket, `timeout tunnel` remplace les délais `timeout client` et `timeout server` ; choisissez-le assez long pour vos connexions inactives (le manuel prend 1 heure comme exemple pour les WebSocket) ;
+- **`http-request set-header X-Forwarded-For %[src]`** : le `strfry.conf` livré lit l'adresse du client dans cet en-tête (`realIpHeader = "x-forwarded-for"`) ; sans cette ligne, strfry ne connaît pas l'adresse réelle du client ;
+- **`Access-Control-Allow-Origin: *`** : à poser, si vous le voulez, **seulement** dans le backend du relais, jamais dans le `frontend` (il s'appliquerait alors aussi à yang). Le protocole Nostr (NIP-11) demande aux relais d'accepter les requêtes venues d'autres sites (« MUST accept CORS requests »), en envoyant notamment cet en-tête : veillez donc à ce qu'il ne soit pas perdu pour le relais.
 
 ## Suite
 

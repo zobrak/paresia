@@ -74,7 +74,7 @@ Paresia est fourni sans garantie (AGPL-3.0-or-later). Lisez le code, testez avan
 
 ## Installation
 
-Guide « Installer » : [INSTALL.md](INSTALL.md) (deux machines Debian 13, scripts essayés en alpha). Mise à jour : [INSTALL.md, annexe A](INSTALL.md#annexe-a--mettre-à-jour-une-installation-existante). Poste de développement : [développement](docs/developpement.md), § 3. Prérequis : [Prérequis](docs/prerequis.md). Serveur web et proxy (à votre charge) : [Serveur web](docs/serveur-web.md).
+Guide « Installer » : [INSTALL.md](INSTALL.md) (deux machines Debian 13, scripts essayés en alpha). Mise à jour : [INSTALL.md, annexe A](INSTALL.md#annexe-a--mettre-à-jour-une-installation-existante). Poste de développement : [développement](docs/developpement.md), § 3. Prérequis : [Prérequis](docs/prerequis.md). Serveur web et proxy (à votre charge) : [Serveur web](docs/serveur-web.md). Les guides d'installation du noyau (Paresia) et des greffons (strfry, Nisaba, bunker) sont classés séparément dans l'[Accueil du wiki](docs/wiki/Accueil.md).
 
 ## Sécurité
 

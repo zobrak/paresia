@@ -4,6 +4,8 @@ Version du document : 0.1.19 · 2026-11-09 · [Accueil](Accueil.md)
 
 Suivi, 2026-11-09 : première version de la page ; numéro du document inchangé (aucun numéro donné).
 
+Suivi, 2026-11-09 : l'étape 10 (frontal HAProxy) est remplacée par un renvoi vers [Régler HAProxy pour Paresia](Installer-haproxy.md) ; numéro du document inchangé (aucun numéro donné).
+
 Cette page prépare **yang** (la machine d'administration, `backend-admin` dans les noms de scripts et de dossiers) : elle installe et règle le serveur web **lighttpd**. Elle suit un seul fil. Source de vérité des réglages : [Serveur web](../serveur-web.md) (exigences et extrait d'exemple repris tel quel ci-dessous).
 
 **Alpha : à essayer sur une machine jetable. Cette page n'a pas encore été éprouvée de bout en bout sur une machine réelle : les sorties marquées « à relever » seront confirmées à l'essai.** Les noms et adresses (`yang`, `bunker.example.org`, `192.0.2.10`, `192.0.2.254`) sont des exemples génériques (RFC 2606, RFC 5737).
@@ -161,7 +163,7 @@ Machine : yang. Aucune commande : cette étape se lit. Seuls deux réglages se p
 | `setenv.set-response-header` et `add-response-header` | ajoutent aux pages des en-têtes de protection : le navigateur ne devine pas le type des fichiers, et la page ne peut pas être affichée dans un cadre d'un autre site | non |
 | `proxy.server` | envoie les appels `/api/admin/` à la socket Unix de Romulus (`/run/paresia-romulus/romulus-http.sock`) | non (sauf si vous avez changé `[romulus.http] socket`) |
 
-Pourquoi `remoteip` porte l'adresse du frontal et non celle des utilisateurs : le frontal parle à lighttpd, qui ne voit alors que **son** adresse. C'est elle que `remoteip` autorise. L'adresse du vrai client est transmise à part, par un en-tête (voir [étape 10](#10-sur-le-frontal--régler-haproxy)).
+Pourquoi `remoteip` porte l'adresse du frontal et non celle des utilisateurs : le frontal parle à lighttpd, qui ne voit alors que **son** adresse. C'est elle que `remoteip` autorise. L'adresse du vrai client est transmise à part, par un en-tête (voir [Régler HAProxy pour Paresia](Installer-haproxy.md)).
 
 Les réglages sont compris. Étape suivante : le cas sans frontal, ou l'activation (étape 5).
 
@@ -339,15 +341,7 @@ Lighttpd répond comme attendu. Étape suivante : régler le frontal.
 
 ## 10. Sur le frontal : régler HAProxy
 
-Machine : le frontal (HAProxy). Paresia ne livre aucune configuration de HAProxy ; seule une ligne est exigée. Dans la section (`frontend` ou `backend`) qui relaie vers yang, ajoutez :
-
-```
-http-request set-header X-Paresia-Client-IP %[src]
-```
-
-Elle pose l'adresse réelle du client dans l'en-tête `X-Paresia-Client-IP`, en remplaçant toute valeur envoyée par le client. Romulus ne lit que cet en-tête. **N'ajoutez pas `option forwardfor`** (jamais combinée avec cet en-tête) ni `Access-Control-Allow-Origin`, et ne laissez lighttpd joignable que depuis le frontal (pare-feu).
-
-Vérifiez la configuration de HAProxy avec sa propre commande de contrôle, puis rechargez-le. Le réglage `set-header` est établi par la documentation de HAProxy, non éprouvé ici (frontal simulé dans le banc d'essai).
+Machine : le frontal. Ce que Paresia exige de HAProxy se trouve dans [Régler HAProxy pour Paresia](Installer-haproxy.md).
 
 Le frontal est prêt. La suite est le client : [Installer le client](Installer-client.md).
 
@@ -369,7 +363,7 @@ Résultat attendu : le même qu'à l'étape 7 (l'avertissement ne s'affiche plus
 sudo systemctl restart lighttpd
 ```
 
-Lighttpd ne sert plus les pages d'administration (il sert de nouveau sa page par défaut si vous réactivez `unconfigured` par `sudo lighty-enable-mod unconfigured`, commande à relever à l'essai). Le fichier `/etc/lighttpd/conf-available/90-paresia.conf` reste en place, inactif ; supprimez-le seulement si vous n'en avez plus besoin. Retirez aussi la ligne `set-header` du frontal (étape 10) si vous abandonnez l'administration.
+Lighttpd ne sert plus les pages d'administration (il sert de nouveau sa page par défaut si vous réactivez `unconfigured` par `sudo lighty-enable-mod unconfigured`, commande à relever à l'essai). Le fichier `/etc/lighttpd/conf-available/90-paresia.conf` reste en place, inactif ; supprimez-le seulement si vous n'en avez plus besoin. Retirez aussi la ligne `set-header` du frontal ([retour arrière de la page HAProxy](Installer-haproxy.md#retour-arrière)) si vous abandonnez l'administration.
 
 ## Annexe : réserves
 
