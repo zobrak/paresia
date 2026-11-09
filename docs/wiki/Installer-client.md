@@ -12,7 +12,7 @@ Public : l'administrateur, sur son propre poste. Objet : installer et lancer l'a
 
 ## Ce qu'il faut avant
 
-- **Un poste de travail Debian 13 avec un bureau graphique** : l'application ouvre une fenêtre. Python 3.11 au moins (Debian 13 fournit la 3.13). Exemple du parcours : un compte nommé `utilisateur`, dont le dossier personnel est `/home/utilisateur`.
+- **Une station sous Linux.** Avec un bureau graphique, c'est le client graphique (GUI) décrit ici ; sans bureau graphique, un client en ligne de commande (CLI) est prévu, mais n'existe pas encore. Les commandes de cette page sont celles de Debian 13 ; sur une autre distribution, adaptez le nom des paquets. Python 3.11 au moins (Debian 13 fournit la 3.13). Exemple du parcours : un compte nommé `utilisateur`, dont le dossier personnel est `/home/utilisateur`.
 - **Yin et yang installés** : les étapes 1 à 14 d'[INSTALL.md](../../INSTALL.md) sont terminées (l'[étape 15](../../INSTALL.md#15-sur-yang--autoriser-la-clé-dun-administrateur), autoriser une clé, se fait à l'étape 7 de ce parcours). Dans ce parcours, yang est joint à l'adresse `192.0.2.10` (adresse d'exemple, RFC 5737).
 - **Un accès administrateur sur yang** (le compte root de yang), pour l'étape 6 : ajouter votre clé publique.
 - **Une adresse web de l'administration** : le nom, en HTTPS, par lequel on joint le serveur web de yang. Ce serveur web n'est pas installé par les scripts de Paresia ; ses exigences sont dans [Serveur web](../serveur-web.md). Exemple : `https://bunker.example.org`.
