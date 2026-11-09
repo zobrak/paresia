@@ -43,7 +43,7 @@ Les étapes 1 à 7 se lancent sur yang, avec ce compte. L'étape 8 se lance depu
 
 | Valeur | Où | Exemple du guide | Ce qu'il faut mettre |
 | --- | --- | --- | --- |
-| adresse du frontal | `90-paresia.conf`, ligne `$HTTP["remoteip"]` (étapes 2 et 3), commandes de l'étape 8 | `192.0.2.254` | l'adresse IP du frontal, **vue de yang**, avec ses points échappés (`\.`) dans la ligne de configuration |
+| adresse du frontal | `90-paresia.conf`, ligne `$HTTP["remoteip"]` (étapes 2 et 3), commandes de l'étape 8 | `192.0.2.254` | l'adresse que yang voit côté réseau interne pour le frontal, **jamais l'adresse WAN** ; `127.0.0.1` si le proxy tourne sur yang ; points échappés (`\.`) dans la ligne de configuration |
 | nom d'hôte | `90-paresia.conf`, ligne `$HTTP["host"]` (étapes 2 et 3), commandes de l'étape 8 | `bunker.example.org` | le nom de l'adresse web de l'administration (le même que `url` du client, sans `https://`), avec ses points échappés (`\.`) |
 | adresse de yang | commandes de l'étape 8 | `192.0.2.10` | l'adresse IP de yang |
 
@@ -77,7 +77,7 @@ Lighttpd est installé avec la configuration par défaut de Debian ; la suivante
 
 Machine : yang.
 
-Créez le fichier `/etc/lighttpd/conf-available/90-paresia.conf` avec votre éditeur (par exemple `sudoedit /etc/lighttpd/conf-available/90-paresia.conf`), avec le contenu complet ci-dessous. C'est l'extrait d'exemple de [Serveur web](../serveur-web.md), repris sans changement.
+Créez le fichier `/etc/lighttpd/conf-available/90-paresia.conf` avec votre éditeur (par exemple `sudoedit /etc/lighttpd/conf-available/90-paresia.conf`), avec le contenu complet ci-dessous. C'est l'extrait d'exemple de [Serveur web](../serveur-web.md), avec deux écarts que l'essai sur Debian 13 a rendus nécessaires, car la configuration Debian par défaut définit déjà ces réglages : `server.http-parseopts` s'écrit avec `:=` (avec `=`, lighttpd refuse `Duplicate config variable`), et la ligne `mimetype.assign` est retirée (Debian déclare déjà ces types ; la reposer donne `Duplicate array-key`). Le document de référence garde l'extrait d'origine.
 
 **À personnaliser : remplacez `192.0.2.254` (ligne `remoteip`) par l'adresse du frontal et `bunker.example.org` (ligne `host`) par votre nom d'hôte. Gardez les `\.` entre les nombres et les mots : ils sont indispensables.**
 
@@ -87,7 +87,7 @@ server.modules += ( "mod_access", "mod_setenv", "mod_alias", "mod_proxy", "mod_a
 server.stream-request-body  = 0
 server.stream-response-body = 2
 server.max-request-size     = 64
-server.http-parseopts = (
+server.http-parseopts := (
     "header-strict" => "enable", "host-strict" => "enable", "host-normalize" => "enable",
     "url-normalize-unreserved" => "enable", "url-normalize-required" => "enable",
     "url-ctrls-reject" => "enable", "url-path-2f-reject" => "enable", "url-path-2f-decode" => "disable",
@@ -95,8 +95,6 @@ server.http-parseopts = (
 
 accesslog.format   = "%h %t %m %U %>s %b"
 accesslog.escaping = "default"
-
-mimetype.assign += ( ".html" => "text/html", ".js" => "text/javascript", ".json" => "application/json" )
 
 $HTTP["remoteip"] !~ "^192\.0\.2\.254$" {
     url.access-deny = ( "" )
@@ -133,8 +131,8 @@ grep -nE 'remoteip|"host"' /etc/lighttpd/conf-available/90-paresia.conf
 Résultat attendu (votre adresse et votre nom à la place des exemples) :
 
 ```
-16:$HTTP["remoteip"] !~ "^192\.0\.2\.254$" {
-20:$HTTP["host"] !~ "^bunker\.example\.org$" {
+14:$HTTP["remoteip"] !~ "^192\.0\.2\.254$" {
+18:$HTTP["host"] !~ "^bunker\.example\.org$" {
 ```
 
 Le fichier est écrit. Étape suivante : comprendre chaque réglage, pour savoir ce que vous pouvez changer.
@@ -149,14 +147,14 @@ Machine : yang. Aucune commande : cette étape se lit. Seuls deux réglages se p
 | `server.stream-request-body = 0` | lighttpd reçoit la requête en entier avant de la transmettre à Romulus, qui refuse les envois découpés | non |
 | `server.stream-response-body = 2` | transmet la réponse de Romulus au fur et à mesure : indispensable pour le flux d'événements (sans cela, il ne démarre jamais) | non |
 | `server.max-request-size = 64` | taille maximale d'une requête, en kio : au-delà, elle est refusée | non (sauf besoin précis) |
-| `server.http-parseopts` | rend lighttpd strict sur les adresses et les en-têtes mal formés (`..`, `%2F`, caractères de contrôle, texte invalide) et refuse les `%2F` : Romulus compare le chemin exactement. `url-path-2f-decode` est mis à `disable` explicitement, sinon lighttpd refuse de démarrer | non |
+| `server.http-parseopts :=` | rend lighttpd strict sur les adresses et les en-têtes mal formés (`..`, `%2F`, caractères de contrôle, texte invalide) et refuse les `%2F` : Romulus compare le chemin exactement. `url-path-2f-decode` est mis à `disable` explicitement, sinon lighttpd refuse de démarrer. Le `:=` remplace la valeur déjà définie par Debian (avec `=`, lighttpd refuse : `Duplicate config variable`) | non |
 | `accesslog.format` | ce qui est écrit dans le journal d'accès : adresse, heure, méthode, chemin **sans** la chaîne de requête, code, taille. Aucun cookie, aucun jeton n'y figure | non |
 | `accesslog.escaping` | neutralise les caractères de contrôle dans le journal | non |
-| `mimetype.assign` | dit au navigateur le type de chaque fichier (`.html`, `.js`, `.json`) | non |
+| types de fichiers (`.html`, `.js`, `.json`) | pas de ligne dans notre fichier : la configuration Debian déclare déjà ces types, qui disent au navigateur la nature de chaque fichier ; on le contrôle à l'étape 8 | non |
 | `$HTTP["remoteip"] !~ …` | refuse toute requête qui ne vient pas du frontal : lighttpd n'est joignable que par lui | **oui** : l'adresse du frontal |
 | `$HTTP["host"] !~ …` | refuse toute requête dont le nom d'hôte n'est pas le vôtre : protège contre le « rebinding DNS » (un site hostile qui se fait passer pour votre adresse) | **oui** : votre nom d'hôte |
 | `alias.url += (…)` | relie `/admin/` et `/admin/greffons/` aux dossiers du disque (`/usr/local/share/paresia/web/`) ; le chemin le plus long vient en premier | non |
-| `dir-listing.activate = "disable"` | n'affiche jamais la liste des fichiers d'un dossier | non |
+| `dir-listing.activate = "disable"` | n'affiche jamais la liste des fichiers d'un dossier. À garder : `lighttpd -tt` affiche alors normalement `WARNING: unknown config-key: dir-listing.activate (ignored)` (le module de liste de dossiers n'est pas chargé) ; la ligne s'applique dès que le module est chargé | non |
 | `static-file.disable-pathinfo = "enable"` | empêche de servir `fichier.js/suite` comme si c'était `fichier.js` (obligatoire sur lighttpd 1.4.79) | non |
 | `index-file.names` | la page servie quand on ouvre un dossier : `index.html` | non |
 | `setenv.set-response-header` et `add-response-header` | ajoutent aux pages des en-têtes de protection : le navigateur ne devine pas le type des fichiers, et la page ne peut pas être affichée dans un cadre d'un autre site | non |
@@ -208,10 +206,17 @@ La configuration est activée, pas encore appliquée. Étape suivante : la contr
 Machine : yang. À faire **avant** tout rechargement.
 
 ```
-sudo lighttpd -tt -f /etc/lighttpd/lighttpd.conf
+sudo lighttpd -tt -f /etc/lighttpd/lighttpd.conf; echo "code : $?"
 ```
 
-Résultat attendu : `Syntax OK` (à relever à l'essai). Une erreur de syntaxe ou un conflit de modules s'affiche ici : lisez l'[annexe](#annexe--réserves) avant de continuer. Ne rechargez jamais sur une erreur.
+Résultat attendu (essai sur Debian 13) : cette seule ligne d'avertissement, puis le code zéro :
+
+```
+WARNING: unknown config-key: dir-listing.activate (ignored)
+code : 0
+```
+
+L'avertissement est normal : le module de liste de dossiers n'est pas chargé, la ligne `dir-listing.activate` s'appliquerait s'il l'était. Toute autre ligne, ou un code différent de zéro (par exemple `Duplicate config variable` ou `Duplicate array-key`), est une erreur : lisez l'[annexe](#annexe--réserves) avant de continuer. Ne rechargez jamais sur une erreur.
 
 La syntaxe est bonne. Étape suivante : recharger.
 
@@ -237,7 +242,7 @@ Lighttpd applique la configuration. Étape suivante : vérifier que tout répond
 
 ## 8. Vérifier de bout en bout
 
-Machine : **le frontal** (ou toute machine dont l'adresse est celle autorisée à l'étape 2). Les requêtes viennent de l'adresse admise ; depuis une autre machine, y compris yang elle-même, la réponse est `403` : c'est voulu (contrôle 4).
+Machine : **le frontal** (ou toute machine dont l'adresse est celle autorisée à l'étape 2). Les requêtes viennent de l'adresse admise ; depuis une autre machine, y compris yang elle-même, la réponse est `403` : c'est le filtre `remoteip`, normal et voulu. Un `curl` lancé depuis yang reçoit donc `403` (sauf si l'adresse admise est `127.0.0.1`, proxy sur yang) : le contrôle réel passe par le frontal.
 
 **À personnaliser : remplacez `192.0.2.10` par l'adresse de yang et `bunker.example.org` par votre nom d'hôte.** Les commandes emploient `--resolve` : `curl` joint yang par son adresse tout en envoyant le nom d'hôte attendu, sans toucher aux réglages DNS.
 
@@ -256,6 +261,20 @@ curl -si --resolve bunker.example.org:80:192.0.2.10 http://bunker.example.org/ad
 ```
 
 Résultat attendu : `HTTP/1.1 200 OK` et `Content-Type: application/json`.
+
+Contrôle 2 bis, le type des fichiers `.js` (la ligne `mimetype.assign` ayant été retirée, ce contrôle vérifie que Debian déclare le bon type). Sur yang, repérez un script :
+
+```
+find /usr/local/share/paresia/web -name '*.js' | head -n 1
+```
+
+Puis, depuis le frontal, en remplaçant `CHEMIN` par ce chemin sans le début `/usr/local/share/paresia/web/` (par exemple `/admin/app.js` pour `…/web/app.js`) :
+
+```
+curl -si --resolve bunker.example.org:80:192.0.2.10 http://bunker.example.org/admin/CHEMIN | head -n 4
+```
+
+Résultat attendu : `HTTP/1.1 200 OK` et `Content-Type: text/javascript`. Si le type est autre, ne poursuivez pas : relevez-le.
 
 Contrôle 3, l'API atteint Romulus :
 
@@ -319,7 +338,7 @@ sudo lighty-disable-mod paresia
 sudo lighttpd -tt -f /etc/lighttpd/lighttpd.conf
 ```
 
-Résultat attendu : `Syntax OK` (à relever à l'essai).
+Résultat attendu : le même qu'à l'étape 6 (l'avertissement ne s'affiche plus s'il ne concernait que notre fichier ; sortie à relever à l'essai).
 
 ```
 sudo systemctl reload lighttpd
@@ -330,7 +349,7 @@ Lighttpd ne sert plus les pages d'administration. Le fichier `/etc/lighttpd/conf
 ## Annexe : réserves
 
 - **Mécanisme non essayé avec cet extrait.** Le dispositif `conf-available` et `lighty-enable-mod` de Debian n'a pas été essayé avec cet extrait ; le banc d'essai de Paresia exécute l'extrait avec un lighttpd éphémère, non par ce mécanisme.
-- **Conflit possible de modules.** La configuration Debian par défaut charge déjà certains modules. Charger de nouveau un même module (par exemple `mod_access`, `mod_alias`, `mod_proxy`, `mod_setenv` ou `mod_accesslog`) peut faire refuser la configuration à lighttpd, ou en changer l'ordre. Le conflit éventuel n'est pas établi ; **il se voit** à l'étape 6 : `lighttpd -tt` signale une erreur (module déjà chargé, option en conflit) au lieu de `Syntax OK`. Dans ce cas, ne rechargez pas, faites le [retour arrière](#retour-arrière) et signalez la sortie exacte : aucune correction n'est présentée ici tant qu'elle n'est pas établie.
+- **Conflit possible de modules.** La configuration Debian par défaut charge déjà certains modules. Charger de nouveau un même module (par exemple `mod_access`, `mod_alias`, `mod_proxy`, `mod_setenv` ou `mod_accesslog`) peut faire refuser la configuration à lighttpd, ou en changer l'ordre. Constat de l'essai sur Debian 13 : les réglages déjà définis par Debian (`server.http-parseopts`, types de fichiers) donnent `Duplicate config variable` ou `Duplicate array-key` ; c'est pourquoi la page emploie `:=` et ne pose pas `mimetype.assign`. Un autre conflit reste possible : **il se voit** à l'étape 6, où `lighttpd -tt` signale une erreur (module déjà chargé, option en conflit) au lieu de la seule ligne d'avertissement et de `code : 0`. Dans ce cas, ne rechargez pas, faites le [retour arrière](#retour-arrière) et signalez la sortie exacte : aucune correction n'est présentée ici tant qu'elle n'est pas établie.
 - **Versions.** Debian 13 fournit lighttpd 1.4.79 ; le banc a tourné avec la 1.4.82. La 1.4.79 n'a pas été exécutée par le banc.
 - **Journal d'accès.** Sa destination sous systemd n'est pas documentée par lighttpd : non vérifié.
 - **Chemin d'`/admin` sans barre finale.** Il n'est pas servi (aucune redirection prévue) : ouvrez toujours `/admin/`.
