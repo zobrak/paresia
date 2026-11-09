@@ -22,28 +22,30 @@ Notions : une **clé SSH** est une paire, une clé **privée** qui reste chez vo
 
 ## Sommaire
 
-1. [Installer les paquets](#1-sur-le-poste--installer-les-paquets)
-2. [Récupérer le dépôt](#2-sur-le-poste--récupérer-le-dépôt)
-3. [Préparer la clé SSH et l'agent](#3-sur-le-poste--préparer-la-clé-ssh-et-lagent)
-4. [Enregistrer la clé de yang](#4-sur-le-poste--enregistrer-la-clé-de-yang)
-5. [Configurer l'application](#5-sur-le-poste--configurer-lapplication)
-6. [Lancer l'application](#6-sur-le-poste--lancer-lapplication)
-7. [Autoriser votre clé sur yang](#7-sur-yang--autoriser-votre-clé)
-8. [Ouvrir la session et vérifier](#8-sur-le-poste--ouvrir-la-session-et-vérifier)
+1. [Installer les paquets](#1-installer-les-paquets)
+2. [Récupérer le dépôt](#2-récupérer-le-dépôt)
+3. [Préparer la clé SSH et l'agent](#3-préparer-la-clé-ssh-et-lagent)
+4. [Enregistrer la clé de yang](#4-enregistrer-la-clé-de-yang)
+5. [Configurer l'application](#5-configurer-lapplication)
+6. [Lancer l'application](#6-lancer-lapplication)
+7. [Autoriser votre clé sur yang](#7-autoriser-votre-clé-sur-yang)
+8. [Ouvrir la session et vérifier](#8-ouvrir-la-session-et-vérifier)
 9. [En cas de problème](#en-cas-de-problème)
 
 ## À personnaliser
 
 | Valeur | Où | Exemple du guide | Ce qu'il faut mettre |
 | --- | --- | --- | --- |
-| adresse de yang | étapes [4](#4-sur-le-poste--enregistrer-la-clé-de-yang) et [5](#5-sur-le-poste--configurer-lapplication) (`hote_ssh`) | `192.0.2.10` | l'adresse de yang, la même qu'à l'[installation](../../INSTALL.md#à-personnaliser-obligatoirement) |
+| adresse de yang | étapes [4](#4-enregistrer-la-clé-de-yang) et [5](#5-configurer-lapplication) (`hote_ssh`) | `192.0.2.10` | l'adresse de yang, la même qu'à l'[installation](../../INSTALL.md#à-personnaliser-obligatoirement) |
 | adresse web de l'administration | étape 5 (`url`) | `https://bunker.example.org` | l'adresse HTTPS de votre serveur web, sans chemin |
 | dossier personnel | étape 5 (`cle_publique`, `dossier_i18n`) | `/home/utilisateur` | le dossier personnel de votre compte sur le poste (`echo "$HOME"` l'affiche) |
 | nom de la clé | étape 3 (`-C`) | `utilisateur` | un nom court : 1 à 64 caractères, lettres, chiffres, `.`, `_`, `@`, `-` ; ce nom identifie l'administrateur sur yang |
 
 # Le parcours
 
-## 1. Sur le poste : installer les paquets
+**Tout se passe sur votre poste**, sauf deux endroits où une commande se lance sur yang, signalés par « **Sur yang** » en gras : le contrôle d'empreinte de l'étape 4 et l'étape 7.
+
+## 1. Installer les paquets
 
 L'application est écrite en Python avec la bibliothèque graphique Qt (PyQt6) et une vue web intégrée (QtWebEngine). Machine : votre poste, avec `sudo` (en root, retirez `sudo`).
 
@@ -61,9 +63,9 @@ Résultat attendu :
 PyQt6 et QtWebEngine : présents
 ```
 
-Les paquets sont en place quand cette ligne s'affiche ; une erreur `ModuleNotFoundError` signale un paquet manquant, à installer (un paquet déjà présent est simplement signalé par `apt`). L'[étape 2](#2-sur-le-poste--récupérer-le-dépôt) récupère le code.
+Les paquets sont en place quand cette ligne s'affiche ; une erreur `ModuleNotFoundError` signale un paquet manquant, à installer (un paquet déjà présent est simplement signalé par `apt`). L'[étape 2](#2-récupérer-le-dépôt) récupère le code.
 
-## 2. Sur le poste : récupérer le dépôt
+## 2. Récupérer le dépôt
 
 Le dépôt contient l'application et les catalogues de textes qu'elle affiche. Machine : votre poste, avec votre compte ordinaire (pas besoin de root).
 
@@ -82,9 +84,9 @@ Résultat attendu : le numéro de version du dépôt, par exemple :
 0.1.19
 ```
 
-Le code est copié quand la version s'affiche (si `git clone` échoue, vérifiez la connexion à Internet de votre poste et relancez-le) ; l'[étape 3](#3-sur-le-poste--préparer-la-clé-ssh-et-lagent) prépare votre clé.
+Le code est copié quand la version s'affiche (si `git clone` échoue, vérifiez la connexion à Internet de votre poste et relancez-le) ; l'[étape 3](#3-préparer-la-clé-ssh-et-lagent) prépare votre clé.
 
-## 3. Sur le poste : préparer la clé SSH et l'agent
+## 3. Préparer la clé SSH et l'agent
 
 C'est avec cette clé que vous prouverez votre présence. Machine : votre poste, compte ordinaire.
 
@@ -119,9 +121,9 @@ ssh-add -L
 
 Résultat attendu : une ligne qui commence par `ssh-ed25519 AAAA` et se termine par le nom choisi.
 
-La clé est prête quand `ssh-add -L` la montre ; l'[étape 4](#4-sur-le-poste--enregistrer-la-clé-de-yang) apprend à votre poste à reconnaître yang. Pourquoi : l'application se connecte à yang sans jamais poser de question ; si votre poste ne connaît pas encore yang, la connexion est refusée en silence.
+La clé est prête quand `ssh-add -L` la montre ; l'[étape 4](#4-enregistrer-la-clé-de-yang) apprend à votre poste à reconnaître yang. Pourquoi : l'application se connecte à yang sans jamais poser de question ; si votre poste ne connaît pas encore yang, la connexion est refusée en silence.
 
-## 4. Sur le poste : enregistrer la clé de yang
+## 4. Enregistrer la clé de yang
 
 Chaque serveur SSH a sa propre clé, son « visage ». Votre poste doit l'avoir enregistrée, sinon la connexion de l'application est refusée. On la récupère puis on **compare son empreinte** avec celle que yang annonce, pour ne pas enregistrer le visage d'un imposteur.
 
@@ -133,7 +135,7 @@ ssh-keyscan -t ed25519 192.0.2.10 2>/dev/null | ssh-keygen -lf -
 
 Résultat attendu : une ligne du type `256 SHA256:… 192.0.2.10 (ED25519)` (la valeur après `SHA256:` est propre à yang).
 
-Sur yang, en root, affichez l'empreinte de sa propre clé d'hôte :
+**Sur yang**, en root, affichez l'empreinte de sa propre clé d'hôte :
 
 ```
 ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub
@@ -150,11 +152,11 @@ ssh-keyscan -t ed25519 192.0.2.10 >> ~/.ssh/known_hosts
 
 Résultat attendu : une ligne de commentaire `# 192.0.2.10:22 SSH-2.0-OpenSSH_…` sur la sortie d'erreur ; la ligne de clé va dans `~/.ssh/known_hosts` (la forme exacte de la sortie d'erreur n'est pas établie ici).
 
-Yang est connu de votre poste ; l'[étape 5](#5-sur-le-poste--configurer-lapplication) écrit la configuration de l'application.
+Yang est connu de votre poste ; l'[étape 5](#5-configurer-lapplication) écrit la configuration de l'application.
 
-## 5. Sur le poste : configurer l'application
+## 5. Configurer l'application
 
-L'application lit un petit fichier de réglages, que vous créez. Machine : votre poste, compte ordinaire. Le fichier se place dans `~/.config/paresia/` (le dossier `$XDG_CONFIG_HOME/paresia/` s'il est défini) ; il doit vous appartenir et n'être modifiable par personne d'autre (c'est le cas avec les droits par défaut). Le nom doit finir par `.conf`.
+L'application lit un petit fichier de réglages, que vous créez. Machine : votre poste, compte ordinaire. Le fichier se place dans `~/.config/paresia/` (le dossier `$XDG_CONFIG_HOME/paresia/` s'il est défini) ; il doit vous appartenir et n'être modifiable par personne d'autre (la commande de droits ci-dessous le garantit). Le nom doit finir par `.conf`.
 
 Créez le dossier, puis le fichier vide :
 
@@ -162,6 +164,23 @@ Créez le dossier, puis le fichier vide :
 mkdir -p ~/.config/paresia
 touch ~/.config/paresia/paresia-admin.conf
 ```
+
+Fixez maintenant les droits : sur un poste dont le masque de création de fichiers est `002` (courant), les deux commandes précédentes créent des droits trop larges.
+
+```
+chmod 700 ~/.config/paresia
+chmod 600 ~/.config/paresia/paresia-admin.conf
+ls -ld ~/.config/paresia ~/.config/paresia/paresia-admin.conf
+```
+
+Résultat attendu (le propriétaire est votre compte ; votre dossier personnel à la place de `/home/utilisateur`) :
+
+```
+drwx------ 2 utilisateur utilisateur 4096 nov.  9 10:00 /home/utilisateur/.config/paresia
+-rw------- 1 utilisateur utilisateur    0 nov.  9 10:00 /home/utilisateur/.config/paresia/paresia-admin.conf
+```
+
+Pourquoi : sans ces droits, l'application refuse le fichier, car un autre compte de votre poste pourrait le modifier (elle refuse aussi un lien symbolique à leur place). La taille et la date de la sortie varient.
 
 Ouvrez `~/.config/paresia/paresia-admin.conf` avec votre éditeur de texte (par exemple `nano ~/.config/paresia/paresia-admin.conf`, installé par `sudo apt install nano` s'il manque) et collez ce contenu. **À personnaliser : `url`, `hote_ssh`, `cle_publique` et `dossier_i18n`, selon le tableau [À personnaliser](#à-personnaliser) ; les autres valeurs sont celles de l'installation par défaut.**
 
@@ -214,9 +233,9 @@ Résultat attendu :
 /usr/bin/ssh-keygen
 ```
 
-Aucun secret ne figure dans ce fichier : il ne contient que des adresses et des chemins. Les réglages sont en place ; l'[étape 6](#6-sur-le-poste--lancer-lapplication) lance l'application. Si un réglage est invalide, elle refuse de démarrer et nomme le réglage fautif (jamais sa valeur).
+Aucun secret ne figure dans ce fichier : il ne contient que des adresses et des chemins. Les réglages sont en place ; l'[étape 6](#6-lancer-lapplication) lance l'application. Si un réglage est invalide, elle refuse de démarrer et nomme le réglage fautif (jamais sa valeur).
 
-## 6. Sur le poste : lancer l'application
+## 6. Lancer l'application
 
 Machine : votre poste, dans une session graphique, avec le **même terminal** que l'étape 3 si vous y avez démarré un agent. Le programme se lance depuis le dossier du dépôt.
 
@@ -227,13 +246,13 @@ python3 -m admin.app
 
 Résultat attendu : une fenêtre s'ouvre, avec un menu de quatre entrées (« Ouvrir l'administration », « Fermer l'administration », « Ligne de clé à remettre », « Quitter ») et un indicateur d'état **gris** : aucune session n'est ouverte. Ce que la fenêtre affiche avant l'ouverture d'une session n'est pas établi. Le terminal reste occupé tant que la fenêtre est ouverte.
 
-Si la fenêtre ne s'ouvre pas et qu'un message `Configuration invalide : <réglage>` apparaît dans le terminal, corrigez le réglage nommé dans le fichier de l'étape 5 et relancez. La fenêtre est ouverte ; l'[étape 7](#7-sur-yang--autoriser-votre-clé) autorise votre clé, car sans cela yang refuserait l'ouverture.
+Si la fenêtre ne s'ouvre pas et qu'un message `Configuration invalide : <réglage>` apparaît dans le terminal, corrigez le réglage nommé dans le fichier de l'étape 5 et relancez. La fenêtre est ouverte ; l'[étape 7](#7-autoriser-votre-clé-sur-yang) autorise votre clé, car sans cela yang refuserait l'ouverture.
 
-## 7. Sur yang : autoriser votre clé
+## 7. Autoriser votre clé sur yang
 
 Yang n'accepte que les clés qu'on lui a déclarées. Cette étape est l'[étape 15 de l'installation](../../INSTALL.md#15-sur-yang--autoriser-la-clé-dun-administrateur) : lisez-la, elle donne la commande et les contrôles.
 
-**Si la clé que vous employez est déjà autorisée sur yang** (étape 15 d'INSTALL.md) : inutile de la déclarer une seconde fois. Il vous suffit de comparer les empreintes : celle de votre poste (`ssh-keygen -lf ~/.ssh/paresia-admin.pub`, en remplaçant le chemin par celui de votre fichier `.pub`) doit être identique à celle que yang affiche pour le fichier `authorized_keys` ; puis passez à l'[étape 8](#8-sur-le-poste--ouvrir-la-session-et-vérifier).
+**Si la clé que vous employez est déjà autorisée sur yang** (étape 15 d'INSTALL.md) : inutile de la déclarer une seconde fois. Il vous suffit de comparer les empreintes : celle de votre poste (`ssh-keygen -lf ~/.ssh/paresia-admin.pub`, en remplaçant le chemin par celui de votre fichier `.pub`) doit être identique à celle que yang affiche pour le fichier `authorized_keys` ; puis passez à l'[étape 8](#8-ouvrir-la-session-et-vérifier).
 
 **Sinon**, la clé que vous employez (par exemple celle créée à l'étape 3) n'est pas encore autorisée : il vous faut deux valeurs, à relever sur votre poste.
 
@@ -245,11 +264,11 @@ cut -d' ' -f2,3 ~/.ssh/paresia-admin.pub
 
 Résultat attendu : une ligne `AAAA… utilisateur` : d'abord la partie centrale (`CLE_PUBLIQUE_ADMIN` de l'étape 15), puis le nom (`COMMENTAIRE`). Vous pouvez aussi lire la ligne complète à ajouter dans le menu « Ligne de clé à remettre » de la fenêtre.
 
-Sur yang, en root, suivez ensuite l'[étape 15](../../INSTALL.md#15-sur-yang--autoriser-la-clé-dun-administrateur) avec ces deux valeurs, jusqu'à la comparaison des empreintes.
+**Sur yang**, en root, suivez ensuite l'[étape 15](../../INSTALL.md#15-sur-yang--autoriser-la-clé-dun-administrateur) avec ces deux valeurs, jusqu'à la comparaison des empreintes.
 
-Votre clé est autorisée quand l'empreinte de yang correspond à celle de votre poste (`ssh-keygen -lf ~/.ssh/paresia-admin.pub`) ; l'[étape 8](#8-sur-le-poste--ouvrir-la-session-et-vérifier) ouvre la session.
+Votre clé est autorisée quand l'empreinte de yang correspond à celle de votre poste (`ssh-keygen -lf ~/.ssh/paresia-admin.pub`) ; l'[étape 8](#8-ouvrir-la-session-et-vérifier) ouvre la session.
 
-## 8. Sur le poste : ouvrir la session et vérifier
+## 8. Ouvrir la session et vérifier
 
 Machine : votre poste, dans la fenêtre de l'application.
 
@@ -264,6 +283,7 @@ Pour fermer proprement : menu « Fermer l'administration », puis « Quitter ».
 
 ## En cas de problème
 
+- **Message « Configuration invalide » sans nom de réglage** : le plus souvent, les droits du dossier `~/.config/paresia` ou du fichier sont trop larges (modifiables par le groupe ou les autres) : refaites les commandes de droits de l'[étape 5](#5-configurer-lapplication) et relisez le résultat de `ls -ld`.
 - **Message « Configuration invalide » dans le terminal** : l'application nomme le réglage en cause ; relisez-le dans le fichier de l'étape 5 (chemin non absolu, adresse `url` avec un chemin ou un `/` final, langue qui n'est pas de la forme `fr-FR`).
 - **« Connexion SSH impossible ou interrompue »** : vérifiez, dans l'ordre : que l'agent détient la clé (`ssh-add -L`, étape 3), que la clé de yang est enregistrée (étape 4), que la clé est autorisée sur yang (étape 7), que yang est joignable sur le port 22.
 - **Signature impossible** : l'agent est absent de ce terminal (`echo "$SSH_AUTH_SOCK"` vide) ou ne connaît pas la clé : relancez l'étape 3, puis l'application depuis ce terminal.

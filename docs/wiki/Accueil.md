@@ -40,7 +40,7 @@ Le noyau, c'est Paresia : yin (`backend-relais`), yang (`backend-admin`) et le c
 | 5 | [Régler HAProxy pour Paresia](Installer-haproxy.md) | Ce que Paresia exige du frontal HAProxy (très pointu : seulement les exigences du projet) |
 | 6 | [Installer le client](Installer-client.md) | Installer le client Paresia-admin sur le poste de l'administrateur |
 | 7 | [Premier usage](Premier-usage.md) | Que vérifier juste après l'installation, ce qui est utilisable aujourd'hui |
-| 8 | [Configurer Paresia](Configuration.md) | Où sont les fichiers de réglage de yin et de yang, comment ils se combinent, quels réglages vous toucherez le plus. Le réglage du client est à l'[étape 5 de son guide](Installer-client.md#5-sur-le-poste--configurer-lapplication) |
+| 8 | [Configurer Paresia](Configuration.md) | Où sont les fichiers de réglage de yin et de yang, comment ils se combinent, quels réglages vous toucherez le plus. Le réglage du client est à l'[étape 5 de son guide](Installer-client.md#5-configurer-lapplication) |
 
 Le serveur web et HAProxy ne sont pas installés par Paresia : ce sont des logiciels que vous installez vous-même, et les deux pages ci-dessus ne disent que ce que le projet leur impose.
 
