@@ -75,6 +75,7 @@ L'arborescence peut évoluer ; tout changement met ce fichier à jour. L'emballa
 - Tout texte reçu de l'extérieur est nettoyé des caractères de contrôle avant affichage ; l'interface web n'utilise que `textContent`.
 - Comparaisons de jetons en temps constant (`hmac.compare_digest`). Refus par défaut. Entrées validées par liste blanche.
 - Variables sensibles effacées après usage autant que le langage le permet ; aucun secret en argument de commande ni en variable d'environnement.
+- **Scripts d'installation et de déploiement : jamais de silence après un succès** (philosophie Unix : les données sur la sortie standard, les messages à l'humain sur l'erreur standard). Chaque opération réussie se termine par un message explicite sur l'erreur standard : ce qui vient d'être fait, puis la commande ou l'étape suivante. Les données à copier (clé publique du tunnel, empreintes) restent sur la sortie standard. Source : décision de l'utilisateur à l'essai réel (2026-11-09). État : à appliquer aux scripts en v0.2 ; d'ici là, `INSTALL.md` dit ce que signifie chaque absence de sortie.
 
 ## Tests
 

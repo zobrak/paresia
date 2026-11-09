@@ -1,10 +1,12 @@
-# Installer Paresia
+# Installer Paresia : installation semi-automatique
 
 Version du document : 0.1.19 · 2026-11-08.
 
 Suivi, 2026-11-09 : réécrit avec une hiérarchie de titres stricte, les noms yin et yang, et une explication par étape ; commandes, valeurs et résultats inchangés ; numéro du document inchangé.
 
 **Alpha : pas en production. À essayer sur des machines jetables.**
+
+Ce document décrit l'**installation semi-automatique** : vous enchaînez les étapes une à une, et les scripts font le travail de chaque étape. Elle se distingue de l'installation automatique prévue pour la 1.0, où vous n'installerez que le client, qui pilotera tout le reste par SSH (décision D176) ; celle-ci n'existe pas encore.
 
 ## Ce que vous allez installer
 
@@ -28,7 +30,7 @@ vérifier (12-13), activer (14), autoriser votre clé (15)
 - [Avant de commencer](#avant-de-commencer)
 - [I. Installer les prérequis](#i-installer-les-prérequis)
   - [A. Sur yang](#a-sur-yang) : étapes 1 à 3
-  - [B. Sur yin](#b-sur-yin) : étapes 4 à 6
+  - [B. Sur yin](#b-sur-yin) : étapes 4 à 6 (6 : installer et vérifier strfry)
 - [II. Installer les démons](#ii-installer-les-démons)
   - [A. Sur yang (première passe)](#a-sur-yang-première-passe) : étapes 7 et 8
   - [B. Sur yin (deuxième passe)](#b-sur-yin-deuxième-passe) : étapes 9 et 10
@@ -157,9 +159,9 @@ Résultat attendu : `apt` termine sans message `E:`. Un paquet déjà présent e
 
 Étape terminée quand `apt` revient à l'invite sans `E:` : les paquets de yin sont en place. Passez à l'étape 6.
 
-### 6. Sur yin : contrôler que strfry tourne
+### 6. Sur yin : installer et vérifier strfry
 
-Paresia administre un relais strfry déjà installé ; on contrôle qu'il est là avant d'installer les démons. Machine : yin.
+Paresia administre un relais strfry : il doit tourner avant d'installer les démons. Si ce n'est pas fait, suivez d'abord la page [Installer le relais strfry](docs/wiki/Installer-strfry.md) (conteneur Docker `strfry` de notre image). Si vous utilisez votre propre image, lisez sa section « Si vous n'utilisez pas notre image » (nom du conteneur, étiquette, port 7777, `python3`, arborescence, réglages de `strfry.conf`). Puis contrôlez, machine : yin.
 
 ```
 sudo docker ps --filter name=^strfry$

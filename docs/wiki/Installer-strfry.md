@@ -316,6 +316,61 @@ publishing to ws://192.0.2.20:7777... success.
 
 Yin est prêt pour le relais. Passez à `INSTALL.md`, étape 6 « Sur yin : contrôler que strfry tourne », puis suivez la suite : le dépôt est déjà récupéré sur cette machine.
 
+## Si vous n'utilisez pas notre image
+
+Cette section décrit ce que Paresia attend d'un conteneur strfry que vous avez construit ou installé vous-même. Elle est établie en lisant le code livré (installateur de yin, manifestes des fonctions de Remus, `strfry.conf`, plugin du journal légal) ; ce que le code n'établit pas est dit tel quel.
+
+### Requis
+
+| Attente | Pourquoi | Source dans le code |
+| --- | --- | --- |
+| Le conteneur s'appelle `strfry`. | Les fonctions de Remus lancent `docker exec strfry …` et `docker restart strfry`, seules commandes `sudo` autorisées ; l'installateur cherche ce nom. | `deploy/backend-relais/etc/sudoers.d/paresia-remus` ; étape « produit » de `installer-backend-relais.sh` |
+| L'étiquette de l'image se termine par `4cd3cf6` (exemple : `mon-depot/strfry:4cd3cf6`). | L'installateur compare l'étiquette à la version déclarée par le greffon (`4cd3cf6`, l'identifiant court d'un commit de strfry) et s'arrête sinon (code 78). Pour ne pas poser cette condition, ajoutez `--sauter produit` aux commandes de yin : le contrôle est alors à votre charge. | `strfry_etat.toml`, section `[produit]` ; installateur |
+| Le programme est `/app/strfry` dans le conteneur et comprend les sous-commandes `info` et `negentropy list`. | Ce sont les deux commandes lancées par les fonctions « état » et « arbres de synchronisation ». Les versions de strfry autres que le commit `4cd3cf6` ne sont pas vérifiées par le code : à essayer chez vous. | `strfry_etat`, `strfry_arbres` |
+| `python3` est installé, à `/usr/bin/python3`. | Le plugin du journal légal est un script Python dont la première ligne est `#!/usr/bin/python3`. Il n'emploie que la bibliothèque standard (`json`, `os`, `re`, `time`…) et aucun sous-processus. Version minimale : le code ne la contrôle pas ; `docs/prerequis.md` indique que le plugin reste exécutable par Python 3.9 et plus, et l'image publiée a été relevée avec `Python 3.14.10`. | `server/strfry/journal_legal.py` |
+| Le compte qui fait tourner le conteneur peut lire `/etc/strfry.conf` et `/app/plugins/journal_legal.py` (exécutable), écrire dans `/app/strfry-db` et dans `/app/journal`. | Sans cela, strfry s'arrête sur `Permission denied`. Le guide emploie `10001:10001` ; Paresia ne contrôle pas ce numéro. | guide, étapes 4 et 5 |
+| La configuration est lue en `/etc/strfry.conf` (montée en lecture seule) et le plugin à `/app/plugins/journal_legal.py`. | `relay.writePolicy.plugin` doit désigner le chemin réel du plugin dans le conteneur. | `deploy/backend-relais/strfry/strfry.conf` |
+
+### Recommandé (non vérifié par Paresia)
+
+- **Écoute sur le port 7777**, publiée vers votre proxy inverse seulement : le guide, le contrôle de santé et la page du proxy l'attendent. Paresia elle-même n'ouvre aucune connexion vers ce port. Si vous changez le port, changez ensemble `relay.port` dans `strfry.conf`, la ligne `ports` du `compose.yml` et le contrôle de santé.
+- **`wget`** dans l'image : il ne sert qu'au contrôle de santé (`healthcheck`) du `compose.yml` du guide.
+- **`jq` : plus nécessaire.** Seul l'ancien plugin en shell (`journal-legal.sh`) l'exigeait. Le plugin actuel est en Python et le code du dépôt n'emploie plus `jq` ; la variante d'image « avec `jq` » n'a donc plus d'objet pour cette version.
+- **Journaux par journald** (`logging.driver: journald`), système de fichiers en lecture seule, `cap_drop: ALL`, `no-new-privileges` : durcissement du guide, non exigé par le code.
+
+### Arborescence du dossier `strfry` (celle du guide)
+
+Le dossier `/srv/strfry` est une convention du guide : Paresia n'impose pas son emplacement. Ce que contient le guide, avec propriétaire et droits tels que le guide les fait obtenir :
+
+| Chemin | Propriétaire | Droits | Contenu et montage dans le conteneur |
+| --- | --- | --- | --- |
+| `/srv/strfry` | votre compte | `755` | dossier de travail |
+| `/srv/strfry/compose.yml` | votre compte | selon votre `umask` (lisible par vous suffit) | définition du conteneur |
+| `/srv/strfry/strfry.conf` | votre compte | `644` | monté en lecture seule sur `/etc/strfry.conf` |
+| `/srv/strfry/plugins/` | votre compte | `755` | monté en lecture seule sur `/app/plugins` |
+| `/srv/strfry/plugins/journal_legal.py` | votre compte | `755` | plugin d'écriture (journal légal et liste noire) |
+| `/srv/strfry/plugins/blocklist.txt` | votre compte | `644` (conseillé) | liste noire facultative : un fichier absent est toléré ; son contenu est une clé publique en hexadécimal (64 caractères) par ligne, `#` pour un commentaire |
+| `/srv/strfry/data/` | `10001:10001` | `755` | base de données, montée sur `/app/strfry-db` |
+| `/srv/strfry/journal/` | `10001:10001` | `755` | journal légal du jour, monté sur `/app/journal` ; le plugin crée ses fichiers en `640` |
+
+Les modes de `data` et de `journal` viennent du relevé de l'étape 4 ; ceux de `compose.yml` et de `blocklist.txt` ne sont pas imposés par le code. Le plugin accepte aussi les variables d'environnement facultatives `JOURNAL_DIR`, `BLOCKLIST_FILE` et `UNJOURNALED_KINDS` si vos chemins diffèrent.
+
+### Réglages de `strfry.conf` à adapter à vos paramètres locaux
+
+Dans le fichier livré (`deploy/backend-relais/strfry/strfry.conf`) :
+
+| Réglage | À adapter si… |
+| --- | --- |
+| `db` | votre base n'est pas à `/app/strfry-db/` dans le conteneur. |
+| `relay.port` | vous n'employez pas le port 7777 (voir plus haut). |
+| `relay.bind` | rarement : c'est l'adresse **dans** le conteneur ; l'exposition réelle se règle dans `compose.yml`. |
+| `relay.realIpHeader` | votre proxy inverse pose l'adresse du client dans un autre en-tête que `x-forwarded-for`. |
+| `relay.nofiles` | votre conteneur n'autorise pas 524288 descripteurs de fichiers (ajoutez `ulimits` au `compose.yml`, ou baissez la valeur). |
+| `relay.auth.serviceUrl` | toujours : mettez l'adresse publique de votre relais (étape 7). |
+| `relay.info.*` | selon vos préférences (étape 7). |
+| `relay.writePolicy.plugin` | votre plugin n'est pas à `/app/plugins/journal_legal.py`. |
+| `relay.auth.restrictedReadKinds`, `relay.filterValidation.*` | vous ne cherchez pas la compatibilité avec l'application bitchat (réglages livrés pour elle). |
+
 ## Annexe : raisons et réserves
 
 - **Nom et image.** Le conteneur doit s'appeler `strfry` et venir de l'image `z0brak/paresia-yin-strfry:4cd3cf6` : l'installateur s'arrête sinon (code 78) et ne crée ni ne modifie ce conteneur. L'étiquette est l'identifiant court du commit de strfry. L'image est modifiée par le projet (Alpine 3.24, OpenSSL au lieu de LibreSSL).

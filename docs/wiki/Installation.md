@@ -1,10 +1,10 @@
-# Installation : côté yin et côté yang
+# Installation semi-automatique : côté yin et côté yang
 
 Version du document : 0.1.19 · 2026-11-08 · [Accueil](Accueil.md)
 
 Suivi, 2026-11-09 : mêmes titres et mêmes noms (yin, yang) que `INSTALL.md` ; numéro du document inchangé.
 
-Alpha : pas en production, à essayer sur des machines jetables. Cette page donne le chemin court de l'installation, puis les raisons et les références. Les commandes complètes, avec les paquets et les contrôles, sont dans `INSTALL.md` à la racine du dépôt ; cette page a sa propre numérotation, plus courte, avec les mêmes titres de parties.
+Alpha : pas en production, à essayer sur des machines jetables. Cette page décrit l'**installation semi-automatique** (vous enchaînez les étapes, les scripts font le travail), à distinguer de l'installation automatique prévue pour la 1.0, pilotée par le client (D176). Elle donne le chemin court de l'installation, puis les raisons et les références. Les commandes complètes, avec les paquets et les contrôles, sont dans `INSTALL.md` à la racine du dépôt ; cette page a sa propre numérotation, plus courte, avec les mêmes titres de parties.
 
 **Yang** est la machine d'administration, non exposée (`backend-admin` dans les noms de scripts et de dossiers). **Yin** est la machine du relais, exposée (`backend-relais` dans les noms de scripts et de dossiers). Chaque machine a besoin d'une valeur produite par l'autre : l'installation alterne entre elles.
 
