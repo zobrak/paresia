@@ -85,7 +85,7 @@ Résultat attendu :
 git version 2.47.3
 ```
 
-Vous pouvez passer à la suite quand `git --version` affiche une version.
+Étape terminée quand `git --version` affiche une version. Passez à l'étape 2.
 
 ### 2. Sur yang : récupérer le dépôt
 
@@ -105,7 +105,7 @@ Résultat attendu :
 0.1.19
 ```
 
-Vous pouvez passer à la suite quand la version s'affiche.
+Étape terminée quand la version s'affiche : le dépôt est copié sur yang. Si `git clone` échoue, vérifiez la connexion à Internet de yang et relancez la commande. Passez à l'étape 3.
 
 ### 3. Sur yang : installer les paquets
 
@@ -115,9 +115,9 @@ Les démons de yang s'appuient sur ces paquets Debian. Machine : yang, en root.
 apt install ca-certificates python3 python3-cryptography curl openssh-client openssh-server iproute2
 ```
 
-Résultat attendu : aucune erreur.
+Résultat attendu : `apt` termine sans message `E:`. Un paquet déjà présent est signalé « déjà la version la plus récente » : c'est normal. S'il affiche une ligne commençant par `E:`, lisez-la (réseau, dépôt Debian) et relancez la commande.
 
-Vous pouvez passer à la suite quand la commande se termine sans erreur.
+Étape terminée quand `apt` revient à l'invite sans `E:` : les paquets de yang sont en place. Passez à l'étape 4.
 
 ## B. Sur yin
 
@@ -143,7 +143,7 @@ Résultat attendu (comme sur yang) :
 0.1.19
 ```
 
-Vous pouvez passer à la suite quand la version est la même que sur yang.
+Étape terminée quand la version est la même que sur yang : le dépôt est copié sur yin. Sinon, refaites le clone depuis le même dépôt. Passez à l'étape 5.
 
 ### 5. Sur yin : installer les paquets
 
@@ -153,9 +153,9 @@ Les démons de yin s'appuient sur ces paquets Debian. Machine : yin, avec votre 
 sudo apt install ca-certificates python3 nftables openssh-client openssh-server iproute2
 ```
 
-Résultat attendu : aucune erreur.
+Résultat attendu : `apt` termine sans message `E:`. Un paquet déjà présent est signalé « déjà la version la plus récente » : c'est normal. S'il affiche une ligne commençant par `E:`, lisez-la (réseau, dépôt Debian) et relancez la commande.
 
-Vous pouvez passer à la suite quand la commande se termine sans erreur.
+Étape terminée quand `apt` revient à l'invite sans `E:` : les paquets de yin sont en place. Passez à l'étape 6.
 
 ### 6. Sur yin : contrôler que strfry tourne
 
@@ -167,7 +167,7 @@ sudo docker ps --filter name=^strfry$
 
 Résultat attendu : une ligne pour le conteneur `strfry`, à l'état `Up`. Sinon, revenez à la page strfry du wiki (`docs/wiki/Installer-strfry.md`) avant de continuer.
 
-Vous pouvez passer à la suite quand le conteneur est `Up`.
+Étape terminée quand le conteneur est `Up`. Passez à l'étape 7.
 
 # II. Installer les démons
 
@@ -184,9 +184,9 @@ cd ~/paresia
 bash deploy/backend-admin/installer-backend-admin.sh --verifier
 ```
 
-Résultat attendu : aucun message d'erreur. Un prérequis manquant arrête le script (code 69) et le nomme.
+Résultat attendu : aucune sortie. **Aucune sortie signifie : tous les prérequis de yang sont présents et rien n'a été modifié.** Passez à l'étape 8.
 
-Vous pouvez passer à la suite quand aucun message d'erreur ne s'affiche.
+En cas d'échec, le script s'arrête avec le code 69 et nomme le prérequis manquant : installez-le (étape 3), puis relancez la commande.
 
 ### 8. Sur yang : installer les démons (passe 1)
 
@@ -205,7 +205,7 @@ EMPREINTE_CLE_TUNNEL=SHA256:…
 
 Notez ces deux lignes : elles resservent à l'étape 10, puis à l'étape 14. Notez aussi le nom du jeu de sauvegarde affiché (`/var/backups/paresia/admin/AAAAMMJJ-HHMMSS`) : il sert au retour arrière (annexe B).
 
-Vous pouvez passer à la suite quand les deux lignes sont notées.
+Étape terminée quand les deux lignes sont notées : yang est installé, avec la clé du tunnel. Si le script s'arrête sur un état différent de l'attendu (code 78), il ne modifie rien : lisez le message avant de relancer. Passez à l'étape 9.
 
 ## B. Sur yin (deuxième passe)
 
@@ -218,9 +218,9 @@ cd ~/paresia
 bash deploy/backend-relais/installer-backend-relais.sh --verifier
 ```
 
-Résultat attendu : aucun message d'erreur.
+Résultat attendu : aucune sortie. **Aucune sortie signifie : tous les prérequis de yin sont présents et rien n'a été modifié.** Passez à l'étape 10.
 
-Vous pouvez passer à la suite quand aucun message d'erreur ne s'affiche.
+En cas d'échec, le script s'arrête avec le code 69 et nomme le prérequis manquant : installez-le (étape 5), puis relancez la commande.
 
 ### 10. Sur yin : installer les démons (passe 2)
 
@@ -243,7 +243,7 @@ EMPREINTE_HOTE_RELAIS=SHA256:…
 
 Transmettez-la à yang par un autre canal que le tunnel, par exemple en la lisant sur la console de la machine. Elle resservira à l'étape 11, puis à l'étape 14.
 
-Vous pouvez passer à la suite quand la ligne `EMPREINTE_HOTE_RELAIS=` est notée.
+Étape terminée quand la ligne `EMPREINTE_HOTE_RELAIS=` est notée : yin est installé et autorise la clé du tunnel. Si le script refuse (code 77 : compte root, ou 78 : état différent), il ne modifie rien : lisez le message avant de relancer. Passez à l'étape 11.
 
 # III. Relier les deux machines
 
@@ -261,7 +261,7 @@ bash deploy/backend-admin/installer-backend-admin.sh --alpha-test --session-seco
 
 Résultat attendu : le script compare l'empreinte à celle que lit `ssh-keyscan` sur yin, puis pose le tunnel et le démarre. Une différence l'arrête.
 
-Vous pouvez passer à la suite quand le script se termine sans différence d'empreinte.
+Étape terminée quand le script se termine sans signaler de différence d'empreinte : le tunnel est posé et démarré. Si l'empreinte diffère, le script s'arrête sans poser le tunnel : reprenez l'empreinte affichée sur yin (étape 10) et relancez. Passez à l'étape 12.
 
 # IV. Vérifier
 
@@ -283,7 +283,7 @@ ss -xl | grep paresia-tunnel
 
 Résultat attendu : deux sockets, `/run/paresia-tunnel/romulus/remus.sock` et `/run/paresia-tunnel/pollux/castor.sock`.
 
-Vous pouvez passer à la suite quand les trois unités sont `active` et les deux sockets présentes.
+Étape terminée quand les trois unités sont `active` et les deux sockets présentes. Sinon, `journalctl -u <unité>` montre la cause. `grep` n'affiche rien si les sockets manquent : ce silence signifie que le tunnel n'est pas posé, revenez à l'étape 11. Passez à l'étape 13.
 
 ## B. Sur yin
 
@@ -297,7 +297,7 @@ sudo /usr/bin/systemctl status castor.service remus.service
 
 Résultat attendu : les deux unités sont `active`.
 
-Vous pouvez passer à la suite quand les deux unités sont `active`.
+Étape terminée quand les deux unités sont `active`. Sinon, `sudo journalctl -u castor.service -u remus.service` montre la cause. Passez à l'étape 14.
 
 ## C. Sur les deux machines
 
@@ -326,7 +326,7 @@ bash deploy/backend-admin/installer-backend-admin.sh --alpha-test --session-seco
 
 Résultat attendu : « déjà en place » pour tout ce qui est conforme.
 
-Vous pouvez passer à la suite quand les deux scripts se sont terminés sans erreur.
+Étape terminée quand « déjà en place » s'affiche pour ce qui est conforme et que les deux scripts se terminent sans erreur : les unités démarrent désormais avec les machines. Passez à l'étape 15.
 
 # V. Autoriser votre clé d'administrateur et premier usage
 
@@ -339,6 +339,8 @@ Pour qu'un administrateur ouvre une session de présence, sa clé publique doit 
 ```
 echo 'restrict,command="/usr/local/bin/pollux-session" ssh-ed25519 CLE_PUBLIQUE_ADMIN COMMENTAIRE' >> /var/lib/paresia-app/.ssh/authorized_keys
 ```
+
+Cette commande n'affiche rien. **Aucune sortie signifie : la ligne a été ajoutée au fichier.** Le contrôle ci-dessous le confirme.
 
 La clé est la clé **publique** ; la clé privée reste dans l'agent SSH de l'administrateur. L'application Paresia-admin affiche cette ligne (menu « Ligne de clé à remettre »).
 
@@ -354,7 +356,7 @@ Résultat attendu :
 
 Un autre propriétaire fait refuser la connexion.
 
-L'installation est terminée quand la ligne est ajoutée et le propriétaire est `root`.
+L'installation est terminée quand la ligne est ajoutée et le propriétaire est `root`. Si le propriétaire est autre, la connexion sera refusée : corrigez-le avec `chown root:root` sur ce fichier. Passez à « Suite » ci-dessous.
 
 ## Suite
 

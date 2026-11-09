@@ -63,7 +63,7 @@ Résultat attendu (sur les deux machines) :
 0.1.19
 ```
 
-Vous pouvez passer à la suite quand la version s'affiche sur les deux machines.
+Étape terminée quand la version s'affiche sur les deux machines. Passez à l'étape 2.
 
 # II. Installer les démons
 
@@ -81,9 +81,9 @@ bash deploy/backend-admin/installer-backend-admin.sh --verifier
 bash deploy/backend-relais/installer-backend-relais.sh --verifier
 ```
 
-La première commande se lance sur yang, la seconde sur yin. Résultat attendu : aucune erreur. Un prérequis manquant donne le code 69 et son nom.
+La première commande se lance sur yang, la seconde sur yin. Résultat attendu : aucune sortie. **Aucune sortie signifie : tous les prérequis de la machine sont présents et rien n'a été modifié.** Passez à l'étape 3.
 
-Vous pouvez passer à la suite quand aucune erreur ne s'affiche.
+En cas d'échec, le script s'arrête avec le code 69 et nomme le prérequis manquant : installez-le (paquets listés dans `INSTALL.md`, étapes 3 et 5), puis relancez la commande.
 
 ## B. Première passe, sur yang
 
@@ -102,7 +102,7 @@ CLE_PUBLIQUE_TUNNEL=ssh-ed25519 AAAA…
 EMPREINTE_CLE_TUNNEL=SHA256:…
 ```
 
-Notez-les : elles servent à la passe 2.
+Notez-les : elles servent à la passe 2. Passez à l'étape 4.
 
 ## C. Deuxième passe, sur yin
 
@@ -125,6 +125,8 @@ Résultat attendu : une ligne à transmettre par un autre canal que le tunnel.
 EMPREINTE_HOTE_RELAIS=SHA256:…
 ```
 
+Notez-la : elle sert à l'étape 5. Passez à l'étape 5.
+
 # III. Relier les deux machines
 
 ### 5. Sur yang : poser le tunnel (passe 3)
@@ -139,7 +141,7 @@ bash deploy/backend-admin/installer-backend-admin.sh --alpha-test --session-seco
   --empreinte-hote-relais 'EMPREINTE_HOTE_RELAIS'
 ```
 
-Résultat attendu : le tunnel est posé et démarré après comparaison de l'empreinte avec celle de `ssh-keyscan`.
+Résultat attendu : le tunnel est posé et démarré après comparaison de l'empreinte avec celle de `ssh-keyscan`. Si l'empreinte diffère, le script s'arrête sans poser le tunnel : reprenez l'empreinte affichée sur yin. Passez à l'étape 6.
 
 # IV. Vérifier
 
@@ -159,7 +161,7 @@ Puis sur yin :
 sudo /usr/bin/systemctl status castor.service remus.service
 ```
 
-Résultat attendu : deux unités à l'état `active (running)`.
+Résultat attendu : deux unités à l'état `active (running)`. L'installation est terminée : passez à « Suite » ci-dessous (et à `INSTALL.md`, étape 15, pour autoriser votre clé).
 
 ## Suite
 
