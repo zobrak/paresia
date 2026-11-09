@@ -253,6 +253,17 @@ sudo docker ps --filter name=^strfry$
 
 Résultat attendu : une ligne pour le conteneur `strfry`, dont l'état passe à `healthy` après une minute.
 
+```
+sudo docker compose logs --tail 20
+```
+
+Résultat attendu : la fin de la sortie contient ces deux lignes (l'adresse `0.0.0.0` est celle du conteneur, non de la machine) :
+
+```
+CONFIG: successfully installed
+Started websocket server on 0.0.0.0:7777
+```
+
 ## 9. Contrôler
 
 Machine : `backend-relais`.
@@ -267,7 +278,11 @@ Résultat attendu : des métriques au format texte Prometheus.
 sudo ss -ltn 'sport = :7777'
 ```
 
-Résultat attendu : une ligne d'écoute (`LISTEN`) sur votre adresse et le port 7777, jamais sur `0.0.0.0:7777`.
+Résultat attendu (votre adresse devant `:7777`, jamais `0.0.0.0:7777`) :
+
+```
+LISTEN 0 4096 192.0.2.20:7777 0.0.0.0:*
+```
 
 **À personnaliser : remplacez `192.0.2.20` par l'adresse de l'étape 5.**
 
@@ -275,9 +290,27 @@ Résultat attendu : une ligne d'écoute (`LISTEN`) sur votre adresse et le port 
 curl -s -H 'Accept: application/nostr+json' http://192.0.2.20:7777/
 ```
 
-Résultat attendu : un objet JSON dont le champ `name` vaut `Paresia`.
+Résultat attendu : une réponse JSON comportant les champs `name`, `self`, `limitation`, `supported_nips` et `version`. Elle commence par `{"contact":` si vous avez renseigné un contact.
 
 En cas d'échec : `sudo journalctl -t strfry`.
+
+## 10. Publier un message d'essai
+
+À faire sur le poste où `nak` est installé ([Installer nak](Installer-nak.md)), avec une clé jetable : elle est créée pour l'occasion, sans rien enregistrer, et ne sert qu'à cet essai.
+
+**À personnaliser : remplacez `192.0.2.20` par l'adresse de l'étape 5.**
+
+```bash
+nak event --sec "$(nak key generate)" -c 'essai' ws://192.0.2.20:7777
+```
+
+Résultat attendu (la ligne JSON de l'événement varie) :
+
+```
+ws://192.0.2.20:7777... ok.
+{"kind":1,...}
+publishing to ws://192.0.2.20:7777... success.
+```
 
 ## Suite
 
@@ -296,4 +329,4 @@ En cas d'échec : `sudo journalctl -t strfry`.
   > **Bon à savoir.** Paresia ne crée aucun arbre de synchronisation entre relais. Si vous en ajoutez un, sachez que n'importe qui pourra voir quand des messages privés ont été échangés (pas leur contenu). C'est votre choix.
 - **Annonce NIP-11.** Les champs `relay.info.*` (`name`, `description`, `pubkey`, `self`, `contact`, `icon`, `banner`, `privacy`, `terms`) sont à votre convenance, sauf `self` (étape 7) ; les champs vides sont des valeurs d'installation. `pubkey` est la clé publique de l'administrateur (facultative), distincte de la clé du relais (`self`).
 - **Clé.** La clé privée du relais est une identité du bunker (`[bunkerd] relay_identity`) ; bunkerd n'en garde que la forme chiffrée. Ne collez jamais une clé privée dans un fichier, un terminal partagé ou une conversation ; seule la clé publique se publie. `nak` n'est pas installé sur `backend-relais` : la clé se crée sur le poste de vos clés (page [Installer nak](Installer-nak.md)).
-- **Non établi, à compléter :** présence de `python3` dans l'image publiée (le plugin du journal légal l'exige) ; limites de ressources de la production ; valeur de `ulimits.nofile` si strfry se plaint de `nofiles = 524288` ; forme du fichier `blocklist.txt` du plugin ; essai de ce `compose.yml` tel quel sur une machine.
+- **Non établi, à compléter :** limites de ressources de la production ; valeur de `ulimits.nofile` si strfry se plaint de `nofiles = 524288` ; forme du fichier `blocklist.txt` du plugin.
