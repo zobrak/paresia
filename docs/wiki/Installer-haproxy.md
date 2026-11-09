@@ -12,7 +12,7 @@ Cette page ne présente pas HAProxy : elle dit seulement **ce que Paresia exige 
 
 1. [Avant de commencer](#avant-de-commencer)
 2. [Le backend de yang : l'adresse du client](#1-le-backend-de-yang--ladresse-du-client)
-3. [Le backend de yang : ce qu'il ne faut pas poser](#2-le-backend-de-yang--ce-quil-ne-faut-pas-poser)
+3. [Le backend de yang : `X-Forwarded-For` et `Access-Control-Allow-Origin`](#2-le-backend-de-yang--x-forwarded-for-et-access-control-allow-origin)
 4. [Poser `Access-Control-Allow-Origin` dans les relais seulement](#3-poser-access-control-allow-origin-dans-les-relais-seulement)
 5. [L'adresse du frontal vue par lighttpd](#4-ladresse-du-frontal-vue-par-lighttpd)
 6. [Recharger et contrôler](#5-recharger-et-contrôler)
@@ -47,12 +47,12 @@ backend yang
 
 Ce que fait la ligne : elle écrit l'adresse réelle du client (`%[src]`, l'adresse source de la connexion que HAProxy reçoit) dans l'en-tête `X-Paresia-Client-IP`. Avec `set-header`, toute valeur que le client aurait envoyée dans cet en-tête est **remplacée** : un client ne peut donc pas se faire passer pour une autre adresse. Romulus lit cette adresse (réglage `client_ip_header` de `paresia.conf`) et la journalise. Sans cet en-tête, l'adresse est absente et Romulus journalise une adresse de repli.
 
-## 2. Le backend de yang : ce qu'il ne faut pas poser
+## 2. Le backend de yang : `X-Forwarded-For` et `Access-Control-Allow-Origin`
 
-Machine : le frontal. Rien à écrire : cette étape se lit. Dans le backend de yang, ne posez pas :
+Machine : le frontal. Rien à écrire : cette étape se lit. Deux points concernent le backend de yang :
 
-- **`option forwardfor`**, et aucun en-tête `X-Forwarded-For`. Romulus ne lit que l'en-tête `X-Paresia-Client-IP` et ignore `X-Forwarded-For` (que lighttpd complète de toute façon) : un en-tête d'adresse de plus ne lui sert à rien. De plus, HAProxy ne documente pas l'ordre dans lequel `option forwardfor` et une règle `http-request` s'appliquent : ne combinez donc jamais les deux ;
-- **`Access-Control-Allow-Origin`**. Les pages et l'API de yang sont servies par le même lighttpd, donc à la même adresse : le navigateur n'a pas besoin de cet en-tête, et l'ouvrir élargirait l'accès sans raison.
+- **`X-Forwarded-For`** : Paresia ne l'utilise pas. Romulus ne lit que l'en-tête `X-Paresia-Client-IP` de l'étape 1 et ignore `X-Forwarded-For`. Si votre frontal le pose pour tous vos services, c'est sans conséquence : inutile de le retirer pour yang (l'essai réel sur yang a montré `x-paresia-client-ip` correct, les valeurs forgées étant écrasées) ;
+- **`Access-Control-Allow-Origin`** : ne le posez pas pour yang. Les pages et l'API de yang sont servies par le même lighttpd, donc à la même adresse : le navigateur n'a pas besoin de cet en-tête, et l'ouvrir élargirait l'accès sans raison.
 
 Ne laissez lighttpd joignable que depuis le frontal (pare-feu) : sinon un poste pourrait écrire lui-même `X-Paresia-Client-IP`.
 
