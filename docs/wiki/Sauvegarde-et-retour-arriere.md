@@ -21,10 +21,22 @@ Les scripts d'installation emploient l'outil `paresia-sauvegarde`.
 
 ## Retour arrière d'une installation
 
-Chaque script d'installation sait revenir en arrière :
+Chaque script d'installation sait revenir en arrière.
+
+**À personnaliser : remplacez `AAAAMMJJ-HHMMSS` par le nom du jeu affiché par le script.**
+
+Sur yang, en root :
 
 ```
-installer-backend-<machine>.sh --retour-arriere --jeu AAAAMMJJ-HHMMSS --confirme
+cd ~/paresia
+bash deploy/backend-admin/installer-backend-admin.sh --retour-arriere --jeu AAAAMMJJ-HHMMSS --confirme
+```
+
+Sur yin, avec votre compte :
+
+```
+cd ~/paresia
+bash deploy/backend-relais/installer-backend-relais.sh --retour-arriere --jeu AAAAMMJJ-HHMMSS --confirme
 ```
 
 Il arrête les unités posées, restaure dans l'ordre inverse de la pose, contrôle `sshd -t` (puis `reload ssh`, avec session de secours) et `visudo -c`, et supprime **seulement** les comptes et groupes créés par cette installation (jamais le contenu de leurs dossiers). Le nom du jeu est affiché au début de l'installation. `--jeu` et `--confirme` sont tous deux obligatoires : sans eux, le script refuse.
@@ -40,10 +52,18 @@ Pour une unité ou un fichier précis, l'outil restaure un chemin d'un jeu (`res
 
 ## Retour à une version du code
 
-Après une **mise à jour par script** (`--mise-a-jour`, voir [Installation](Installation.md)), le script a créé un jeu de sauvegarde daté et affiche son nom. Pour revenir à la version précédente :
+Après une **mise à jour par script** (`--mise-a-jour`, voir [Installation](Installation.md)), le script a créé un jeu de sauvegarde daté et affiche son nom. Pour revenir à la version précédente (même valeur à personnaliser que ci-dessus), sur yang, en root :
 
 ```
-installer-backend-<machine>.sh --retour-arriere --jeu AAAAMMJJ-HHMMSS --confirme
+cd ~/paresia
+bash deploy/backend-admin/installer-backend-admin.sh --retour-arriere --jeu AAAAMMJJ-HHMMSS --confirme
+```
+
+Sur yin, avec votre compte :
+
+```
+cd ~/paresia
+bash deploy/backend-relais/installer-backend-relais.sh --retour-arriere --jeu AAAAMMJJ-HHMMSS --confirme
 ```
 
 Sur un jeu de mise à jour, le script arrête les seules unités de Paresia, restaure le code, le fichier `VERSION`, les unités et la configuration (y compris les fichiers `.paresia-nouveau`), recharge systemd, reprend les unités qui étaient actives et contrôle la version. Il ne supprime aucun compte.

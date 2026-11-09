@@ -398,14 +398,22 @@ La clé est autorisée quand les empreintes coïncident et que le propriétaire 
 
 ## Annexe A : mettre à jour une installation existante
 
-Chaque machine se met à jour séparément, avec le même script et `--mise-a-jour`, depuis un clone propre de la version voulue. Machine : celle à mettre à jour, dans le nouveau clone. Les scripts gardent leurs noms d'origine : `backend-admin` pour yang, `backend-relais` pour yin.
+Chaque machine se met à jour séparément, avec le même script et `--mise-a-jour`, depuis un clone propre de la version voulue. Machine : celle à mettre à jour, dans le nouveau clone (`~/paresia`). Les scripts gardent leurs noms d'origine : `backend-admin` pour yang, `backend-relais` pour yin.
+
+Sur yang, en root :
 
 ```
-bash deploy/backend-<machine>/installer-backend-<machine>.sh --verifier
+cd ~/paresia
+bash deploy/backend-admin/installer-backend-admin.sh --verifier
+bash deploy/backend-admin/installer-backend-admin.sh --mise-a-jour --session-secours oui
 ```
 
+Sur yin, avec votre compte :
+
 ```
-bash deploy/backend-<machine>/installer-backend-<machine>.sh --mise-a-jour --session-secours oui
+cd ~/paresia
+bash deploy/backend-relais/installer-backend-relais.sh --verifier
+bash deploy/backend-relais/installer-backend-relais.sh --mise-a-jour --session-secours oui
 ```
 
 Ouvrez et testez d'abord une session de secours. Relisez `CHANGELOG.md` avant de lancer.
@@ -421,8 +429,20 @@ Ouvrez et testez d'abord une session de secours. Relisez `CHANGELOG.md` avant de
 
 ## Annexe B : retour arrière
 
+**À personnaliser : remplacez `AAAAMMJJ-HHMMSS` par le nom du jeu de sauvegarde affiché par le script.**
+
+Sur yang, en root :
+
 ```
-bash deploy/backend-<machine>/installer-backend-<machine>.sh --retour-arriere --jeu AAAAMMJJ-HHMMSS --confirme
+cd ~/paresia
+bash deploy/backend-admin/installer-backend-admin.sh --retour-arriere --jeu AAAAMMJJ-HHMMSS --confirme
+```
+
+Sur yin, avec votre compte :
+
+```
+cd ~/paresia
+bash deploy/backend-relais/installer-backend-relais.sh --retour-arriere --jeu AAAAMMJJ-HHMMSS --confirme
 ```
 
 `--jeu` et `--confirme` sont obligatoires. Le script restaure dans l'ordre inverse de la pose et ne supprime que les comptes créés par l'installation. Détail : `docs/wiki/Sauvegarde-et-retour-arriere.md`.
