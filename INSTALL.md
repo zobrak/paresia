@@ -364,7 +364,7 @@ echo 'restrict,command="/usr/local/bin/pollux-session" ssh-ed25519 CLE_PUBLIQUE_
 
 Cette commande n'affiche rien. **Aucune sortie signifie : la ligne a été ajoutée au fichier.** Le contrôle ci-dessous le confirme.
 
-La clé est la clé **publique** ; la clé privée reste dans l'agent SSH de l'administrateur. L'application Paresia-admin affiche cette ligne (menu « Ligne de clé à remettre »).
+La clé est la clé **publique** de l'administrateur, prise sur son poste (fichier `.pub`) : celle que vous employez, selon votre propre politique de clés. Si vous n'en avez pas, nous conseillons d'en créer une dédiée à Paresia, à l'étape 3 du [guide du client](docs/wiki/Installer-client.md#3-sur-le-poste--préparer-la-clé-ssh-et-lagent) ; le client utilise la clé désignée par son réglage `cle_publique`. La clé privée reste dans l'agent SSH de l'administrateur. L'application Paresia-admin affiche cette ligne (menu « Ligne de clé à remettre »).
 
 ```
 ls -l /var/lib/paresia-app/.ssh/authorized_keys

@@ -47,6 +47,8 @@ Les guides d'installation sont dans le wiki, classés en noyau et greffons (voir
 
 La procédure d'installation de bunkerd et de Nisaba n'est pas encore écrite (démons écrits, unités non livrées).
 
+Petites aides d'ordre général (par exemple ajouter une clé à son agent SSH) : [Tips](wiki/Tips.md).
+
 **Exploitation et référence**
 
 | Document | Une ligne | Public |

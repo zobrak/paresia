@@ -12,7 +12,7 @@ Les mots techniques sont expliqués dans le [glossaire](Glossaire.md).
 
 ## Sommaire
 
-Le wiki a quatre parties : comprendre, installer le noyau, installer les greffons, exploiter. **Le noyau** est Paresia lui-même (yin, yang, le client) ; **les greffons** sont les modules qu'on enfiche dessus (strfry, Nisaba, le bunker). Les deux installations sont séparées.
+Le wiki a quatre parties : comprendre, installer le noyau, installer les greffons, exploiter ; une page de petites aides, [Tips](#tips), complète le tout. **Le noyau** est Paresia lui-même (yin, yang, le client) ; **les greffons** sont les modules qu'on enfiche dessus (strfry, Nisaba, le bunker). Les deux installations sont séparées.
 
 1. [Comprendre Paresia](#1-comprendre-paresia)
 2. [Installer le noyau](#2-installer-le-noyau)
@@ -61,6 +61,14 @@ Les greffons s'enfichent sur le noyau. Aujourd'hui, un seul a un guide d'install
 | [Configuration](Configuration.md) | Où sont les réglages, comment ils se combinent |
 | [Journaux, métriques, dépannage](Journaux-metriques-depannage.md) | Lire les journaux, interpréter les erreurs, FAQ |
 | [Sauvegarde et retour arrière](Sauvegarde-et-retour-arriere.md) | Sauvegarder avant de toucher, revenir en arrière |
+
+### Tips
+
+Les petites aides d'ordre général, distinctes de l'installation du noyau et des greffons.
+
+| Page | Pour répondre à la question |
+| --- | --- |
+| [Tips](Tips.md) | Comment ajouter une clé à son agent SSH (bash et fish) ? |
 
 ## Où trouver le détail technique
 
