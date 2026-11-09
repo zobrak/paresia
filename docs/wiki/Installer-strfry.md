@@ -139,7 +139,7 @@ drwxr-xr-x 2 10001 10001 4096 nov.  9 00:12 journal
 
 ## 5. Écrire `compose.yml`
 
-Machine : yin, dans `/srv/strfry`.
+Machine : yin.
 
 Créez `/srv/strfry/compose.yml` avec votre éditeur, avec ce contenu :
 
@@ -179,6 +179,7 @@ services:
 Contrôlez le fichier :
 
 ```
+cd /srv/strfry
 grep ':7777:7777' compose.yml
 ```
 
@@ -237,13 +238,10 @@ Le `ncryptsec` sera importé dans le bunker lors de son installation sur yang.
 
 ## 8. Démarrer
 
-Machine : yin, dans `/srv/strfry`.
+Machine : yin.
 
 ```
 cd /srv/strfry
-```
-
-```
 sudo docker compose up -d
 ```
 

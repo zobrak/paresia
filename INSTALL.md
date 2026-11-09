@@ -192,7 +192,7 @@ On installe les démons par un script par machine. Chaque script fait une pause 
 
 ### 7. Sur yang : vérifier les prérequis
 
-Le script contrôle que la machine est prête, sans rien modifier. Machine : yang, en root, dans `~/paresia`.
+Le script contrôle que la machine est prête, sans rien modifier. Machine : yang, en root.
 
 ```
 cd ~/paresia
@@ -205,9 +205,10 @@ Yang est prêt à recevoir les démons ; l'étape 8 les installe. En cas d'éche
 
 ### 8. Sur yang : installer les démons (passe 1)
 
-Le script installe Pollux et Romulus et crée la clé du tunnel, dont yin a besoin. Machine : yang, en root, dans `~/paresia`.
+Le script installe Pollux et Romulus et crée la clé du tunnel, dont yin a besoin. Machine : yang, en root.
 
 ```
+cd ~/paresia
 bash deploy/backend-admin/installer-backend-admin.sh --alpha-test --session-secours oui
 ```
 
@@ -226,7 +227,7 @@ Yang est installé, avec la clé du tunnel, dès que les deux lignes sont notée
 
 ### 9. Sur yin : vérifier les prérequis
 
-Même contrôle qu'à l'étape 7, sans rien modifier. Machine : yin, avec votre compte, dans `~/paresia`.
+Même contrôle qu'à l'étape 7, sans rien modifier. Machine : yin, avec votre compte.
 
 ```
 cd ~/paresia
@@ -239,11 +240,12 @@ Yin est prêt à recevoir les démons ; l'étape 10 les installe. En cas d'éche
 
 ### 10. Sur yin : installer les démons (passe 2)
 
-Le script installe Castor et Remus, et autorise la clé du tunnel produite à l'étape 8. Machine : yin, avec votre compte (sans `sudo` devant), dans `~/paresia`.
+Le script installe Castor et Remus, et autorise la clé du tunnel produite à l'étape 8. Machine : yin, avec votre compte (sans `sudo` devant).
 
 **À personnaliser : remplacez `192.0.2.10` par l'adresse de yang, et les deux valeurs `CLE_PUBLIQUE_TUNNEL` et `EMPREINTE_CLE_TUNNEL` par celles de l'étape 8 (ce qui suit le signe `=`, copié sans retranscrire).**
 
 ```
+cd ~/paresia
 bash deploy/backend-relais/installer-backend-relais.sh --alpha-test --session-secours oui \
   --adresse-admin 192.0.2.10 \
   --cle-publique-tunnel 'CLE_PUBLIQUE_TUNNEL' \
@@ -264,11 +266,12 @@ Yin est installé et autorise la clé du tunnel dès que la ligne `EMPREINTE_HOT
 
 ### 11. Sur yang : poser le tunnel (passe 3)
 
-Yang connaît maintenant l'empreinte de yin : le script la compare à celle que lit `ssh-keyscan` sur yin, puis pose le tunnel et le démarre. Machine : yang, en root, dans `~/paresia`.
+Yang connaît maintenant l'empreinte de yin : le script la compare à celle que lit `ssh-keyscan` sur yin, puis pose le tunnel et le démarre. Machine : yang, en root.
 
 **À personnaliser : remplacez `192.0.2.20` par l'adresse IP de yin (une adresse, non un nom), et `EMPREINTE_HOTE_RELAIS` par la valeur de l'étape 10.**
 
 ```
+cd ~/paresia
 bash deploy/backend-admin/installer-backend-admin.sh --alpha-test --session-secours oui \
   --adresse-relais 192.0.2.20 \
   --empreinte-hote-relais 'EMPREINTE_HOTE_RELAIS'
@@ -318,22 +321,24 @@ Yin fonctionne quand les deux unités sont `active` (sinon, `sudo journalctl -u 
 
 ### 14. Sur yin puis sur yang : activer au démarrage
 
-Jusqu'ici, rien ne démarre tout seul après un redémarrage de la machine. Quand tout est conforme, relancez chaque script avec `--activer` et les mêmes paramètres qu'aux étapes 10 et 11. Machine : yin d'abord, dans `~/paresia`.
+Jusqu'ici, rien ne démarre tout seul après un redémarrage de la machine. Quand tout est conforme, relancez chaque script avec `--activer` et les mêmes paramètres qu'aux étapes 10 et 11. Machine : yin d'abord.
 
 **À personnaliser : les mêmes valeurs qu'à l'étape 10 (`192.0.2.10`, `CLE_PUBLIQUE_TUNNEL`, `EMPREINTE_CLE_TUNNEL`).**
 
 ```
+cd ~/paresia
 bash deploy/backend-relais/installer-backend-relais.sh --alpha-test --session-secours oui --activer \
   --adresse-admin 192.0.2.10 \
   --cle-publique-tunnel 'CLE_PUBLIQUE_TUNNEL' \
   --empreinte-cle-tunnel 'EMPREINTE_CLE_TUNNEL'
 ```
 
-Puis sur yang, en root, dans `~/paresia`.
+Puis sur yang, en root.
 
 **À personnaliser : les mêmes valeurs qu'à l'étape 11 (`192.0.2.20`, `EMPREINTE_HOTE_RELAIS`).**
 
 ```
+cd ~/paresia
 bash deploy/backend-admin/installer-backend-admin.sh --alpha-test --session-secours oui --activer \
   --adresse-relais 192.0.2.20 \
   --empreinte-hote-relais 'EMPREINTE_HOTE_RELAIS'
