@@ -4,7 +4,23 @@ Version du document : 0.1.19 · 2026-11-08 · [Accueil](Accueil.md)
 
 Référence : `docs/exploitation.md`, `deploy/essai-presence.md`, pages de manuel `paresia-admin(1)`, `paresia-pollux(8)`, `paresia-castor(8)`, `nisaba-ctl(1)`.
 
+Suivi, 2026-11-09 : chemin le plus court placé en tête, description de l'interface séparée ; numéro du document inchangé.
+
 Cette page décrit ce que vous pouvez faire **aujourd'hui**, état alpha. L'application de bureau n'est pas encore complète : voir la fin de la page.
+
+## Le chemin le plus court vers un premier résultat
+
+Prérequis : l'installation de [`INSTALL.md`](../../INSTALL.md) est terminée (étapes 1 à 15), et votre poste a PyQt6 avec QtWebEngine, un agent SSH actif qui détient votre clé, et `openssh-client`.
+
+1. Sur yang, contrôlez que les démons tournent : `systemctl status pollux.service romulus.service paresia-tunnel.service` doit montrer trois unités `active`.
+2. Sur yin, contrôlez de même : `sudo /usr/bin/systemctl status castor.service remus.service` doit montrer deux unités `active`.
+3. Sur votre poste, lancez l'application : `python3 -m admin.app`.
+4. Dans son menu, choisissez « Ouvrir l'administration » : l'indicateur passe au vert.
+5. Ouvrez la page « État de Paresia » : elle affiche la version et la liste des démons.
+
+Résultat : une session de présence ouverte et la lecture de l'état de votre installation. Si une étape échoue, la section suivante la détaille, puis [le dépannage](Journaux-metriques-depannage.md).
+
+# Description détaillée
 
 ## 1. Démarrer les démons
 

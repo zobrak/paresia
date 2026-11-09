@@ -17,7 +17,7 @@ Les mots techniques sont expliqués dans le [glossaire](Glossaire.md).
 | [Prérequis](Prerequis.md) | Quelles machines, quels logiciels, quels comptes |
 | [Installer le relais strfry](Installer-strfry.md) | Préparer le conteneur Docker `strfry` de `backend-relais`, avant l'installation |
 | [Installer `nak`](Installer-nak.md) | Sur le poste de vos clés privées : installer `nak` et créer une clé ; aussi sur `backend-admin` pour le bunker |
-| [Installation](Installation.md) | Comment installer le côté « yin » (relais) et le côté « yang » (administration) |
+| [Installation](Installation.md) | Principe de l'installation semi-automatique, options et codes de sortie des scripts (le parcours pas à pas est `INSTALL.md`) |
 | [Premier usage](Premier-usage.md) | Que vérifier juste après l'installation, ce qui est utilisable aujourd'hui |
 | [Administrer le relais strfry](Administration-du-relais-strfry.md) | Ce que Paresia fera (et ne fera pas) sur un relais strfry |
 | [Nisaba et le bunker](Nisaba-et-bunker.md) | Journal légal, signatures à distance (NIP-46), identités |

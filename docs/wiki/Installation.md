@@ -1,171 +1,28 @@
-# Installation semi-automatique : côté yin et côté yang
+# Installation semi-automatique : principe et références
 
 Version du document : 0.1.19 · 2026-11-08 · [Accueil](Accueil.md)
 
-Suivi, 2026-11-09 : mêmes titres et mêmes noms (yin, yang) que `INSTALL.md` ; numéro du document inchangé.
+Suivi, 2026-11-09 : la page ne contient plus de parcours numéroté ; le seul parcours est `INSTALL.md`. Numéro du document inchangé.
 
-Alpha : pas en production, à essayer sur des machines jetables. Cette page décrit l'**installation semi-automatique** (vous enchaînez les étapes, les scripts font le travail), à distinguer de l'installation automatique prévue pour la 1.0, pilotée par le client (D176). Elle donne le chemin court de l'installation, puis les raisons et les références. Les commandes complètes, avec les paquets et les contrôles, sont dans `INSTALL.md` à la racine du dépôt ; cette page a sa propre numérotation, plus courte, avec les mêmes titres de parties.
+Alpha : pas en production, à essayer sur des machines jetables.
 
-**Yang** est la machine d'administration, non exposée (`backend-admin` dans les noms de scripts et de dossiers). **Yin** est la machine du relais, exposée (`backend-relais` dans les noms de scripts et de dossiers). Chaque machine a besoin d'une valeur produite par l'autre : l'installation alterne entre elles.
+## En bref
 
-## Sommaire
+L'**installation semi-automatique** : vous enchaînez les étapes, et un script par machine fait le travail de chaque étape. Elle se distingue de l'installation automatique prévue pour la 1.0, pilotée par le client (D176), qui n'existe pas encore.
 
-- [Avant de commencer](#avant-de-commencer)
-- [I. Installer les prérequis](#i-installer-les-prérequis) : étape 1
-- [II. Installer les démons](#ii-installer-les-démons) : étapes 2 à 4
-- [III. Relier les deux machines](#iii-relier-les-deux-machines) : étape 5
-- [IV. Vérifier](#iv-vérifier) : étape 6
-- Suite : autoriser votre clé d'administrateur et premier usage (`INSTALL.md`, étape 15)
-- Annexes A à G
+Elle consiste en cinq temps :
 
-## Avant de commencer
+1. préparer chaque machine : récupérer le dépôt, installer les paquets, mettre en marche strfry sur yin ;
+2. lancer le script de yang (il crée la clé du tunnel) ;
+3. lancer le script de yin (il autorise cette clé et donne son empreinte) ;
+4. relancer le script de yang pour poser le tunnel ;
+5. vérifier, activer au démarrage, puis autoriser la clé d'un administrateur.
 
-Il vous faut :
+**Le parcours complet, avec les commandes et les résultats attendus, est dans [`INSTALL.md`](../../INSTALL.md), à la racine du dépôt.** C'est le seul parcours : suivez-le de haut en bas.
 
-- deux machines Debian 13 : yang et yin ;
-- sur chaque machine, un compte ordinaire membre du groupe `sudo`, avec `curl` installé ;
-- un second terminal ouvert sur chaque machine (session de secours) ;
-- le conteneur `strfry` en marche sur yin (page « Installer le relais strfry »).
+**Yang** est la machine d'administration, non exposée (`backend-admin` dans les noms de scripts et de dossiers). **Yin** est la machine du relais, exposée (`backend-relais`). Chaque machine a besoin d'une valeur produite par l'autre : l'installation alterne entre elles.
 
-### À personnaliser obligatoirement
-
-| Valeur | Où | Exemple du guide | Ce qu'il faut mettre |
-| --- | --- | --- | --- |
-| adresse de yang | passe 2, `--adresse-admin` | `192.0.2.10` | l'adresse IP de yang |
-| adresse de yin | passe 3, `--adresse-relais` | `192.0.2.20` | l'adresse IP de yin (une adresse, non un nom) |
-| `CLE_PUBLIQUE_TUNNEL` | passe 2 | affichée par la passe 1 | ce qui suit `CLE_PUBLIQUE_TUNNEL=` |
-| `EMPREINTE_CLE_TUNNEL` | passe 2 | affichée par la passe 1 | ce qui suit `EMPREINTE_CLE_TUNNEL=` |
-| `EMPREINTE_HOTE_RELAIS` | passe 3 | affichée par la passe 2 | ce qui suit `EMPREINTE_HOTE_RELAIS=` |
-
-# I. Installer les prérequis
-
-## A. Sur yang puis sur yin
-
-### 1. Sur yang puis sur yin : récupérer le dépôt
-
-On récupère le code et ses scripts d'installation sur chaque machine. Machines : yang (en root) puis yin (avec votre compte, `sudo` devant `apt`).
-
-```
-apt install git
-```
-
-```
-git clone https://github.com/zobrak/paresia.git ~/paresia
-```
-
-```
-cat ~/paresia/VERSION
-```
-
-Résultat attendu (sur les deux machines) :
-
-```
-0.1.19
-```
-
-Étape terminée quand la version s'affiche sur les deux machines. Passez à l'étape 2.
-
-# II. Installer les démons
-
-## A. Vérifier, sur yang et sur yin
-
-### 2. Sur yang et sur yin : vérifier
-
-Chaque script contrôle que sa machine est prête, sans rien modifier. Machine : chacune, dans `~/paresia`.
-
-```
-bash deploy/backend-admin/installer-backend-admin.sh --verifier
-```
-
-```
-bash deploy/backend-relais/installer-backend-relais.sh --verifier
-```
-
-La première commande se lance sur yang, la seconde sur yin. Résultat attendu : aucune sortie. **Aucune sortie signifie : tous les prérequis de la machine sont présents et rien n'a été modifié.** Passez à l'étape 3.
-
-En cas d'échec, le script s'arrête avec le code 69 et nomme le prérequis manquant : installez-le (paquets listés dans `INSTALL.md`, étapes 3 et 5), puis relancez la commande.
-
-## B. Première passe, sur yang
-
-### 3. Sur yang : installer les démons (passe 1)
-
-Le script installe Pollux et Romulus et crée la clé du tunnel, dont yin a besoin. Machine : yang, en root.
-
-```
-bash deploy/backend-admin/installer-backend-admin.sh --alpha-test --session-secours oui
-```
-
-Résultat attendu : deux lignes à copier.
-
-```
-CLE_PUBLIQUE_TUNNEL=ssh-ed25519 AAAA…
-EMPREINTE_CLE_TUNNEL=SHA256:…
-```
-
-Notez-les : elles servent à la passe 2. Passez à l'étape 4.
-
-## C. Deuxième passe, sur yin
-
-### 4. Sur yin : installer les démons (passe 2)
-
-Le script installe Castor et Remus et autorise la clé du tunnel de la passe 1. Machine : yin, avec votre compte.
-
-**À personnaliser : remplacez `192.0.2.10` par l'adresse de yang, et `CLE_PUBLIQUE_TUNNEL` et `EMPREINTE_CLE_TUNNEL` par les valeurs de la passe 1.**
-
-```
-bash deploy/backend-relais/installer-backend-relais.sh --alpha-test --session-secours oui \
-  --adresse-admin 192.0.2.10 \
-  --cle-publique-tunnel 'CLE_PUBLIQUE_TUNNEL' \
-  --empreinte-cle-tunnel 'EMPREINTE_CLE_TUNNEL'
-```
-
-Résultat attendu : une ligne à transmettre par un autre canal que le tunnel.
-
-```
-EMPREINTE_HOTE_RELAIS=SHA256:…
-```
-
-Notez-la : elle sert à l'étape 5. Passez à l'étape 5.
-
-# III. Relier les deux machines
-
-### 5. Sur yang : poser le tunnel (passe 3)
-
-Yang connaît maintenant l'empreinte de yin : le script la compare à celle de `ssh-keyscan`, puis pose le tunnel et le démarre. Machine : yang, en root.
-
-**À personnaliser : remplacez `192.0.2.20` par l'adresse IP de yin, et `EMPREINTE_HOTE_RELAIS` par la valeur de la passe 2.**
-
-```
-bash deploy/backend-admin/installer-backend-admin.sh --alpha-test --session-secours oui \
-  --adresse-relais 192.0.2.20 \
-  --empreinte-hote-relais 'EMPREINTE_HOTE_RELAIS'
-```
-
-Résultat attendu : le tunnel est posé et démarré après comparaison de l'empreinte avec celle de `ssh-keyscan`. Si l'empreinte diffère, le script s'arrête sans poser le tunnel : reprenez l'empreinte affichée sur yin. Passez à l'étape 6.
-
-# IV. Vérifier
-
-### 6. Sur yang puis sur yin : contrôler les unités
-
-On contrôle que les démons tournent. Machine : yang d'abord.
-
-```
-systemctl status pollux.service romulus.service paresia-tunnel.service
-```
-
-Résultat attendu : trois unités à l'état `active (running)`.
-
-Puis sur yin :
-
-```
-sudo /usr/bin/systemctl status castor.service remus.service
-```
-
-Résultat attendu : deux unités à l'état `active (running)`. L'installation est terminée : passez à « Suite » ci-dessous (et à `INSTALL.md`, étape 15, pour autoriser votre clé).
-
-## Suite
-
-[Premier usage](Premier-usage.md) ; [Sauvegarde et retour arrière](Sauvegarde-et-retour-arriere.md) ; [Administrer le relais strfry](Administration-du-relais-strfry.md).
+Après l'installation : [Premier usage](Premier-usage.md) ; [Sauvegarde et retour arrière](Sauvegarde-et-retour-arriere.md) ; [Administrer le relais strfry](Administration-du-relais-strfry.md).
 
 ## Annexe A : principe des scripts
 
@@ -177,8 +34,8 @@ Chaque machine s'installe par un script complet et commenté (`deploy/backend-ad
 - est rejouable : état déjà conforme, rien ne se passe ; état différent, refus (code 78) ;
 - sauvegarde avant toute modification ;
 - n'arrête et ne redémarre aucune unité, sauf sous `--mise-a-jour` ; il démarre (`start`) celles qu'il pose, et n'active au démarrage que sous `--activer` ;
-- ne recharge `sshd` qu'après `sshd -t` et avec une session de secours (`--session-secours oui`) ; jamais de `restart` ;
-- ne touche jamais à strfry, Docker, lighttpd, bunkerd ;
+- ne recharge `sshd` qu'après `sshd -t` et avec une session de secours (`--session-secours oui`) ; il ne le redémarre jamais ;
+- ne touche pas à strfry, Docker, lighttpd, bunkerd ;
 - n'affiche ni ne journalise aucune clé privée ;
 - affiche ses messages depuis le catalogue de langue du clone (`fr-FR` ou `en-US`, selon `LC_ALL`/`LANG`).
 
@@ -202,7 +59,7 @@ Temporaire, retiré après validation :
 - pause après chaque étape (Entrée pour continuer) ; arrêt au premier écart ;
 - affichage de chaque vérification et de chaque relevé ;
 - avertissement avant toute commande destructive ou risquée ;
-- journal horodaté sans secret `alpha-test-<machine>-<date>.log`, écrit dans le dossier de lancement (ou `--dossier-journal`). Le dossier doit exister, ne pas être un lien symbolique, appartenir à root ou à votre compte et n'être modifiable ni par le groupe ni par les autres ; fichier en `0600`, jamais écrasé. Un journal sous `/var/log/paresia` est refusé.
+- journal horodaté sans secret `alpha-test-<machine>-<date>.log`, écrit dans le dossier de lancement (ou `--dossier-journal`). Le dossier doit exister, ne pas être un lien symbolique, appartenir à root ou à votre compte et n'être modifiable ni par le groupe ni par les autres ; fichier en `0600`, jamais écrasé. Un journal sous `/var/log/paresia` est refusé ;
 - exige un terminal.
 
 ## Annexe D : paramètres principaux

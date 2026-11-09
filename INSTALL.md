@@ -2,20 +2,32 @@
 
 Version du document : 0.1.19 · 2026-11-08.
 
-Suivi, 2026-11-09 : réécrit avec une hiérarchie de titres stricte, les noms yin et yang, et une explication par étape ; commandes, valeurs et résultats inchangés ; numéro du document inchangé.
+Suivi, 2026-11-09 : allégé (fins d'étape fusionnées en une phrase, section « Cinq notions pour commencer » ajoutée) ; quinze étapes, commandes, valeurs et résultats inchangés ; numéro du document inchangé.
 
 **Alpha : pas en production. À essayer sur des machines jetables.**
 
-Ce document décrit l'**installation semi-automatique** : vous enchaînez les étapes une à une, et les scripts font le travail de chaque étape. Elle se distingue de l'installation automatique prévue pour la 1.0, où vous n'installerez que le client, qui pilotera tout le reste par SSH (décision D176) ; celle-ci n'existe pas encore.
+À la fin de ce parcours, vous aurez deux machines Debian 13 reliées entre elles : yin héberge le relais, yang sert à l'administrer, et un administrateur dont la clé est autorisée pourra ouvrir une session de présence. Le parcours compte quinze étapes, à faire dans l'ordre, en passant d'une machine à l'autre ; aucune durée n'est annoncée, elle dépend de vos machines et de votre connexion. Les scripts font le travail ; vous copiez deux valeurs d'une machine à l'autre et vous contrôlez le résultat de chaque étape.
+
+Ce document décrit l'**installation semi-automatique**. Elle se distingue de l'installation automatique prévue pour la 1.0, où vous n'installerez que le client, qui pilotera tout le reste par SSH (décision D176) ; celle-ci n'existe pas encore. Le principe des scripts, leurs options et leurs codes de sortie sont dans [`docs/wiki/Installation.md`](docs/wiki/Installation.md).
+
+## Cinq notions pour commencer
+
+- **Yin** : la machine du relais. Elle est visible depuis Internet, comme une boutique ouverte sur la rue.
+- **Yang** : la machine d'administration. Elle n'est pas visible depuis Internet, comme l'arrière-boutique où l'on décide de tout.
+- **Tunnel** : une liaison chiffrée et permanente entre yang et yin, comme un couloir privé entre l'arrière-boutique et la boutique.
+- **Clé publique** : la partie d'une clé que l'on peut donner à tout le monde, comme une serrure : elle permet de vérifier qu'on détient la clé, sans la révéler.
+- **Empreinte** : un résumé court d'une clé, comme une signature à comparer : si les deux empreintes sont identiques, c'est bien la même clé.
+
+Les autres mots du projet sont dans le [Glossaire](docs/wiki/Glossaire.md).
 
 ## Ce que vous allez installer
 
-Paresia permet d'administrer un relais Nostr à distance, en prouvant votre présence. Il se compose de deux machines Debian 13 :
+Paresia permet d'administrer un relais Nostr à distance, en prouvant votre présence. Il se compose de deux machines :
 
-- **yang** est la machine d'administration (`backend-admin` dans les noms de scripts et de dossiers) : elle n'est pas exposée sur Internet ; elle fait tourner Pollux (la présence) et Romulus (les commandes) ;
-- **yin** est la machine du relais (`backend-relais` dans les noms de scripts et de dossiers) : elle est exposée ; elle fait tourner strfry, le relais, avec Castor (le feu de présence) et Remus (l'exécution des commandes).
+- **yang** (`backend-admin` dans les noms de scripts et de dossiers) fait tourner Pollux (la présence) et Romulus (les commandes) ;
+- **yin** (`backend-relais` dans les noms de scripts et de dossiers) fait tourner strfry, le relais, avec Castor (le feu de présence) et Remus (l'exécution des commandes).
 
-Un tunnel SSH relie les deux. Chaque machine a besoin d'une valeur produite par l'autre ; l'installation alterne donc entre elles :
+Chaque machine a besoin d'une valeur produite par l'autre ; l'installation alterne donc entre elles :
 
 ```
 yang  : prérequis (1-3)              yin : prérequis (4-6)
@@ -27,6 +39,7 @@ vérifier (12-13), activer (14), autoriser votre clé (15)
 
 ## Sommaire
 
+- [Cinq notions pour commencer](#cinq-notions-pour-commencer)
 - [Avant de commencer](#avant-de-commencer)
 - [I. Installer les prérequis](#i-installer-les-prérequis)
   - [A. Sur yang](#a-sur-yang) : étapes 1 à 3
@@ -45,7 +58,7 @@ vérifier (12-13), activer (14), autoriser votre clé (15)
 
 Il vous faut :
 
-- deux machines Debian 13 avec `systemd`. Exemples : yang en `192.0.2.10`, yin en `192.0.2.20` (RFC 5737) ;
+- deux machines Debian 13 avec `systemd`. Exemples : yang en `192.0.2.10`, yin en `192.0.2.20` ;
 - yang qui joint yin en TCP sur le port 22 ;
 - sur chaque machine, un compte ordinaire membre du groupe `sudo`, avec `curl` installé ;
 - `nak` sur le poste où vous conservez vos clés privées (création de la clé du relais) et sur yang (signataires du bunker), plus sur yin : voir `docs/wiki/Installer-nak.md` (non nécessaire aux étapes ci-dessous) ;
@@ -87,7 +100,7 @@ Résultat attendu :
 git version 2.47.3
 ```
 
-Étape terminée quand `git --version` affiche une version. Passez à l'étape 2.
+Git est prêt dès que `git --version` affiche une version ; l'étape 2 en a besoin.
 
 ### 2. Sur yang : récupérer le dépôt
 
@@ -107,7 +120,7 @@ Résultat attendu :
 0.1.19
 ```
 
-Étape terminée quand la version s'affiche : le dépôt est copié sur yang. Si `git clone` échoue, vérifiez la connexion à Internet de yang et relancez la commande. Passez à l'étape 3.
+Le dépôt est copié sur yang quand la version s'affiche (si `git clone` échoue, vérifiez la connexion à Internet de yang et relancez-le) ; l'étape 3 installe les paquets.
 
 ### 3. Sur yang : installer les paquets
 
@@ -117,9 +130,9 @@ Les démons de yang s'appuient sur ces paquets Debian. Machine : yang, en root.
 apt install ca-certificates python3 python3-cryptography curl openssh-client openssh-server iproute2
 ```
 
-Résultat attendu : `apt` termine sans message `E:`. Un paquet déjà présent est signalé « déjà la version la plus récente » : c'est normal. S'il affiche une ligne commençant par `E:`, lisez-la (réseau, dépôt Debian) et relancez la commande.
+Résultat attendu : `apt` termine sans message `E:`. Un paquet déjà présent est signalé « déjà la version la plus récente » : c'est normal.
 
-Étape terminée quand `apt` revient à l'invite sans `E:` : les paquets de yang sont en place. Passez à l'étape 4.
+Les paquets de yang sont en place quand `apt` revient à l'invite sans `E:` (sinon, lisez la ligne `E:`, qui indique le réseau ou le dépôt Debian en cause, et relancez) ; l'étape 4 prépare yin.
 
 ## B. Sur yin
 
@@ -145,7 +158,7 @@ Résultat attendu (comme sur yang) :
 0.1.19
 ```
 
-Étape terminée quand la version est la même que sur yang : le dépôt est copié sur yin. Sinon, refaites le clone depuis le même dépôt. Passez à l'étape 5.
+Le dépôt est copié sur yin quand la version est la même que sur yang (sinon, refaites le clone depuis le même dépôt) ; l'étape 5 installe les paquets de yin.
 
 ### 5. Sur yin : installer les paquets
 
@@ -155,9 +168,9 @@ Les démons de yin s'appuient sur ces paquets Debian. Machine : yin, avec votre 
 sudo apt install ca-certificates python3 nftables openssh-client openssh-server iproute2
 ```
 
-Résultat attendu : `apt` termine sans message `E:`. Un paquet déjà présent est signalé « déjà la version la plus récente » : c'est normal. S'il affiche une ligne commençant par `E:`, lisez-la (réseau, dépôt Debian) et relancez la commande.
+Résultat attendu : `apt` termine sans message `E:`. Un paquet déjà présent est signalé « déjà la version la plus récente » : c'est normal.
 
-Étape terminée quand `apt` revient à l'invite sans `E:` : les paquets de yin sont en place. Passez à l'étape 6.
+Les paquets de yin sont en place quand `apt` revient à l'invite sans `E:` (sinon, lisez la ligne `E:` et relancez) ; l'étape 6 contrôle le relais strfry.
 
 ### 6. Sur yin : installer et vérifier strfry
 
@@ -167,9 +180,9 @@ Paresia administre un relais strfry : il doit tourner avant d'installer les dém
 sudo docker ps --filter name=^strfry$
 ```
 
-Résultat attendu : une ligne pour le conteneur `strfry`, à l'état `Up`. Sinon, revenez à la page strfry du wiki (`docs/wiki/Installer-strfry.md`) avant de continuer.
+Résultat attendu : une ligne pour le conteneur `strfry`, à l'état `Up`.
 
-Étape terminée quand le conteneur est `Up`. Passez à l'étape 7.
+Le relais est prêt quand le conteneur est `Up` (sinon, revenez à la page strfry du wiki) ; la partie II installe les démons, en commençant par yang.
 
 # II. Installer les démons
 
@@ -186,9 +199,9 @@ cd ~/paresia
 bash deploy/backend-admin/installer-backend-admin.sh --verifier
 ```
 
-Résultat attendu : aucune sortie. **Aucune sortie signifie : tous les prérequis de yang sont présents et rien n'a été modifié.** Passez à l'étape 8.
+Résultat attendu : aucune sortie. **Aucune sortie signifie : tous les prérequis de yang sont présents et rien n'a été modifié.**
 
-En cas d'échec, le script s'arrête avec le code 69 et nomme le prérequis manquant : installez-le (étape 3), puis relancez la commande.
+Yang est prêt à recevoir les démons ; l'étape 8 les installe. En cas d'échec, le script s'arrête avec le code 69 et nomme le prérequis manquant : installez-le (étape 3), puis relancez.
 
 ### 8. Sur yang : installer les démons (passe 1)
 
@@ -207,7 +220,7 @@ EMPREINTE_CLE_TUNNEL=SHA256:…
 
 Notez ces deux lignes : elles resservent à l'étape 10, puis à l'étape 14. Notez aussi le nom du jeu de sauvegarde affiché (`/var/backups/paresia/admin/AAAAMMJJ-HHMMSS`) : il sert au retour arrière (annexe B).
 
-Étape terminée quand les deux lignes sont notées : yang est installé, avec la clé du tunnel. Si le script s'arrête sur un état différent de l'attendu (code 78), il ne modifie rien : lisez le message avant de relancer. Passez à l'étape 9.
+Yang est installé, avec la clé du tunnel, dès que les deux lignes sont notées ; l'étape 9 prépare yin. Si le script s'arrête sur un état différent de l'attendu (code 78), il ne modifie rien : lisez son message avant de relancer.
 
 ## B. Sur yin (deuxième passe)
 
@@ -220,9 +233,9 @@ cd ~/paresia
 bash deploy/backend-relais/installer-backend-relais.sh --verifier
 ```
 
-Résultat attendu : aucune sortie. **Aucune sortie signifie : tous les prérequis de yin sont présents et rien n'a été modifié.** Passez à l'étape 10.
+Résultat attendu : aucune sortie. **Aucune sortie signifie : tous les prérequis de yin sont présents et rien n'a été modifié.**
 
-En cas d'échec, le script s'arrête avec le code 69 et nomme le prérequis manquant : installez-le (étape 5), puis relancez la commande.
+Yin est prêt à recevoir les démons ; l'étape 10 les installe. En cas d'échec, le script s'arrête avec le code 69 et nomme le prérequis manquant : installez-le (étape 5), puis relancez.
 
 ### 10. Sur yin : installer les démons (passe 2)
 
@@ -243,9 +256,9 @@ Résultat attendu : à la fin, une ligne à noter pour l'étape 11.
 EMPREINTE_HOTE_RELAIS=SHA256:…
 ```
 
-Transmettez-la à yang par un autre canal que le tunnel, par exemple en la lisant sur la console de la machine. Elle resservira à l'étape 11, puis à l'étape 14.
+Transmettez-la à yang par un autre canal que le tunnel, par exemple en la lisant sur la console de la machine : elle resservira à l'étape 11, puis à l'étape 14.
 
-Étape terminée quand la ligne `EMPREINTE_HOTE_RELAIS=` est notée : yin est installé et autorise la clé du tunnel. Si le script refuse (code 77 : compte root, ou 78 : état différent), il ne modifie rien : lisez le message avant de relancer. Passez à l'étape 11.
+Yin est installé et autorise la clé du tunnel dès que la ligne `EMPREINTE_HOTE_RELAIS=` est notée ; l'étape 11 relie les deux machines. Si le script refuse (code 77 : compte root, ou 78 : état différent), il ne modifie rien : lisez son message avant de relancer.
 
 # III. Relier les deux machines
 
@@ -261,9 +274,9 @@ bash deploy/backend-admin/installer-backend-admin.sh --alpha-test --session-seco
   --empreinte-hote-relais 'EMPREINTE_HOTE_RELAIS'
 ```
 
-Résultat attendu : le script compare l'empreinte à celle que lit `ssh-keyscan` sur yin, puis pose le tunnel et le démarre. Une différence l'arrête.
+Résultat attendu : le script se termine sans signaler de différence d'empreinte.
 
-Étape terminée quand le script se termine sans signaler de différence d'empreinte : le tunnel est posé et démarré. Si l'empreinte diffère, le script s'arrête sans poser le tunnel : reprenez l'empreinte affichée sur yin (étape 10) et relancez. Passez à l'étape 12.
+Le tunnel est alors posé et démarré, et la partie IV peut le contrôler à l'étape 12. Si l'empreinte diffère, le script s'arrête sans poser le tunnel : reprenez l'empreinte affichée sur yin (étape 10) et relancez.
 
 # IV. Vérifier
 
@@ -285,7 +298,7 @@ ss -xl | grep paresia-tunnel
 
 Résultat attendu : deux sockets, `/run/paresia-tunnel/romulus/remus.sock` et `/run/paresia-tunnel/pollux/castor.sock`.
 
-Étape terminée quand les trois unités sont `active` et les deux sockets présentes. Sinon, `journalctl -u <unité>` montre la cause. `grep` n'affiche rien si les sockets manquent : ce silence signifie que le tunnel n'est pas posé, revenez à l'étape 11. Passez à l'étape 13.
+Yang fonctionne quand les trois unités sont `active` et les deux sockets présentes ; l'étape 13 fait le même contrôle sur yin. Sinon, `journalctl -u <unité>` montre la cause ; si `grep` n'affiche rien, le tunnel n'est pas posé : revenez à l'étape 11.
 
 ## B. Sur yin
 
@@ -299,7 +312,7 @@ sudo /usr/bin/systemctl status castor.service remus.service
 
 Résultat attendu : les deux unités sont `active`.
 
-Étape terminée quand les deux unités sont `active`. Sinon, `sudo journalctl -u castor.service -u remus.service` montre la cause. Passez à l'étape 14.
+Yin fonctionne quand les deux unités sont `active` (sinon, `sudo journalctl -u castor.service -u remus.service` montre la cause) ; l'étape 14 les fera démarrer avec la machine.
 
 ## C. Sur les deux machines
 
@@ -326,9 +339,9 @@ bash deploy/backend-admin/installer-backend-admin.sh --alpha-test --session-seco
   --empreinte-hote-relais 'EMPREINTE_HOTE_RELAIS'
 ```
 
-Résultat attendu : « déjà en place » pour tout ce qui est conforme.
+Résultat attendu : « déjà en place » pour tout ce qui est conforme, et les deux scripts se terminent sans erreur.
 
-Étape terminée quand « déjà en place » s'affiche pour ce qui est conforme et que les deux scripts se terminent sans erreur : les unités démarrent désormais avec les machines. Passez à l'étape 15.
+Les unités démarrent désormais avec les machines ; il reste à autoriser un administrateur à l'étape 15.
 
 # V. Autoriser votre clé d'administrateur et premier usage
 
@@ -370,7 +383,7 @@ Résultat attendu (une ligne par clé) :
 
 Comparez cette empreinte à celle de la clé de l'administrateur, sur son poste : `ssh-keygen -lf <fichier .pub>`. Les deux empreintes doivent être identiques.
 
-La clé est autorisée seulement quand les empreintes coïncident et que le propriétaire du fichier est `root`. Si le propriétaire est autre, la connexion sera refusée : corrigez-le avec `chown root:root` sur ce fichier. Si les empreintes diffèrent, la ligne ajoutée n'est pas la bonne clé : retirez-la du fichier et recommencez l'ajout. Passez à « Suite » ci-dessous.
+La clé est autorisée quand les empreintes coïncident et que le propriétaire du fichier est `root` (sinon, corrigez-le avec `chown root:root` sur ce fichier ; si les empreintes diffèrent, retirez la ligne ajoutée et recommencez l'ajout). L'installation est terminée : la suite est ci-dessous.
 
 ## Suite
 
@@ -418,4 +431,4 @@ bash deploy/backend-<machine>/installer-backend-<machine>.sh --retour-arriere --
 - **Serveur web et proxy.** Paresia n'installe ni lighttpd ni HAProxy. Les exigences sont dans `docs/serveur-web.md`. Les pages à servir sont sous `/usr/local/share/paresia/web/`. Sans serveur web, un poste distant ne joint pas l'API.
 - **Non livré.** Installation des deux machines en une seule commande ; unités de bunkerd et de Nisaba ; page d'administration du relais dans le client. Le mode `--alpha-test` est temporaire.
 - **Poste de l'administrateur.** L'application se lance par `python3 -m admin.app` ; elle exige PyQt6 avec QtWebEngine, un agent SSH actif et `openssh-client` (`docs/prerequis.md`, § 4). Essai de bout en bout : `deploy/essai-presence.md`.
-- **Références.** Raisons des choix : `docs/wiki/Installation.md`. Prérequis : `docs/prerequis.md`. Manuel : `installer-backend-admin(8)` et `installer-backend-relais(8)`.
+- **Références.** Principe des scripts, options et codes de sortie : `docs/wiki/Installation.md`. Prérequis : `docs/prerequis.md`. Manuel : `installer-backend-admin(8)` et `installer-backend-relais(8)`.
