@@ -23,7 +23,26 @@ Les scripts d'installation emploient l'outil `paresia-sauvegarde`.
 
 Chaque script d'installation sait revenir en arrière.
 
-**À personnaliser : remplacez `AAAAMMJJ-HHMMSS` par le nom du jeu affiché par le script.**
+Listez d'abord les jeux de sauvegarde disponibles. Sur yang, en root :
+
+```
+ls -1 /var/backups/paresia/admin
+```
+
+Sur yin, avec votre compte :
+
+```
+sudo ls -1 /var/backups/paresia/relais
+```
+
+Exemple de sortie (un nom par jeu, du plus ancien au plus récent) :
+
+```
+20261109-101500
+20261109-143200
+```
+
+**À personnaliser : remplacez `AAAAMMJJ-HHMMSS` par le nom du jeu retenu, tel qu'il figure dans cette liste (reportez-le sans le modifier).** Un assistant interactif, qui proposera le choix du jeu, viendra en v0.2.
 
 Sur yang, en root :
 
