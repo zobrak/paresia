@@ -356,7 +356,7 @@ Les unités démarrent désormais avec les machines ; il reste à autoriser un a
 
 Pour qu'un administrateur ouvre une session de présence, sa clé publique doit être listée. Machine : yang, en root. Le fichier `/var/lib/paresia-app/.ssh/authorized_keys` est créé vide. Ajoutez-y une ligne par administrateur.
 
-**À personnaliser : remplacez `CLE_PUBLIQUE_ADMIN` par la seule partie centrale de la clé publique de l'administrateur (celle qui commence par `AAAA`, sans le `ssh-ed25519` déjà écrit dans la commande) et `COMMENTAIRE` par un nom court (1 à 64 caractères : lettres, chiffres, `.`, `_`, `@`, `-`).**
+**À personnaliser : ouvrez le fichier `.pub` de l'administrateur dans un éditeur : il contient une ligne de trois mots séparés par des espaces (`ssh-ed25519`, une longue suite qui commence par `AAAA`, puis un nom). Remplacez `CLE_PUBLIQUE_ADMIN` par le deuxième mot, la partie centrale (sans le `ssh-ed25519` déjà écrit dans la commande), et `COMMENTAIRE` par un nom court (1 à 64 caractères : lettres, chiffres, `.`, `_`, `@`, `-`).**
 
 ```
 echo 'restrict,command="/usr/local/bin/pollux-session" ssh-ed25519 CLE_PUBLIQUE_ADMIN COMMENTAIRE' >> /var/lib/paresia-app/.ssh/authorized_keys

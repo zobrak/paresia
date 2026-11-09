@@ -254,19 +254,11 @@ Yang n'accepte que les clés qu'on lui a déclarées. Cette étape est l'[étape
 
 **Si la clé que vous employez est déjà autorisée sur yang** (étape 15 d'INSTALL.md) : inutile de la déclarer une seconde fois. Il vous suffit de comparer les empreintes : celle de votre poste (`ssh-keygen -lf ~/.ssh/paresia-admin.pub`, en remplaçant le chemin par celui de votre fichier `.pub`) doit être identique à celle que yang affiche pour le fichier `authorized_keys` ; puis passez à l'[étape 8](#8-ouvrir-la-session-et-vérifier).
 
-**Sinon**, la clé que vous employez (par exemple celle créée à l'étape 3) n'est pas encore autorisée : il vous faut deux valeurs, à relever sur votre poste.
-
-Sur le poste, affichez la partie centrale de la clé publique (celle qui commence par `AAAA`) et son nom :
-
-```
-cut -d' ' -f2,3 ~/.ssh/paresia-admin.pub
-```
-
-Résultat attendu : une ligne `AAAA… utilisateur` : d'abord la partie centrale (`CLE_PUBLIQUE_ADMIN` de l'étape 15), puis le nom (`COMMENTAIRE`). Vous pouvez aussi lire la ligne complète à ajouter dans le menu « Ligne de clé à remettre » de la fenêtre.
-
-**Sur yang**, en root, suivez ensuite l'[étape 15](../../INSTALL.md#15-sur-yang--autoriser-la-clé-dun-administrateur) avec ces deux valeurs, jusqu'à la comparaison des empreintes.
+**Sinon**, la clé que vous employez n'est pas encore autorisée : copiez le contenu de votre fichier `.pub` depuis votre éditeur (ou depuis votre coffre), puis suivez l'[étape 15 d'INSTALL.md](../../INSTALL.md#15-sur-yang--autoriser-la-clé-dun-administrateur), **sur yang**, en root. La fenêtre de l'application affiche aussi la ligne complète à ajouter (menu « Ligne de clé à remettre »).
 
 Votre clé est autorisée quand l'empreinte de yang correspond à celle de votre poste (`ssh-keygen -lf ~/.ssh/paresia-admin.pub`) ; l'[étape 8](#8-ouvrir-la-session-et-vérifier) ouvre la session.
+
+Cette étape sera faite par l'installation de yang dans une prochaine version : les clés des administrateurs, dont celle du superadmin, y seront installées sans rien recopier.
 
 ## 8. Ouvrir la session et vérifier
 
