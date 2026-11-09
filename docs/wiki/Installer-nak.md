@@ -2,7 +2,7 @@
 
 Version du document : 0.1.19 · 2026-11-08.
 
-Suivi, 2026-11-09 : réécrite ; `nak` s'installe sur le poste où les clés privées sont conservées (et sur `backend-admin` pour le bunker), plus sur `backend-relais` ; numéro du document inchangé.
+Suivi, 2026-11-09 : réécrite ; `nak` s'installe sur le poste où les clés privées sont conservées (et sur yang pour le bunker), plus sur yin ; numéro du document inchangé.
 
 **À faire sur le poste où vous conservez vos clés privées.**
 
@@ -79,9 +79,9 @@ NPUB (a partager)                   : npub1…
 
 Pour la clé d'un relais, retournez à [Installer le relais strfry](Installer-strfry.md), étape 6, avec la ligne `CLE PUBLIQUE HEX`.
 
-## 4. Sur `backend-admin` (bunker)
+## 4. Sur yang (bunker)
 
-`backend-admin` a aussi besoin de `nak` : le bunker (NIP-46) l'utilise, au chemin `/usr/local/bin/nak`. Machine : `backend-admin`, en root. Version v0.22.3.
+Yang (la machine d'administration, `backend-admin` dans les noms de scripts et de dossiers) a aussi besoin de `nak` : le bunker (NIP-46) l'utilise, au chemin `/usr/local/bin/nak`. Machine : yang, en root. Version v0.22.3.
 
 Reprenez les trois commandes de l'étape 1 (`curl -fLO`, contrôle `sha256sum -c`, puis `install -m 0755 -o root -g root nak-v0.22.3-linux-amd64 /usr/local/bin/nak`, sans `sudo`). `curl` s'installe au besoin par `apt install curl`. Ne générez aucune clé sur cette machine.
 

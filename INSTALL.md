@@ -2,39 +2,74 @@
 
 Version du document : 0.1.19 · 2026-11-08.
 
-Suivi, 2026-11-08 : réécrit pas à pas, dépôt récupéré dès le début ; numéro du document inchangé.
+Suivi, 2026-11-09 : réécrit avec une hiérarchie de titres stricte, les noms yin et yang, et une explication par étape ; commandes, valeurs et résultats inchangés ; numéro du document inchangé.
 
 **Alpha : pas en production. À essayer sur des machines jetables.**
 
-Ce guide installe Paresia sur deux machines Debian 13, de zéro : `backend-admin` (côté yang : Pollux, Romulus) et `backend-relais` (côté yin : Castor, Remus), reliées par un tunnel SSH.
+## Ce que vous allez installer
+
+Paresia permet d'administrer un relais Nostr à distance, en prouvant votre présence. Il se compose de deux machines Debian 13 :
+
+- **yang** est la machine d'administration (`backend-admin` dans les noms de scripts et de dossiers) : elle n'est pas exposée sur Internet ; elle fait tourner Pollux (la présence) et Romulus (les commandes) ;
+- **yin** est la machine du relais (`backend-relais` dans les noms de scripts et de dossiers) : elle est exposée ; elle fait tourner strfry, le relais, avec Castor (le feu de présence) et Remus (l'exécution des commandes).
+
+Un tunnel SSH relie les deux. Chaque machine a besoin d'une valeur produite par l'autre ; l'installation alterne donc entre elles :
+
+```
+yang  : prérequis (1-3)              yin : prérequis (4-6)
+yang  : démons, passe 1  (7-8)   ->  valeurs : clé du tunnel et empreinte
+yin   : démons, passe 2  (9-10)  <-  reçoit la clé du tunnel ; produit l'empreinte de yin
+yang  : tunnel, passe 3  (11)    <-  reçoit l'empreinte de yin
+vérifier (12-13), activer (14), autoriser votre clé (15)
+```
+
+## Sommaire
+
+- [Avant de commencer](#avant-de-commencer)
+- [I. Installer les prérequis](#i-installer-les-prérequis)
+  - [A. Sur yang](#a-sur-yang) : étapes 1 à 3
+  - [B. Sur yin](#b-sur-yin) : étapes 4 à 6
+- [II. Installer les démons](#ii-installer-les-démons)
+  - [A. Sur yang (première passe)](#a-sur-yang-première-passe) : étapes 7 et 8
+  - [B. Sur yin (deuxième passe)](#b-sur-yin-deuxième-passe) : étapes 9 et 10
+- [III. Relier les deux machines](#iii-relier-les-deux-machines) : étape 11
+- [IV. Vérifier](#iv-vérifier) : étapes 12 à 14
+- [V. Autoriser votre clé d'administrateur et premier usage](#v-autoriser-votre-clé-dadministrateur-et-premier-usage) : étape 15
+- [Annexe A : mettre à jour une installation existante](#annexe-a--mettre-à-jour-une-installation-existante)
+- [Annexe B : retour arrière](#annexe-b--retour-arrière)
+- [Annexe C : réserves et variantes](#annexe-c--réserves-et-variantes)
 
 ## Avant de commencer
 
 Il vous faut :
 
-- deux machines Debian 13 avec `systemd`. Exemples : `backend-admin` en `192.0.2.10`, `backend-relais` en `192.0.2.20` (RFC 5737) ;
-- `backend-admin` qui joint `backend-relais` en TCP sur le port 22 ;
+- deux machines Debian 13 avec `systemd`. Exemples : yang en `192.0.2.10`, yin en `192.0.2.20` (RFC 5737) ;
+- yang qui joint yin en TCP sur le port 22 ;
 - sur chaque machine, un compte ordinaire membre du groupe `sudo`, avec `curl` installé ;
-- `nak` sur le poste où vous conservez vos clés privées (création de la clé du relais) et sur `backend-admin` (signataires du bunker), plus sur `backend-relais` : voir `docs/wiki/Installer-nak.md` (non nécessaire aux étapes ci-dessous) ;
+- `nak` sur le poste où vous conservez vos clés privées (création de la clé du relais) et sur yang (signataires du bunker), plus sur yin : voir `docs/wiki/Installer-nak.md` (non nécessaire aux étapes ci-dessous) ;
 - pour chaque machine, un second terminal SSH (ou la console) ouvert et testé : le script recharge `sshd` ;
-- le conteneur `strfry` déjà en marche sur `backend-relais` (page « Installer le relais strfry » du wiki, `docs/wiki/Installer-strfry.md`), ou, pour un essai du noyau seul, voir l'annexe.
+- le conteneur `strfry` déjà en marche sur yin (page « Installer le relais strfry » du wiki, `docs/wiki/Installer-strfry.md`), ou, pour un essai du noyau seul, voir l'annexe C.
 
 ### À personnaliser obligatoirement
 
 | Valeur | Où | Exemple du guide | Ce qu'il faut mettre |
 | --- | --- | --- | --- |
-| adresse de `backend-admin` | étapes 10 et 14, `--adresse-admin` | `192.0.2.10` | l'adresse IP de `backend-admin` |
-| adresse de `backend-relais` | étapes 11 et 14, `--adresse-relais` | `192.0.2.20` | l'adresse IP de `backend-relais` (une adresse, non un nom) |
+| adresse de yang | étapes 10 et 14, `--adresse-admin` | `192.0.2.10` | l'adresse IP de yang |
+| adresse de yin | étapes 11 et 14, `--adresse-relais` | `192.0.2.20` | l'adresse IP de yin (une adresse, non un nom) |
 | `CLE_PUBLIQUE_TUNNEL` | étapes 10 et 14 | affichée à l'étape 8 | ce qui suit `CLE_PUBLIQUE_TUNNEL=` |
 | `EMPREINTE_CLE_TUNNEL` | étapes 10 et 14 | affichée à l'étape 8 | ce qui suit `EMPREINTE_CLE_TUNNEL=` |
 | `EMPREINTE_HOTE_RELAIS` | étapes 11 et 14 | affichée à l'étape 10 | ce qui suit `EMPREINTE_HOTE_RELAIS=` |
 | `CLE_PUBLIQUE_ADMIN` et `COMMENTAIRE` | étape 15 | | la clé publique de l'administrateur et un nom court |
 
-L'installation se fait en trois passes, car chaque machine a besoin d'une valeur produite par l'autre : `backend-admin`, puis `backend-relais`, puis `backend-admin` de nouveau.
+# I. Installer les prérequis
 
-## 1. Installer git sur backend-admin
+On prépare chaque machine : de quoi récupérer le code et les paquets dont les démons ont besoin. Rien de Paresia n'est encore installé.
 
-Machine : `backend-admin`, en root.
+## A. Sur yang
+
+### 1. Sur yang : installer git
+
+Pour récupérer le code de Paresia, il faut git. Machine : yang, en root.
 
 ```
 apt install git
@@ -50,9 +85,11 @@ Résultat attendu :
 git version 2.47.3
 ```
 
-## 2. Récupérer le dépôt sur backend-admin
+Vous pouvez passer à la suite quand `git --version` affiche une version.
 
-Machine : `backend-admin`, en root.
+### 2. Sur yang : récupérer le dépôt
+
+Le dépôt contient les scripts d'installation que vous lancerez à l'étape 8. Machine : yang, en root.
 
 ```
 git clone https://github.com/zobrak/paresia.git ~/paresia
@@ -68,9 +105,11 @@ Résultat attendu :
 0.1.19
 ```
 
-## 3. Installer les paquets de backend-admin
+Vous pouvez passer à la suite quand la version s'affiche.
 
-Machine : `backend-admin`, en root.
+### 3. Sur yang : installer les paquets
+
+Les démons de yang s'appuient sur ces paquets Debian. Machine : yang, en root.
 
 ```
 apt install ca-certificates python3 python3-cryptography curl openssh-client openssh-server iproute2
@@ -78,9 +117,13 @@ apt install ca-certificates python3 python3-cryptography curl openssh-client ope
 
 Résultat attendu : aucune erreur.
 
-## 4. Récupérer le dépôt sur backend-relais
+Vous pouvez passer à la suite quand la commande se termine sans erreur.
 
-Machine : `backend-relais`, avec votre compte.
+## B. Sur yin
+
+### 4. Sur yin : récupérer le dépôt
+
+Même raison qu'à l'étape 2, sur l'autre machine. Machine : yin, avec votre compte.
 
 ```
 sudo apt install git
@@ -94,15 +137,17 @@ git clone https://github.com/zobrak/paresia.git ~/paresia
 cat ~/paresia/VERSION
 ```
 
-Résultat attendu (comme sur `backend-admin`) :
+Résultat attendu (comme sur yang) :
 
 ```
 0.1.19
 ```
 
-## 5. Installer les paquets de backend-relais
+Vous pouvez passer à la suite quand la version est la même que sur yang.
 
-Machine : `backend-relais`, avec votre compte.
+### 5. Sur yin : installer les paquets
+
+Les démons de yin s'appuient sur ces paquets Debian. Machine : yin, avec votre compte.
 
 ```
 sudo apt install ca-certificates python3 nftables openssh-client openssh-server iproute2
@@ -110,19 +155,29 @@ sudo apt install ca-certificates python3 nftables openssh-client openssh-server 
 
 Résultat attendu : aucune erreur.
 
-## 6. Contrôler que strfry tourne
+Vous pouvez passer à la suite quand la commande se termine sans erreur.
 
-Machine : `backend-relais`.
+### 6. Sur yin : contrôler que strfry tourne
+
+Paresia administre un relais strfry déjà installé ; on contrôle qu'il est là avant d'installer les démons. Machine : yin.
 
 ```
 sudo docker ps --filter name=^strfry$
 ```
 
-Résultat attendu : une ligne pour le conteneur `strfry`, à l'état `Up`. Sinon, revenez à la page strfry du wiki avant de continuer.
+Résultat attendu : une ligne pour le conteneur `strfry`, à l'état `Up`. Sinon, revenez à la page strfry du wiki (`docs/wiki/Installer-strfry.md`) avant de continuer.
 
-## 7. Vérifier backend-admin
+Vous pouvez passer à la suite quand le conteneur est `Up`.
 
-Machine : `backend-admin`, en root, dans `~/paresia`. La commande ne modifie rien.
+# II. Installer les démons
+
+On installe les démons par un script par machine. Chaque script fait une pause après chaque étape et exige un terminal.
+
+## A. Sur yang (première passe)
+
+### 7. Sur yang : vérifier les prérequis
+
+Le script contrôle que la machine est prête, sans rien modifier. Machine : yang, en root, dans `~/paresia`.
 
 ```
 cd ~/paresia
@@ -131,9 +186,11 @@ bash deploy/backend-admin/installer-backend-admin.sh --verifier
 
 Résultat attendu : aucun message d'erreur. Un prérequis manquant arrête le script (code 69) et le nomme.
 
-## 8. Passe 1 : installer backend-admin
+Vous pouvez passer à la suite quand aucun message d'erreur ne s'affiche.
 
-Machine : `backend-admin`, en root, dans `~/paresia`. Le script fait une pause après chaque étape et exige un terminal.
+### 8. Sur yang : installer les démons (passe 1)
+
+Le script installe Pollux et Romulus et crée la clé du tunnel, dont yin a besoin. Machine : yang, en root, dans `~/paresia`.
 
 ```
 bash deploy/backend-admin/installer-backend-admin.sh --alpha-test --session-secours oui
@@ -146,11 +203,15 @@ CLE_PUBLIQUE_TUNNEL=ssh-ed25519 AAAA…
 EMPREINTE_CLE_TUNNEL=SHA256:…
 ```
 
-Notez aussi le nom du jeu de sauvegarde affiché (`/var/backups/paresia/admin/AAAAMMJJ-HHMMSS`) : il sert au retour arrière.
+Notez ces deux lignes : elles resservent à l'étape 10, puis à l'étape 14. Notez aussi le nom du jeu de sauvegarde affiché (`/var/backups/paresia/admin/AAAAMMJJ-HHMMSS`) : il sert au retour arrière (annexe B).
 
-## 9. Vérifier backend-relais
+Vous pouvez passer à la suite quand les deux lignes sont notées.
 
-Machine : `backend-relais`, avec votre compte, dans `~/paresia`. La commande ne modifie rien.
+## B. Sur yin (deuxième passe)
+
+### 9. Sur yin : vérifier les prérequis
+
+Même contrôle qu'à l'étape 7, sans rien modifier. Machine : yin, avec votre compte, dans `~/paresia`.
 
 ```
 cd ~/paresia
@@ -159,11 +220,13 @@ bash deploy/backend-relais/installer-backend-relais.sh --verifier
 
 Résultat attendu : aucun message d'erreur.
 
-## 10. Passe 2 : installer backend-relais
+Vous pouvez passer à la suite quand aucun message d'erreur ne s'affiche.
 
-Machine : `backend-relais`, avec votre compte (sans `sudo` devant), dans `~/paresia`.
+### 10. Sur yin : installer les démons (passe 2)
 
-**À personnaliser : remplacez `192.0.2.10` par l'adresse de `backend-admin`, et les deux valeurs `CLE_PUBLIQUE_TUNNEL` et `EMPREINTE_CLE_TUNNEL` par celles de l'étape 8 (ce qui suit le signe `=`, copié sans retranscrire).**
+Le script installe Castor et Remus, et autorise la clé du tunnel produite à l'étape 8. Machine : yin, avec votre compte (sans `sudo` devant), dans `~/paresia`.
+
+**À personnaliser : remplacez `192.0.2.10` par l'adresse de yang, et les deux valeurs `CLE_PUBLIQUE_TUNNEL` et `EMPREINTE_CLE_TUNNEL` par celles de l'étape 8 (ce qui suit le signe `=`, copié sans retranscrire).**
 
 ```
 bash deploy/backend-relais/installer-backend-relais.sh --alpha-test --session-secours oui \
@@ -178,13 +241,17 @@ Résultat attendu : à la fin, une ligne à noter pour l'étape 11.
 EMPREINTE_HOTE_RELAIS=SHA256:…
 ```
 
-Transmettez-la à `backend-admin` par un autre canal que le tunnel, par exemple en la lisant sur la console de la machine.
+Transmettez-la à yang par un autre canal que le tunnel, par exemple en la lisant sur la console de la machine. Elle resservira à l'étape 11, puis à l'étape 14.
 
-## 11. Passe 3 : le tunnel sur backend-admin
+Vous pouvez passer à la suite quand la ligne `EMPREINTE_HOTE_RELAIS=` est notée.
 
-Machine : `backend-admin`, en root, dans `~/paresia`.
+# III. Relier les deux machines
 
-**À personnaliser : remplacez `192.0.2.20` par l'adresse IP de `backend-relais` (une adresse, non un nom), et `EMPREINTE_HOTE_RELAIS` par la valeur de l'étape 10.**
+### 11. Sur yang : poser le tunnel (passe 3)
+
+Yang connaît maintenant l'empreinte de yin : le script la compare à celle que lit `ssh-keyscan` sur yin, puis pose le tunnel et le démarre. Machine : yang, en root, dans `~/paresia`.
+
+**À personnaliser : remplacez `192.0.2.20` par l'adresse IP de yin (une adresse, non un nom), et `EMPREINTE_HOTE_RELAIS` par la valeur de l'étape 10.**
 
 ```
 bash deploy/backend-admin/installer-backend-admin.sh --alpha-test --session-secours oui \
@@ -192,11 +259,17 @@ bash deploy/backend-admin/installer-backend-admin.sh --alpha-test --session-seco
   --empreinte-hote-relais 'EMPREINTE_HOTE_RELAIS'
 ```
 
-Résultat attendu : le script compare l'empreinte à celle que lit `ssh-keyscan` sur le relais, puis pose le tunnel et le démarre. Une différence l'arrête.
+Résultat attendu : le script compare l'empreinte à celle que lit `ssh-keyscan` sur yin, puis pose le tunnel et le démarre. Une différence l'arrête.
 
-## 12. Vérifier backend-admin
+Vous pouvez passer à la suite quand le script se termine sans différence d'empreinte.
 
-Machine : `backend-admin`, en root.
+# IV. Vérifier
+
+## A. Sur yang
+
+### 12. Sur yang : vérifier les démons et le tunnel
+
+On contrôle que les unités tournent et que les sockets du tunnel existent. Machine : yang, en root.
 
 ```
 systemctl status pollux.service romulus.service paresia-tunnel.service
@@ -210,9 +283,13 @@ ss -xl | grep paresia-tunnel
 
 Résultat attendu : deux sockets, `/run/paresia-tunnel/romulus/remus.sock` et `/run/paresia-tunnel/pollux/castor.sock`.
 
-## 13. Vérifier backend-relais
+Vous pouvez passer à la suite quand les trois unités sont `active` et les deux sockets présentes.
 
-Machine : `backend-relais`, avec votre compte.
+## B. Sur yin
+
+### 13. Sur yin : vérifier les démons
+
+Même contrôle, côté relais. Machine : yin, avec votre compte.
 
 ```
 sudo /usr/bin/systemctl status castor.service remus.service
@@ -220,9 +297,13 @@ sudo /usr/bin/systemctl status castor.service remus.service
 
 Résultat attendu : les deux unités sont `active`.
 
-## 14. Activer au démarrage
+Vous pouvez passer à la suite quand les deux unités sont `active`.
 
-Quand tout est conforme, relancez chaque script avec `--activer` et les mêmes paramètres qu'aux étapes 10 et 11. Machine : `backend-relais` d'abord, dans `~/paresia`.
+## C. Sur les deux machines
+
+### 14. Sur yin puis sur yang : activer au démarrage
+
+Jusqu'ici, rien ne démarre tout seul après un redémarrage de la machine. Quand tout est conforme, relancez chaque script avec `--activer` et les mêmes paramètres qu'aux étapes 10 et 11. Machine : yin d'abord, dans `~/paresia`.
 
 **À personnaliser : les mêmes valeurs qu'à l'étape 10 (`192.0.2.10`, `CLE_PUBLIQUE_TUNNEL`, `EMPREINTE_CLE_TUNNEL`).**
 
@@ -233,7 +314,7 @@ bash deploy/backend-relais/installer-backend-relais.sh --alpha-test --session-se
   --empreinte-cle-tunnel 'EMPREINTE_CLE_TUNNEL'
 ```
 
-Puis sur `backend-admin`, en root, dans `~/paresia`.
+Puis sur yang, en root, dans `~/paresia`.
 
 **À personnaliser : les mêmes valeurs qu'à l'étape 11 (`192.0.2.20`, `EMPREINTE_HOTE_RELAIS`).**
 
@@ -245,9 +326,13 @@ bash deploy/backend-admin/installer-backend-admin.sh --alpha-test --session-seco
 
 Résultat attendu : « déjà en place » pour tout ce qui est conforme.
 
-## 15. Autoriser la clé d'un administrateur
+Vous pouvez passer à la suite quand les deux scripts se sont terminés sans erreur.
 
-Machine : `backend-admin`, en root. Le fichier `/var/lib/paresia-app/.ssh/authorized_keys` est créé vide. Ajoutez-y une ligne par administrateur.
+# V. Autoriser votre clé d'administrateur et premier usage
+
+### 15. Sur yang : autoriser la clé d'un administrateur
+
+Pour qu'un administrateur ouvre une session de présence, sa clé publique doit être listée. Machine : yang, en root. Le fichier `/var/lib/paresia-app/.ssh/authorized_keys` est créé vide. Ajoutez-y une ligne par administrateur.
 
 **À personnaliser : remplacez `CLE_PUBLIQUE_ADMIN` par la clé publique de l'administrateur et `COMMENTAIRE` par un nom court (1 à 64 caractères : lettres, chiffres, `.`, `_`, `@`, `-`).**
 
@@ -269,6 +354,8 @@ Résultat attendu :
 
 Un autre propriétaire fait refuser la connexion.
 
+L'installation est terminée quand la ligne est ajoutée et le propriétaire est `root`.
+
 ## Suite
 
 - Premier usage : `docs/wiki/Premier-usage.md`.
@@ -277,7 +364,7 @@ Un autre propriétaire fait refuser la connexion.
 
 ## Annexe A : mettre à jour une installation existante
 
-Chaque machine se met à jour séparément, avec le même script et `--mise-a-jour`, depuis un clone propre de la version voulue. Machine : celle à mettre à jour, dans le nouveau clone.
+Chaque machine se met à jour séparément, avec le même script et `--mise-a-jour`, depuis un clone propre de la version voulue. Machine : celle à mettre à jour, dans le nouveau clone. Les scripts gardent leurs noms d'origine : `backend-admin` pour yang, `backend-relais` pour yin.
 
 ```
 bash deploy/backend-<machine>/installer-backend-<machine>.sh --verifier
@@ -289,8 +376,8 @@ bash deploy/backend-<machine>/installer-backend-<machine>.sh --mise-a-jour --ses
 
 Ouvrez et testez d'abord une session de secours. Relisez `CHANGELOG.md` avant de lancer.
 
-- **Interruption.** Demander la mise à jour vaut accepter l'arrêt des unités de Paresia : sur `backend-admin`, Pollux puis Romulus ; sur `backend-relais`, Remus puis Castor. strfry, Docker, lighttpd et bunkerd ne sont jamais touchés. L'activation au démarrage n'est pas modifiée.
-- **Tunnel.** Sur `backend-admin`, la partie tunnel n'est mise à jour que si vous redonnez `--adresse-relais` et `--empreinte-hote-relais`. Sur `backend-relais`, il faut redonner `--adresse-admin`, `--cle-publique-tunnel` et `--empreinte-cle-tunnel`.
+- **Interruption.** Demander la mise à jour vaut accepter l'arrêt des unités de Paresia : sur yang, Pollux puis Romulus ; sur yin, Remus puis Castor. strfry, Docker, lighttpd et bunkerd ne sont jamais touchés. L'activation au démarrage n'est pas modifiée.
+- **Tunnel.** Sur yang, la partie tunnel n'est mise à jour que si vous redonnez `--adresse-relais` et `--empreinte-hote-relais`. Sur yin, il faut redonner `--adresse-admin`, `--cle-publique-tunnel` et `--empreinte-cle-tunnel`.
 - **Versions.** Le script affiche « installée X, livrée Y ». Une version livrée plus ancienne, un fichier de version illisible ou un format de sauvegarde incompatible : refus (code 78) avant toute modification.
 - **Configuration.** Un fichier de `/etc/paresia` inchangé est remplacé ; un fichier que vous avez modifié est conservé, la version livrée étant déposée à côté en `<fichier>.paresia-nouveau`. Pour une installation faite avec une version plus ancienne, tout fichier qui diffère est conservé : comparez-le à son `.paresia-nouveau`.
 - **Échec d'une vérification.** Retour arrière automatique du code et de la configuration, sortie 78 avec le nom du jeu.
@@ -308,9 +395,9 @@ bash deploy/backend-<machine>/installer-backend-<machine>.sh --retour-arriere --
 
 ## Annexe C : réserves et variantes
 
-- **Root et sudo.** Sur `backend-admin`, le script exige l'UID 0 ; lancé par `sudo`, il convient aussi (déduit du code, non essayé). Sur `backend-relais`, il refuse root et appelle lui-même `sudo` (1.9.10 au moins ; Debian 13 fournit la 1.9.16).
+- **Root et sudo.** Sur yang, le script exige l'UID 0 ; lancé par `sudo`, il convient aussi (déduit du code, non essayé). Sur yin, il refuse root et appelle lui-même `sudo` (1.9.10 au moins ; Debian 13 fournit la 1.9.16).
 - **Rejouable.** Une étape déjà conforme ne fait rien ; un état qui diffère est refusé (code 78), jamais écrasé. Les unités sont démarrées par `start`, jamais `restart`.
-- **Essai du noyau seul, sans strfry.** Ajoutez `--sauter produit` aux commandes du relais ; sautez l'étape 6.
+- **Essai du noyau seul, sans strfry.** Ajoutez `--sauter produit` aux commandes de yin ; sautez l'étape 6.
 - **Image strfry.** Le conteneur doit s'appeler `strfry` et venir de `z0brak/paresia-yin-strfry:4cd3cf6` ; sinon le script s'arrête avant toute modification (code 78).
 - **Serveur web et proxy.** Paresia n'installe ni lighttpd ni HAProxy. Les exigences sont dans `docs/serveur-web.md`. Les pages à servir sont sous `/usr/local/share/paresia/web/`. Sans serveur web, un poste distant ne joint pas l'API.
 - **Non livré.** Installation des deux machines en une seule commande ; unités de bunkerd et de Nisaba ; page d'administration du relais dans le client. Le mode `--alpha-test` est temporaire.

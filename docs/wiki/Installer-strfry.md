@@ -4,34 +4,34 @@ Version du document : 0.1.19 · 2026-11-08.
 
 Suivi, 2026-11-08 : réécrite pas à pas, dépôt récupéré dès le début ; numéro du document inchangé.
 
-Suivi, 2026-11-09 : `nak` n'est plus installé sur `backend-relais` ; la clé du relais se crée sur le poste des clés privées (étape 6) ; étapes renumérotées ; numéro du document inchangé (aucun numéro donné).
+Suivi, 2026-11-09 : `nak` n'est plus installé sur yin ; la clé du relais se crée sur le poste des clés privées (étape 6) ; étapes renumérotées ; numéro du document inchangé (aucun numéro donné).
 
-Cette page prépare `backend-relais`, de zéro, avant `INSTALL.md`. Elle suit un seul fil : rien d'autre à ouvrir.
+Cette page prépare **yin** (la machine du relais, `backend-relais` dans les noms de scripts et de dossiers), de zéro, avant `INSTALL.md`. Elle suit un seul fil : rien d'autre à ouvrir.
 
-Alpha : à essayer sur une machine jetable. Les noms et adresses (`backend-relais`, `relay.example.org`, `192.0.2.20`) sont des exemples génériques (RFC 2606, RFC 5737).
+Alpha : à essayer sur une machine jetable. Les noms et adresses (`yin`, `relay.example.org`, `192.0.2.20`) sont des exemples génériques (RFC 2606, RFC 5737).
 
 ## Avant de commencer
 
 Il vous faut :
 
-- `backend-relais` sous Debian 13 ;
+- yin sous Debian 13 ;
 - un compte ordinaire, membre du groupe `sudo`, avec `curl` installé ;
 - l'adresse IP de cette machine ;
 - l'adresse publique du relais.
 
-Toutes les commandes se lancent sur `backend-relais`, avec ce compte.
+Toutes les commandes se lancent sur yin, avec ce compte.
 
 ### À personnaliser obligatoirement
 
 | Valeur | Où | Exemple du guide | Ce qu'il faut mettre |
 | --- | --- | --- | --- |
-| adresse IP de la machine | `compose.yml` (étape 5) et contrôle `curl` (étape 9) | `192.0.2.20` | l'adresse IP de `backend-relais` joignable par le proxy ; jamais `0.0.0.0` |
+| adresse IP de la machine | `compose.yml` (étape 5) et contrôle `curl` (étape 9) | `192.0.2.20` | l'adresse IP de yin joignable par le proxy ; jamais `0.0.0.0` |
 | `relay.auth.serviceUrl` | `strfry.conf`, étape 7 | `wss://relay.example.org` | l'adresse publique exacte du relais, en `wss://` ; sinon l'authentification échoue pour tous |
 | `relay.info.self` | `strfry.conf`, étape 7 | `""` (vide) | la clé publique du relais, créée à l'étape 6 sur le poste de vos clés |
 
 ## 1. Récupérer le dépôt
 
-Les fichiers à copier plus loin viennent du dépôt. Machine : `backend-relais`.
+Les fichiers à copier plus loin viennent du dépôt. Machine : yin.
 
 Le clone, dans le dossier de votre compte, ne sert qu'à copier les fichiers livrés. Le relais tourne dans `/srv/strfry` et ne dépend plus du clone une fois les fichiers copiés.
 
@@ -55,7 +55,7 @@ Résultat attendu :
 
 ## 2. Installer Docker
 
-Machine : `backend-relais`.
+Machine : yin.
 
 ```
 sudo apt install extrepo
@@ -79,7 +79,7 @@ Docker Compose version v5.7.0
 
 ## 3. Télécharger l'image
 
-Machine : `backend-relais`.
+Machine : yin.
 
 ```
 sudo docker pull z0brak/paresia-yin-strfry:4cd3cf6
@@ -91,7 +91,7 @@ Résultat attendu : la fin de la sortie indique que l'image est téléchargée o
 
 ## 4. Préparer les dossiers
 
-Machine : `backend-relais`. Les droits se règlent **avant** le premier démarrage.
+Machine : yin. Les droits se règlent **avant** le premier démarrage.
 
 ```
 sudo install -d -o "$USER" /srv/strfry
@@ -139,7 +139,7 @@ drwxr-xr-x 2 10001 10001 4096 nov.  9 00:12 journal
 
 ## 5. Écrire `compose.yml`
 
-Machine : `backend-relais`, dans `/srv/strfry`.
+Machine : yin, dans `/srv/strfry`.
 
 Créez `/srv/strfry/compose.yml` avec votre éditeur, avec ce contenu :
 
@@ -196,7 +196,7 @@ Résultat attendu : vous avez noté la ligne « CLE PUBLIQUE HEX ». Le `ncrypts
 
 ## 7. Régler `strfry.conf`
 
-Machine : `backend-relais`. Le fichier `/srv/strfry/strfry.conf` est livré complet : les réglages techniques (base, port, limites) fonctionnent tels quels. Ouvrez-le avec votre éditeur et renseignez les réglages ci-dessous. Chacun se trouve dans le bloc indiqué (`relay`, puis `auth` ou `info`).
+Machine : yin. Le fichier `/srv/strfry/strfry.conf` est livré complet : les réglages techniques (base, port, limites) fonctionnent tels quels. Ouvrez-le avec votre éditeur et renseignez les réglages ci-dessous. Chacun se trouve dans le bloc indiqué (`relay`, puis `auth` ou `info`).
 
 | Réglage | À quoi il sert | Valeur à écrire | Obligatoire |
 | --- | --- | --- | --- |
@@ -233,11 +233,11 @@ Résultat attendu (vos valeurs à la place de `VOTRE_DOMAINE` et `CLE_PUBLIQUE`)
         self = "CLE_PUBLIQUE"
 ```
 
-Le `ncryptsec` sera importé dans le bunker lors de son installation sur `backend-admin`.
+Le `ncryptsec` sera importé dans le bunker lors de son installation sur yang.
 
 ## 8. Démarrer
 
-Machine : `backend-relais`, dans `/srv/strfry`.
+Machine : yin, dans `/srv/strfry`.
 
 ```
 cd /srv/strfry
@@ -266,7 +266,7 @@ Started websocket server on 0.0.0.0:7777
 
 ## 9. Contrôler
 
-Machine : `backend-relais`.
+Machine : yin.
 
 ```
 sudo docker exec strfry wget -qO- http://127.0.0.1:7777/metrics
@@ -314,7 +314,7 @@ publishing to ws://192.0.2.20:7777... success.
 
 ## Suite
 
-`backend-relais` est prêt. Passez à `INSTALL.md`, étape « Contrôler que strfry tourne », puis suivez la suite : le dépôt est déjà récupéré sur cette machine.
+Yin est prêt pour le relais. Passez à `INSTALL.md`, étape 6 « Sur yin : contrôler que strfry tourne », puis suivez la suite : le dépôt est déjà récupéré sur cette machine.
 
 ## Annexe : raisons et réserves
 
@@ -328,5 +328,5 @@ publishing to ws://192.0.2.20:7777... success.
 
   > **Bon à savoir.** Paresia ne crée aucun arbre de synchronisation entre relais. Si vous en ajoutez un, sachez que n'importe qui pourra voir quand des messages privés ont été échangés (pas leur contenu). C'est votre choix.
 - **Annonce NIP-11.** Les champs `relay.info.*` (`name`, `description`, `pubkey`, `self`, `contact`, `icon`, `banner`, `privacy`, `terms`) sont à votre convenance, sauf `self` (étape 7) ; les champs vides sont des valeurs d'installation. `pubkey` est la clé publique de l'administrateur (facultative), distincte de la clé du relais (`self`).
-- **Clé.** La clé privée du relais est une identité du bunker (`[bunkerd] relay_identity`) ; bunkerd n'en garde que la forme chiffrée. Ne collez jamais une clé privée dans un fichier, un terminal partagé ou une conversation ; seule la clé publique se publie. `nak` n'est pas installé sur `backend-relais` : la clé se crée sur le poste de vos clés (page [Installer nak](Installer-nak.md)).
+- **Clé.** La clé privée du relais est une identité du bunker (`[bunkerd] relay_identity`) ; bunkerd n'en garde que la forme chiffrée. Ne collez jamais une clé privée dans un fichier, un terminal partagé ou une conversation ; seule la clé publique se publie. `nak` n'est pas installé sur yin : la clé se crée sur le poste de vos clés (page [Installer nak](Installer-nak.md)).
 - **Non établi, à compléter :** limites de ressources de la production ; valeur de `ulimits.nofile` si strfry se plaint de `nofiles = 524288` ; forme du fichier `blocklist.txt` du plugin.
