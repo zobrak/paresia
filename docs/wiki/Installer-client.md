@@ -275,8 +275,8 @@ Pour fermer proprement : menu « Fermer l'administration », puis « Quitter ».
 
 ## En cas de problème
 
-- **Message « Configuration invalide » sans nom de réglage** : le plus souvent, les droits du dossier `~/.config/paresia` ou du fichier sont trop larges (modifiables par le groupe ou les autres) : refaites les commandes de droits de l'[étape 5](#5-configurer-lapplication) et relisez le résultat de `ls -ld`.
-- **Message « Configuration invalide » dans le terminal** : l'application nomme le réglage en cause ; relisez-le dans le fichier de l'étape 5 (chemin non absolu, adresse `url` avec un chemin ou un `/` final, langue qui n'est pas de la forme `fr-FR`).
+- **Message « Configuration invalide » sans nom de réglage** : le fichier a été refusé avant la lecture des réglages. Vérifiez, dans l'ordre : les droits du dossier `~/.config/paresia` et du fichier (refaites les commandes de droits de l'[étape 5](#5-configurer-lapplication)) ; avec `ls -ld`, qu'ils vous appartiennent et qu'aucun des deux n'est un lien symbolique ; la syntaxe du fichier (ligne sans `=`, clé ou section en double, section `[DEFAULT]`, interdite) ; sa taille, si le fichier est anormalement gros.
+- **Message « Configuration invalide » suivi d'un nom de réglage** : relisez ce réglage dans le fichier de l'étape 5 (chemin non absolu, adresse `url` avec un chemin ou un `/` final, langue qui n'est pas de la forme `fr-FR`).
 - **« Connexion SSH impossible ou interrompue »** : vérifiez, dans l'ordre : que l'agent détient la clé (`ssh-add -L`, étape 3), que la clé de yang est enregistrée (étape 4), que la clé est autorisée sur yang (étape 7), que yang est joignable sur le port 22.
 - **Signature impossible** : l'agent est absent de ce terminal (`echo "$SSH_AUTH_SOCK"` vide) ou ne connaît pas la clé : relancez l'étape 3, puis l'application depuis ce terminal.
 - **Autre message de la fenêtre** : la liste des messages est dans `paresia-admin(1)`, section DIAGNOSTICS ; le dépannage des démons de yang est dans [Journaux, métriques, dépannage](Journaux-metriques-depannage.md).
