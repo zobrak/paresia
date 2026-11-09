@@ -21,20 +21,22 @@ Le principe des greffons : un greffon **ne livre pas le produit** qu'il administ
 - Le **greffon strfry de base** (côté Remus, `paresia-yin-strfry`) : trois fonctions, posées par le script d'installation du relais dans `/usr/local/lib/paresia/remus/fonctions` (voir ci-dessous).
 - Remus : socle, chargement des fonctions, exécuteur de commandes et de scripts, flux d'événements sur le fil, générateur de sudoers, comptes, règle nftables, unités systemd, isolation (voir `isolation-remus.md`).
 - Un **`strfry.conf` complet**, toutes les valeurs écrites explicitement. Points d'attention pour les administrateurs de relais :
-  - `relay.auth.restrictedReadKinds = "4"` : le défaut amont (`"4, 1059"`) bloquerait l'application **bitchat**, qui ne gère pas NIP-42 ; ses messages privés sont des kind 1059 ;
+  - `relay.auth.restrictedReadKinds = "4"` : seuls les messages privés classiques (type 4) exigent une connexion authentifiée pour être lus ; le réglage d'origine de strfry l'exigerait aussi pour les messages privés emballés (type 1059), ce qui bloquerait l'application **bitchat**, qui ne sait pas s'authentifier ;
   - `restrictReadToInvolvedPubkey = true` ;
-  - `rejectEventsNewerThanSeconds = 1800` (les dates des kind 1059 de bitchat iOS sont décalées de plus ou moins 900 s) ;
+  - `rejectEventsNewerThanSeconds = 1800` (les dates des messages privés emballés de bitchat sur iOS sont décalées de plus ou moins 15 minutes) ;
   - `filterValidation.requireAuthorOrTag` non activé (filtres `#g`, `#r`, `#x`).
   Servir bitchat est un **objectif à évaluer**, non une règle absolue.
 - Un **plugin d'écriture** (`writePolicy`) en Python, exécuté dans le conteneur (donc `python3` dans l'image), qui alimente le journal légal. Le kind 20000 (canaux géographiques de bitchat) reste journalisé ; les kinds éphémères non journalisés (20001, présence…) prennent un chemin rapide sans écriture. Si l'écriture du journal échoue, la publication est **acceptée** et la ligne complète va dans journald. Une liste noire (fichier `blocklist.txt`, lue par le plugin) refuse les écritures qu'elle désigne ; illisible au démarrage, le relais accepte les écritures et journalise une alerte `ECHEC_LISTE_NOIRE`, pour ne pas couper le service.
-- Négentropie : ne créez jamais d'arbre negentropy prédéfini (`strfry negentropy add` et `build`) ; sans arbre, `NEG-OPEN` ne laisse fuir aucun kind 4 ou 1059. Les fichiers livrés n'en créent pas.
+- Synchronisation entre relais : les fichiers livrés ne créent aucun arbre de synchronisation.
+
+  > **Bon à savoir.** Paresia n'en crée pas. Si vous en ajoutez un, sachez que n'importe qui pourra voir quand des messages privés ont été échangés (pas leur contenu). C'est votre choix.
 
 ## Les trois fonctions de base
 
 | Action | Ce qu'elle fait | Réponse |
 | --- | --- | --- |
 | `relay/state/status` | prouve que le conteneur `strfry` répond et que la base est lisible (`strfry info`) | la version de la base (`db_version`) |
-| `relay/sync/trees` | liste les arbres negentropy existants, en **lecture seule** (jamais d'ajout ni de reconstruction) | les lignes de la liste (arbre, filtre, taille, empreinte) |
+| `relay/sync/trees` | liste les arbres negentropy existants, en **lecture seule** (Paresia n'en ajoute ni n'en reconstruit) | les lignes de la liste (arbre, filtre, taille, empreinte) |
 | `relay/container/restart` | redémarre le conteneur `strfry` (arrêt gracieux de deux minutes au plus) | succès ou `command_failed` |
 
 Ces fonctions agissent sous le compte `chef`, avec exactement trois commandes `sudo` (`docker exec strfry /app/strfry info`, `docker exec strfry /app/strfry negentropy list`, `docker restart strfry`) inscrites dans le fichier sudoers généré. Elles supposent un conteneur Docker nommé `strfry` : **le script d'installation du relais vérifie, avant toute modification, que l'image de ce conteneur correspond à la version que le greffon déclare** (l'étiquette de l'image doit être `4cd3cf6` ; l'étape se saute avec `--sauter produit`) et s'arrête sinon. Le script ne crée, ne démarre ni ne modifie ce conteneur.
@@ -54,9 +56,9 @@ Le cahier prévoit les opérations ci-dessous, par domaines. **Aujourd'hui, seul
 | conteneur | redémarrer, arrêter, démarrer, configuration, compacter |
 | modération | signalements, bannir, débannir, importer des bannissements, journal, liste de sourdine (kind 10000, signée par le bunker), publier la liste |
 
-## Ce qu'il ne faut pas faire
+## Bon à savoir
 
-Ne démarrez pas, n'arrêtez pas et ne modifiez pas strfry (configuration, données) à la main en parallèle de Paresia : Remus ne lance que les fonctions de ses dossiers. Hors de ce cadre, vous pouvez interrompre un relais en service.
+Remus ne lance que les fonctions de ses dossiers. Si vous démarrez, arrêtez ou modifiez strfry (configuration, données) à la main en parallèle, Paresia n'en sera pas informée, et vous pouvez interrompre un relais en service : prévenez-en les utilisateurs.
 
 ## Côté reverse proxy
 

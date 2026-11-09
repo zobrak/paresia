@@ -36,29 +36,50 @@ nak --help
 
 Résultat attendu : l'aide de `nak`.
 
-## 2. Créer une clé
+## 2. Comprendre les formats de clés
 
-Machine : le poste de vos clés privées, dans `bash`. Rien n'est enregistré : la clé est seulement affichée.
+Une identité Nostr est une paire de clés secp256k1, de 32 octets chacune. La clé publique se déduit de la clé privée, jamais l'inverse. Une même clé s'écrit de plusieurs façons :
 
-> **Attention.** La commande affiche deux lignes : **la première est la clé privée, la seconde la clé publique**.
-> Rien n'est enregistré : une fois l'écran effacé, la clé privée est perdue.
-> Copiez la **clé privée** en lieu sûr (coffre de mots de passe), jamais dans un fichier d'une machine de service, un terminal partagé ou une conversation.
-> Ne publiez ou ne configurez que la **clé publique** (par exemple dans `strfry.conf`).
+| Format | Ce que c'est | Nature | À savoir |
+| --- | --- | --- | --- |
+| hex | la clé en 64 caractères hexadécimaux, sans préfixe | publique ou privée | forme du protocole (NIP-01) et de `strfry.conf` ; rien ne distingue à l'œil une clé publique d'une privée : risque de confusion |
+| `npub1…` | clé publique en bech32 (NIP-19) | **publique** | pour l'affichage et la saisie ; à partager librement |
+| `nsec1…` | clé privée en clair en bech32 (NIP-19) | **privée** | le préfixe évite la confusion, pas le danger : qui la lit possède l'identité |
+| `ncryptsec1…` | clé privée **chiffrée** par une phrase de passe (NIP-49) | privée, protégée | la phrase est étirée par scrypt, la clé chiffrée par XChaCha20-Poly1305 ; sans la phrase, inutilisable |
+
+Hex et `npub` : la même clé publique écrite autrement. Hex et `nsec` : la même clé privée écrite autrement.
+
+> **Il est toujours préférable de transporter ou conserver le `ncryptsec`, protégé par une phrase de passe longue, plutôt que le `nsec` ou la clé privée en hex.** Une phrase courte se casse par essais hors ligne ; une phrase perdue, c'est la clé perdue.
+
+## 3. Générer une clé
+
+Machine : le poste de vos clés privées, dans `bash`. Rien n'est enregistré : les valeurs sont seulement affichées.
+
+> **Attention.**
+> Rien n'est enregistré : une fois l'écran effacé, le `ncryptsec` est perdu si vous ne l'avez pas copié.
+> La clé privée en clair n'est jamais affichée.
+> Conservez le `ncryptsec` et la phrase de passe **séparément** : la phrase, longue, dans un coffre de mots de passe.
+> La ligne `CLE PUBLIQUE HEX` va dans `relay.info.self` ; le `NPUB` se partage.
 
 ```bash
-SECRET=$(nak key generate); printf 'CLE PRIVEE (a conserver en lieu sur) : %s\n' "$SECRET"; printf 'CLE PUBLIQUE (pour strfry.conf)      : %s\n' "$(nak key public "$SECRET")"; unset SECRET
+read -r -s -p "Phrase de passe longue : " PHRASE; echo
 ```
 
-Résultat attendu : deux lignes libellées, chacune suivie de sa valeur.
-
-```
-CLE PRIVEE (a conserver en lieu sur) : …
-CLE PUBLIQUE (pour strfry.conf)      : …
+```bash
+SECRET=$(nak key generate); PUB=$(nak key public "$SECRET"); printf 'NCRYPTSEC (a conserver)             : %s\n' "$(nak key encrypt "$SECRET" "$PHRASE")"; printf 'CLE PUBLIQUE HEX (pour strfry.conf) : %s\n' "$PUB"; printf 'NPUB (a partager)                   : %s\n' "$(printf '%s' "$PUB" | nak encode npub)"; unset SECRET PHRASE PUB
 ```
 
-Pour la clé d'un relais, retournez à [Installer le relais strfry](Installer-strfry.md), étape 6, avec la clé publique.
+Résultat attendu : trois lignes libellées, de valeurs `ncryptsec1…`, 64 caractères hexadécimaux, `npub1…`.
 
-## 3. Sur `backend-admin` (bunker)
+```
+NCRYPTSEC (a conserver)             : ncryptsec1…
+CLE PUBLIQUE HEX (pour strfry.conf) : (64 caractères hexadécimaux)
+NPUB (a partager)                   : npub1…
+```
+
+Pour la clé d'un relais, retournez à [Installer le relais strfry](Installer-strfry.md), étape 6, avec la ligne `CLE PUBLIQUE HEX`.
+
+## 4. Sur `backend-admin` (bunker)
 
 `backend-admin` a aussi besoin de `nak` : le bunker (NIP-46) l'utilise, au chemin `/usr/local/bin/nak`. Machine : `backend-admin`, en root. Version v0.22.3.
 
@@ -68,5 +89,6 @@ Reprenez les trois commandes de l'étape 1 (`curl -fLO`, contrôle `sha256sum -c
 
 - **Origine.** `nak` n'est pas fourni par Debian ; il vient de l'amont `fiatjaf/nak` (https://github.com/fiatjaf/nak), v0.22.3, The Unlicense (empreinte et licence vérifiées à l'API GitHub le 2026-11-08). Chemin attendu par la configuration du bunker : `/usr/local/bin/nak`.
 - **Non essayé.** Les commandes d'installation ne font que télécharger, vérifier et installer ; aucune n'a été essayée.
-- **Création de la clé (étape 2).** La commande n'a pas été essayée. `nak key generate` et `nak key public <clé>` sont attestés par le README de `nak`. L'historique du shell ne contient que la commande, non la clé. La clé passe brièvement en argument de `nak key public` : elle est alors visible dans la liste des processus ; lancez la commande sur un poste sans autre utilisateur.
+- **Formats de clés.** Sources : NIP-01, NIP-19 (https://github.com/nostr-protocol/nips/blob/master/19.md) et NIP-49 (https://github.com/nostr-protocol/nips/blob/master/49.md). Exemple public du NIP-19 : hex `3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d` = `npub180cvv07tjdrrgpa0j7j7tmnyl2yr6yr7l8j4s3evf6u64th6gkwsyjh6w6`.
+- **Génération (étape 3).** Les commandes n'ont pas été essayées. `nak key generate`, `nak key public`, `nak key encrypt <secret> <mot-de-passe>`, `nak encode npub` en tube et `nak key decrypt` avec invite sont attestés par le README de `nak`. L'historique du shell ne contient que les commandes, ni la clé ni la phrase. Le secret et la phrase passent brièvement en argument de `nak key encrypt` et la clé de `nak key public` : ils sont alors visibles dans la liste des processus ; utilisez un poste sans autre utilisateur. `nak key decrypt <ncryptsec>` permet de vérifier, mais affiche la clé privée à l'écran.
 - **Clé du relais.** Le `ncryptsec` est ensuite importé dans le bunker ; la clé privée du relais est une identité du bunker (`[bunkerd] relay_identity`), dont bunkerd ne garde que la forme chiffrée.

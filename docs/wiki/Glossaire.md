@@ -29,7 +29,10 @@ Version du document : 0.1.19 · 2026-11-08 · [Accueil](Accueil.md)
 | **`jumeaux/1`** | protocole entre démons : lignes JSON (NDJSON), actions nommées par domaine |
 | **MANIFEST** | registre des journées du journal légal, avec leurs empreintes |
 | **N:M** | plusieurs machines yin (N) pour plusieurs machines yang (M) ; prévu après la 1.0 |
-| **`ncryptsec`** | clé privée Nostr chiffrée par phrase secrète (NIP-49) |
+| **`ncryptsec`** | clé privée Nostr chiffrée par phrase secrète (NIP-49) ; la forme à conserver et à transporter ; voir [Comprendre les formats de clés](Installer-nak.md) |
+| **`npub`** | clé publique Nostr en bech32 (NIP-19) ; se partage librement ; voir [Comprendre les formats de clés](Installer-nak.md) |
+| **`nsec`** | clé privée Nostr en clair, en bech32 (NIP-19) ; à ne jamais diffuser ; voir [Comprendre les formats de clés](Installer-nak.md) |
+| **hex (clé)** | clé de 32 octets écrite en 64 caractères hexadécimaux, forme du protocole et de `strfry.conf` ; ne distingue pas publique et privée ; voir [Comprendre les formats de clés](Installer-nak.md) |
 | **NDJSON** | JSON délimité par des sauts de ligne : un message par ligne |
 | **nftables** | pare-feu du noyau Linux ; Paresia l'emploie pour interdire au compte `tunnel` d'ouvrir des connexions TCP |
 | **NIP** | proposition de spécification Nostr (NIP-01, NIP-42, NIP-46, NIP-49…) |

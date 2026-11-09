@@ -108,6 +108,24 @@ cp ~/paresia/server/strfry/journal_legal.py plugins/
 cp ~/paresia/deploy/backend-relais/strfry/strfry.conf strfry.conf
 ```
 
+Rendez les fichiers lisibles par le conteneur :
+
+```
+sudo chmod 644 strfry.conf
+sudo chmod 755 plugins plugins/journal_legal.py
+```
+
+```
+ls -l strfry.conf plugins/journal_legal.py
+```
+
+Résultat attendu (la date et la taille varient) :
+
+```
+-rw-r--r-- 1 votre_compte votre_compte ... strfry.conf
+-rwxr-xr-x 1 votre_compte votre_compte ... plugins/journal_legal.py
+```
+
 ```
 sudo ls -ld data journal
 ```
@@ -172,15 +190,30 @@ Résultat attendu (votre adresse devant `:7777:7777`) :
 
 ## 6. Créer la clé du relais
 
-À faire sur le poste où vous conservez vos clés privées, jamais sur cette machine : suivez [Installer nak](Installer-nak.md), puis revenez ici avec la clé publique.
+À faire sur le poste où vous conservez vos clés privées, jamais sur cette machine : suivez [Installer nak](Installer-nak.md), puis revenez ici avec la ligne « CLE PUBLIQUE HEX ».
 
-Résultat attendu : vous avez noté la clé publique (la clé privée reste en lieu sûr, sur ce poste).
+Résultat attendu : vous avez noté la ligne « CLE PUBLIQUE HEX ». Le `ncryptsec` reste en lieu sûr sur ce poste : c'est lui qui sera importé dans le bunker.
 
 ## 7. Régler `strfry.conf`
 
-Machine : `backend-relais`. Dans `/srv/strfry/strfry.conf`, modifiez ces deux lignes avec votre éditeur :
+Machine : `backend-relais`. Le fichier `/srv/strfry/strfry.conf` est livré complet : les réglages techniques (base, port, limites) fonctionnent tels quels. Ouvrez-le avec votre éditeur et renseignez les réglages ci-dessous. Chacun se trouve dans le bloc indiqué (`relay`, puis `auth` ou `info`).
 
-**À personnaliser : remplacez `VOTRE_DOMAINE` par l'adresse publique du relais, et `CLE_PUBLIQUE` par la clé publique obtenue à l'étape 6. N'y mettez jamais la clé privée.**
+| Réglage | À quoi il sert | Valeur à écrire | Obligatoire |
+| --- | --- | --- | --- |
+| `serviceUrl` (bloc `auth`) | l'adresse publique du relais, que les utilisateurs saisissent dans leur application ; strfry la compare à celle que l'utilisateur prouve avoir utilisée pour se connecter | `"wss://` suivi de votre domaine, puis `"` ; exemple : `"wss://relay.example.org"` | oui : sinon l'authentification échoue pour tous |
+| `self` (bloc `info`) | la clé publique du relais, qui l'identifie en tant que relais | la ligne « CLE PUBLIQUE HEX » de l'étape 6 (64 caractères), entre guillemets | oui |
+| `name` (bloc `info`) | le nom affiché aux utilisateurs dans leur application | par exemple `"Relais de l'association"` ; livré : `"Paresia"` | non |
+| `description` (bloc `info`) | une phrase qui présente le relais | par exemple `"Relais privé de la famille."` ; livré : `"Relais Nostr du projet Paresia."` | non |
+| `pubkey` (bloc `info`) | la clé publique de la personne qui administre, pour que l'on sache à qui s'adresser (différente de `self`) | la clé publique en hexadécimal (64 caractères) de l'administrateur, ou `""` | non |
+| `contact` (bloc `info`) | un moyen de joindre l'administrateur | une adresse électronique ou un lien, par exemple `"mailto:admin@example.org"`, ou `""` | non |
+| `icon` (bloc `info`) | une petite image du relais | l'adresse `https://…` d'une image, ou `""` | non |
+| `banner` (bloc `info`) | une grande image d'en-tête | l'adresse `https://…` d'une image, ou `""` | non |
+| `privacy` (bloc `info`) | la page qui explique ce que le relais conserve | l'adresse `https://…` de votre politique de confidentialité, ou `""` | non |
+| `terms` (bloc `info`) | la page des règles d'usage de votre relais | l'adresse `https://…` de vos conditions d'utilisation, ou `""` | non |
+
+Laissez les autres réglages tels qu'ils sont livrés. Voici les deux lignes obligatoires :
+
+**À personnaliser : remplacez `VOTRE_DOMAINE` par l'adresse publique du relais, et `CLE_PUBLIQUE` par la valeur de la ligne « CLE PUBLIQUE HEX » obtenue à l'étape 6. N'y mettez jamais la clé privée.**
 
 ```
         serviceUrl = "wss://VOTRE_DOMAINE"
@@ -200,7 +233,7 @@ Résultat attendu (vos valeurs à la place de `VOTRE_DOMAINE` et `CLE_PUBLIQUE`)
         self = "CLE_PUBLIQUE"
 ```
 
-La clé privée sera importée dans le bunker lors de son installation sur `backend-admin`, qui la chiffrera.
+Le `ncryptsec` sera importé dans le bunker lors de son installation sur `backend-admin`.
 
 ## 8. Démarrer
 
@@ -254,10 +287,13 @@ En cas d'échec : `sudo journalctl -t strfry`.
 
 - **Nom et image.** Le conteneur doit s'appeler `strfry` et venir de l'image `z0brak/paresia-yin-strfry:4cd3cf6` : l'installateur s'arrête sinon (code 78) et ne crée ni ne modifie ce conteneur. L'étiquette est l'identifiant court du commit de strfry. L'image est modifiée par le projet (Alpine 3.24, OpenSSL au lieu de LibreSSL).
 - **Docker.** Le dépôt `docker-ce` par `extrepo` est un conseil, non une obligation.
+- **Droits des fichiers copiés.** `cp` garde les droits limités par l'`umask` de votre compte ; or le conteneur tourne sous `10001`, un autre compte. Sans `chmod 644` et `chmod 755`, strfry s'arrête sur `Permission denied` en lisant `/etc/strfry.conf` ou le plugin.
 - **Droits.** Le conteneur tourne sous `10001:10001` sans capacité (`cap_drop: ALL`) : ce compte doit être propriétaire de `data` et `journal`. Sinon strfry s'arrête sur `mdb_env_open: Permission denied`.
 - **Port.** strfry n'est joignable que par le proxy inverse, qui doit écraser l'en-tête d'adresse du client. Jamais `0.0.0.0`.
 - **Chemins dans l'image.** Programme `/app/strfry`, base `/app/strfry-db`, configuration cherchée dans l'ordre : `--config`, `STRFRY_CONFIG`, `/etc/strfry.conf`, `./strfry.conf`.
-- **`strfry.conf` : à ne pas changer sans raison.** `db`, `relay.port = 7777`, `relay.bind = "0.0.0.0"` (adresse dans le conteneur), `relay.realIpHeader`, `relay.writePolicy.plugin` (doit coïncider avec le montage), `restrictedReadKinds = "4"` et `filterValidation.enabled = false` (compatibilité bitchat). Ne créez jamais d'arbre negentropy (`strfry negentropy add`, `build`).
+- **`strfry.conf` : réglages livrés, à ne changer qu'en connaissance de cause.** `db`, `relay.port = 7777`, `relay.bind = "0.0.0.0"` (adresse dans le conteneur), `relay.realIpHeader`, `relay.writePolicy.plugin` (doit coïncider avec le montage), `restrictedReadKinds = "4"` et `filterValidation.enabled = false` (choisis pour rester compatible avec l'application bitchat).
+
+  > **Bon à savoir.** Paresia ne crée aucun arbre de synchronisation entre relais. Si vous en ajoutez un, sachez que n'importe qui pourra voir quand des messages privés ont été échangés (pas leur contenu). C'est votre choix.
 - **Annonce NIP-11.** Les champs `relay.info.*` (`name`, `description`, `pubkey`, `self`, `contact`, `icon`, `banner`, `privacy`, `terms`) sont à votre convenance, sauf `self` (étape 7) ; les champs vides sont des valeurs d'installation. `pubkey` est la clé publique de l'administrateur (facultative), distincte de la clé du relais (`self`).
 - **Clé.** La clé privée du relais est une identité du bunker (`[bunkerd] relay_identity`) ; bunkerd n'en garde que la forme chiffrée. Ne collez jamais une clé privée dans un fichier, un terminal partagé ou une conversation ; seule la clé publique se publie. `nak` n'est pas installé sur `backend-relais` : la clé se crée sur le poste de vos clés (page [Installer nak](Installer-nak.md)).
 - **Non établi, à compléter :** présence de `python3` dans l'image publiée (le plugin du journal légal l'exige) ; limites de ressources de la production ; valeur de `ulimits.nofile` si strfry se plaint de `nofiles = 524288` ; forme du fichier `blocklist.txt` du plugin ; essai de ce `compose.yml` tel quel sur une machine.
