@@ -397,6 +397,7 @@ La clé est autorisée quand les empreintes coïncident et que le propriétaire 
 - Installer le serveur web lighttpd sur yang, avant le client : [Installer et configurer lighttpd](docs/wiki/Installer-lighttpd.md), puis régler le frontal : [Régler HAProxy pour Paresia](docs/wiki/Installer-haproxy.md).
 - Installer le client sur le poste de l'administrateur : [Installer le client](docs/wiki/Installer-client.md).
 - Premier usage : [Premier usage](docs/wiki/Premier-usage.md).
+- Configurer Paresia (fichiers de yin et de yang, réglages courants) : [Configuration](docs/wiki/Configuration.md).
 - Mise à jour d'une installation existante : [annexe A](#annexe-a--mettre-à-jour-une-installation-existante).
 - Retour arrière : [annexe B](#annexe-b--retour-arrière).
 - Greffons (strfry, Nisaba, bunker) et tout le reste du guide : [Accueil du wiki](docs/wiki/Accueil.md), parties « Installer le noyau » et « Installer les greffons ».
