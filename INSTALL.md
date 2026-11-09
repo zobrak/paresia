@@ -392,6 +392,7 @@ La clé est autorisée quand les empreintes coïncident et que le propriétaire 
 
 ## Suite
 
+- Installer le serveur web lighttpd sur yang, avant le client : [Installer et configurer lighttpd](docs/wiki/Installer-lighttpd.md).
 - Installer le client sur le poste de l'administrateur : [Installer le client](docs/wiki/Installer-client.md).
 - Premier usage : [Premier usage](docs/wiki/Premier-usage.md).
 - Mise à jour d'une installation existante : [annexe A](#annexe-a--mettre-à-jour-une-installation-existante).
@@ -473,7 +474,7 @@ bash deploy/backend-relais/installer-backend-relais.sh --retour-arriere --jeu AA
 - **Rejouable.** Une étape déjà conforme ne fait rien ; un état qui diffère est refusé (code 78), jamais écrasé. Les unités sont démarrées par `start`, jamais `restart`.
 - **Essai du noyau seul, sans strfry.** Ajoutez `--sauter produit` aux commandes de yin ; sautez l'[étape 6](#6-sur-yin--installer-et-vérifier-strfry).
 - **Image strfry.** Le conteneur doit s'appeler `strfry` et venir de `z0brak/paresia-yin-strfry:4cd3cf6` ; sinon le script s'arrête avant toute modification (code 78).
-- **Serveur web et proxy.** Paresia n'installe ni lighttpd ni HAProxy. Les exigences sont dans [Serveur web](docs/serveur-web.md). Les pages à servir sont sous `/usr/local/share/paresia/web/`. Sans serveur web, un poste distant ne joint pas l'API.
+- **Serveur web et proxy.** Paresia n'installe ni lighttpd ni HAProxy. Les exigences sont dans [Serveur web](docs/serveur-web.md) et un guide pas à pas pour lighttpd dans [Installer et configurer lighttpd](docs/wiki/Installer-lighttpd.md). Les pages à servir sont sous `/usr/local/share/paresia/web/`. Sans serveur web, un poste distant ne joint pas l'API.
 - **Non livré.** Installation des deux machines en une seule commande ; unités de bunkerd et de Nisaba ; page d'administration du relais dans le client. Le mode `--alpha-test` est temporaire.
 - **Poste de l'administrateur.** L'application se lance par `python3 -m admin.app` ; elle exige PyQt6 avec QtWebEngine, un agent SSH actif et `openssh-client` ([Prérequis](docs/prerequis.md), § 4). Essai de bout en bout : [essai de présence](deploy/essai-presence.md).
 - **Références.** Principe des scripts, options et codes de sortie : [Installation](docs/wiki/Installation.md). Prérequis : [Prérequis](docs/prerequis.md). Manuel : `installer-backend-admin(8)` et `installer-backend-relais(8)`.

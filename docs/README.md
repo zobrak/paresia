@@ -24,6 +24,7 @@ Public : **A** = administrateur, **D** = développeur ou contributeur.
 | --- | --- | --- |
 | [Prérequis](prerequis.md) | paquets, versions et modules par machine | A |
 | [Installer le relais strfry](wiki/Installer-strfry.md) | préparer le conteneur Docker `strfry` de yin, avant l'installation | A |
+| [Installer et configurer lighttpd](wiki/Installer-lighttpd.md) | installer le serveur web lighttpd de yang et le régler pour Paresia, avant le client | A |
 | [Installer le client](wiki/Installer-client.md) | installer le client Paresia-admin sur le poste de l'administrateur | A |
 | [Installer `nak`](wiki/Installer-nak.md) | installer `nak` sur le poste des clés privées (création d'une clé) et sur yang (bunker) | A |
 | [Exploitation](exploitation.md) | démarrer, lire les journaux, feu de Castor, tunnel, retours arrière | A |

@@ -22,6 +22,7 @@ Pour installer : lisez [Qu'est-ce que Paresia ?](Qu-est-ce-que-Paresia.md), puis
 | [Installer le relais strfry](Installer-strfry.md) | Préparer le conteneur Docker `strfry` de `backend-relais`, avant l'installation |
 | [Installer `nak`](Installer-nak.md) | Sur le poste de vos clés privées : installer `nak` et créer une clé ; aussi sur `backend-admin` pour le bunker |
 | [Installation](Installation.md) | Principe de l'installation semi-automatique, options et codes de sortie des scripts (le parcours pas à pas est [INSTALL.md](../../INSTALL.md)) |
+| [Installer et configurer lighttpd](Installer-lighttpd.md) | Installer le serveur web de `backend-admin` et le régler pour Paresia, avant le client |
 | [Installer le client](Installer-client.md) | Installer le client Paresia-admin sur le poste de l'administrateur |
 | [Premier usage](Premier-usage.md) | Que vérifier juste après l'installation, ce qui est utilisable aujourd'hui |
 | [Administrer le relais strfry](Administration-du-relais-strfry.md) | Ce que Paresia fera (et ne fera pas) sur un relais strfry |
